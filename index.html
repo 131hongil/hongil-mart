@@ -801,31 +801,47 @@ const STOCK_EXTRA=[
 ];
 
 
-// ══ 스토리지 ══
 // ══ API 설정 ══
 const API='https://script.google.com/macros/s/AKfycby73sAtVfP2M8w-yDJD46IibvDUZ7eBWsnXN3JFksad_aKKbURnLh3v6E67RgijGM0GGQ/exec';
 let currentToken='';
 let currentUser=null;
 
+// Google Apps Script CORS 우회: 모든 요청을 GET+callback(JSONP) 방식으로
+function apiCall(params){
+  return new Promise((resolve,reject)=>{
+    const cbName='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const allParams=Object.assign({token:currentToken,callback:cbName},params);
+    // 큰 데이터는 분할 처리
+    const qs=Object.keys(allParams).map(k=>{
+      const v=allParams[k];
+      return encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v);
+    }).join('&');
+    const script=document.createElement('script');
+    const timer=setTimeout(()=>{
+      cleanup();reject(new Error('서버 응답 시간 초과 (30초). Apps Script가 배포되었는지 확인하세요.'));
+    },30000);
+    window[cbName]=function(data){
+      cleanup();
+      if(data.status==='error') reject(new Error(data.message));
+      else resolve(data.data);
+    };
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    script.onerror=()=>{cleanup();reject(new Error('스크립트 로드 실패. 네트워크를 확인하세요.'));};
+    script.src=API+'?'+qs;
+    document.head.appendChild(script);
+  });
+}
 async function apiGet(action,params){
-  params=params||{};
-  const p=Object.assign({action,token:currentToken},params);
-  const qs=new URLSearchParams(p).toString();
-  const r=await fetch(API+'?'+qs);
-  const d=await r.json();
-  if(d.status==='error')throw new Error(d.message);
-  return d.data;
+  return apiCall(Object.assign({action},params||{}));
 }
 async function apiPost(action,body){
-  body=body||{};
   showSaving(true);
   try{
-    const r=await fetch(API,{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(Object.assign({action,token:currentToken},body))});
-    const d=await r.json();
-    if(d.status==='error')throw new Error(d.message);
-    return d.data;
+    return await apiCall(Object.assign({action},body||{}));
   }finally{showSaving(false);}
 }
 function showSaving(v){
@@ -841,17 +857,13 @@ async function doLogin(){
   const btn=document.getElementById('loginBtn');
   btn.textContent='로그인 중...';btn.disabled=true;
   try{
-    const r=await fetch(API,{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'login',id,pw})});
-    const d=await r.json();
-    if(d.status==='error'){showLoginErr(d.message);return;}
-    currentToken=d.data.token;
-    currentUser=d.data.user;
+    const d=await apiCall({action:'login',id,pw});
+    currentToken=d.token;
+    currentUser=d.user;
     sessionStorage.setItem('hm_token',currentToken);
     sessionStorage.setItem('hm_user',JSON.stringify(currentUser));
     onLoginSuccess();
-  }catch(e){showLoginErr('서버 연결 실패: '+e.message);}
+  }catch(e){showLoginErr('로그인 실패: '+e.message);}
   finally{btn.textContent='로그인';btn.disabled=false;}
 }
 function showLoginErr(msg){
