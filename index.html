@@ -839,60 +839,29 @@ function apiCall(params){
   });
 }
 
-// 큰 데이터 전송용: iframe + form POST (URL 길이 제한 없음)
-function apiPostLarge(action, body){
-  return new Promise((resolve, reject)=>{
-    const cbName='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    const timer=setTimeout(()=>{
-      cleanup();reject(new Error('저장 시간 초과 (60초)'));
-    },60000);
-
-    window[cbName]=function(data){
-      cleanup();
-      if(data.status==='error') reject(new Error(data.message));
-      else resolve(data.data);
-    };
-
-    // 숨겨진 iframe 생성
-    const iframe=document.createElement('iframe');
-    iframe.name=cbName+'_frame';
-    iframe.style.display='none';
-    document.body.appendChild(iframe);
-
-    // form 생성 후 iframe으로 submit
-    const form=document.createElement('form');
-    form.method='POST';
-    form.action=API;
-    form.target=iframe.name;
-    form.style.display='none';
-
-    const allData=Object.assign({action, token:currentToken, callback:cbName}, body);
-    Object.keys(allData).forEach(k=>{
-      const input=document.createElement('input');
-      input.type='hidden';input.name=k;
-      const v=allData[k];
-      input.value=typeof v==='object'?JSON.stringify(v):v;
-      form.appendChild(input);
-    });
-
-    function cleanup(){
-      clearTimeout(timer);delete window[cbName];
-      if(form.parentNode) form.parentNode.removeChild(form);
-      if(iframe.parentNode) iframe.parentNode.removeChild(iframe);
+// 큰 데이터 전송: jung은 items를 별도로 나눠서 전송
+async function apiPostLarge(action, body){
+  showSaving(true);
+  try{
+    if(action==='saveJung' && body.jung){
+      const j=body.jung;
+      const items=j.items||[];
+      // items 제외한 기본 정보 먼저 전송
+      const jungBase=Object.assign({},j,{items:[]});
+      await apiCall({action:'saveJung', jung:jungBase});
+      // items가 있으면 청크로 나눠서 전송 (10개씩)
+      if(items.length>0){
+        const chunkSize=10;
+        for(let i=0;i<items.length;i+=chunkSize){
+          const chunk=items.slice(i,i+chunkSize);
+          await apiCall({action:'saveJungItems', id:j.id, items:chunk, offset:i, total:items.length});
+        }
+      }
+      return {ok:true};
     }
-
-    document.body.appendChild(form);
-    form.submit();
-
-    // iframe 로드 감지 (응답이 오면 callback 실행됨)
-    iframe.onload=function(){
-      // iframe이 로드되면 callback이 실행됐을 것임
-      // 혹시 callback이 안 왔으면 5초 후 에러
-      setTimeout(()=>{
-        if(window[cbName]){cleanup();reject(new Error('응답 없음'));}
-      },5000);
-    };
-  });
+    // stock, price는 그냥 전송 (jung보다 작음)
+    return await apiCall(Object.assign({action},body||{}));
+  }finally{showSaving(false);}
 }
 
 async function apiGet(action,params){
@@ -1098,6 +1067,7 @@ async function createJungsan(){
   const 날짜full=`${year}-${mm}-${dd}`;
   const 파일명=`최종정산서(${newCap})-${분향실}-${고인}-${날짜str}`;
   // 50명 전용 품목(only50)은 50명 외 인원수에서 제외
+  // qty 필드는 저장 안 함 (BASIC에서 항상 참조 가능, 데이터 크기 절감)
   const items=BASIC
     .filter(b=>{
       if(b.only50 && newCap!==50) return false;
