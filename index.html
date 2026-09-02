@@ -893,8 +893,15 @@ async function loadAllData(){
   try{
     document.getElementById('ubSync').style.color='#f39c12';
     const d=await apiGet('getAll');
-    jungs    =d.jungs   ||[];
-    results  =d.results ||[];
+    // Sheets에서 오는 데이터 타입 정규화 (Date→string, number→string 등)
+    jungs    =(d.jungs||[]).map(normalizeJung);
+    results  =(d.results||[]).map(r=>({
+      ...r,
+      id:String(r.id||''),
+      날짜:normalizeDate(r.날짜),
+      금액:+r.금액||0,
+      time:String(r.time||'')
+    }));
     stockData=d.stock   ||{};
     priceDB  =(d.price&&d.price.length>0)?d.price:DEF_PRICE;
     document.getElementById('ubSync').style.color='#52be80';
@@ -904,6 +911,48 @@ async function loadAllData(){
     document.getElementById('ubSync').style.color='#e74c3c';
     alert('데이터 로드 실패: '+e.message);
   }
+}
+// Sheets 날짜 정규화 (Date객체 또는 다양한 형식 → YYYY-MM-DD 문자열)
+function normalizeDate(v){
+  if(!v) return '';
+  if(typeof v==='string') return v.slice(0,10);
+  if(v instanceof Date) return v.toISOString().slice(0,10);
+  // Sheets에서 오는 숫자형 날짜 (serial number)
+  if(typeof v==='number'){
+    const d=new Date((v-25569)*86400*1000);
+    return d.toISOString().slice(0,10);
+  }
+  return String(v).slice(0,10);
+}
+// 정산서 데이터 정규화
+function normalizeJung(j){
+  return {
+    ...j,
+    id:String(j.id||''),
+    파일명:String(j.파일명||''),
+    인원수:+j.인원수||50,
+    분향실:String(j.분향실||''),
+    고인:String(j.고인||''),
+    날짜:normalizeDate(j.날짜),
+    상주:String(j.상주||''),
+    연락처:String(j.연락처||''),
+    상태:String(j.상태||'진행중'),
+    결제:String(j.결제||''),
+    생성일:String(j.생성일||new Date().toISOString()),
+    완료일:String(j.완료일||''),
+    생성자:String(j.생성자||''),
+    수정자:String(j.수정자||''),
+    items:(j.items||[]).map(it=>({
+      ...it,
+      품명:String(it.품명||''),
+      단위:String(it.단위||''),
+      단가:+it.단가||0,
+      주문량:+it.주문량||0,
+      추가:+it.추가||0,
+      반품:+it.반품||0,
+      isAdd:!!it.isAdd
+    }))
+  };
 }
 
 // ── 계정 관리 ──
@@ -951,11 +1000,12 @@ let priceDB=[],results=[],stockData={},jungs=[];
 let editingId=null,newCap=50,listFilter='진행중',pendingId=null;
 
 // ── API 저장 헬퍼 ──
-async function jungs_save(){
-  try{
-    const j=jungs.find(x=>x.id===editingId)||jungs[jungs.length-1];
-    if(j) await apiPost('saveJung',{jung:j});
-  }catch(e){console.error('정산서 저장 오류:',e);}
+async function jungs_save(jungObj){
+  // jungObj가 없으면 현재 편집 중인 것 사용
+  const j=jungObj||jungs.find(x=>x.id===editingId)||jungs[jungs.length-1];
+  if(!j)return;
+  try{await apiPost('saveJung',{jung:j});}
+  catch(e){console.error('정산서 저장 오류:',e);}
 }
 async function results_save(){
   // 결산서는 confirmPay에서 직접 처리
@@ -1066,7 +1116,13 @@ async function createJungsan(){
   const jung={id:Date.now().toString(),파일명,인원수:newCap,분향실,고인,날짜:날짜full,상주,연락처,상태:'진행중',결제:'',items,생성일:new Date().toISOString(),완료일:'',생성자:currentUser?.이름||''};
   jungs.push(jung);
   showSaving(true);
-  try{await apiPost('saveJung',{jung});}catch(e){alert('저장 실패: '+e.message);return;}
+  try{
+    await apiPost('saveJung',{jung});
+  }catch(e){
+    // 저장 실패해도 로컬에는 추가, 나중에 재시도 가능
+    console.error('생성 저장 오류:',e);
+    alert('⚠️ 서버 저장 중 오류가 발생했습니다.\n정산서는 생성됐으니 편집 후 💾 저장 버튼을 눌러주세요.\n오류: '+e.message);
+  }
   finally{showSaving(false);}
   closeModal('newModal');
   // 입력 초기화
