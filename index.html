@@ -1065,7 +1065,17 @@ function backToList(){
 }
 
 // ══ 새 정산서 ══
-function openNewModal(){document.getElementById('newModal').classList.add('show');}
+function openNewModal(){
+  // 이전 입력값 초기화
+  ['nw-분향실','nw-고인','nw-상주','nw-연락처'].forEach(id=>document.getElementById(id).value='');
+  newCap=50;
+  document.querySelectorAll('#newCapBtns .cap-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelector('#newCapBtns .cap-btn').classList.add('on');
+  const now=new Date();
+  document.getElementById('nw-날짜').value=('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2);
+  updateNFN();
+  document.getElementById('newModal').classList.add('show');
+}
 function selCap(n,el){
   newCap=n;
   document.querySelectorAll('#newCapBtns .cap-btn').forEach(b=>b.classList.remove('on'));
@@ -1087,7 +1097,6 @@ function parseTel(val){
   return d;
 }
 async function createJungsan(){
-  // 한글 필드 최종 정리
   filterHangul(document.getElementById('nw-고인'));
   filterHangul(document.getElementById('nw-상주'));
   const 분향실=document.getElementById('nw-분향실').value.trim();
@@ -1102,32 +1111,47 @@ async function createJungsan(){
   const mm=날짜str.slice(0,2),dd=날짜str.slice(2,4);
   const 날짜full=`${year}-${mm}-${dd}`;
   const 파일명=`최종정산서(${newCap})-${분향실}-${고인}-${날짜str}`;
-  // 50명 전용 품목(only50)은 50명 외 인원수에서 제외
-  // qty 필드는 저장 안 함 (BASIC에서 항상 참조 가능, 데이터 크기 절감)
   const items=BASIC
     .filter(b=>{
-      if(b.isExtra) return false;  // 기타잡화는 기본목록 제외, 추가물품으로만 사용
+      if(b.isExtra) return false;
       if(b.only50 && newCap!==50) return false;
       if(b.only150plus && newCap===50) return false;
       return true;
     })
     .map(b=>({품명:b.품명,단위:b.단위,단가:b.단가,주문량:b.qty[newCap]||0,추가:0,반품:0,isAdd:false}));
   for(let k=0;k<15;k++) items.push({품명:'',단위:'',단가:0,주문량:0,추가:0,반품:0,isAdd:true});
-  const jung={id:Date.now().toString(),파일명,인원수:newCap,분향실,고인,날짜:날짜full,상주,연락처,상태:'진행중',결제:'',items,생성일:new Date().toISOString(),완료일:'',생성자:currentUser?.이름||''};
+
+  const jung={
+    id:Date.now().toString(),파일명,인원수:newCap,분향실,고인,
+    날짜:날짜full,상주,연락처,상태:'진행중',결제:'',items,
+    생성일:new Date().toISOString(),완료일:'',생성자:currentUser?.이름||''
+  };
+
+  // 1. 창 먼저 닫기 + 로컬에 추가 → 진행중 목록에 즉시 표시
+  closeModal('newModal');
   jungs.push(jung);
+  renderJungList();
+
+  // 2. 서버 저장: items 없이 기본정보 먼저 (URL 길이 초과 방지)
   showSaving(true);
   try{
-    await apiPost('saveJung',{jung});
+    const jungBase={...jung,items:[]};
+    await apiCall({action:'saveJung',token:currentToken,callback:'cb'+Date.now(),jung:jungBase});
+
+    // items 10개씩 청크로 저장
+    const chunkSize=10;
+    for(let i=0;i<items.length;i+=chunkSize){
+      const chunk=items.slice(i,i+chunkSize);
+      await apiCall({
+        action:'saveJungItems',token:currentToken,callback:'cb'+Date.now(),
+        id:jung.id,items:chunk,offset:i,total:items.length
+      });
+    }
+    alert(`✅ 정산서 생성 완료!\n\n📋 ${파일명}\n진행중 목록에서 확인하세요.`);
   }catch(e){
-    // 저장 실패해도 로컬에는 추가, 나중에 재시도 가능
     console.error('생성 저장 오류:',e);
-    alert('⚠️ 서버 저장 중 오류가 발생했습니다.\n정산서는 생성됐으니 편집 후 💾 저장 버튼을 눌러주세요.\n오류: '+e.message);
-  }
-  finally{showSaving(false);}
-  closeModal('newModal');
-  // 입력 초기화
-  ['nw-분향실','nw-고인','nw-날짜','nw-상주','nw-연락처'].forEach(id=>document.getElementById(id).value='');
-  renderJungList();openEdit(jung.id);
+    alert(`✅ 정산서가 목록에 추가됐습니다.\n📋 ${파일명}\n\n⚠️ 서버 저장은 실패했습니다.\n편집 후 💾 저장 버튼을 눌러주세요.`);
+  }finally{showSaving(false);}
 }
 
 // ══ 정산서 목록 ══
