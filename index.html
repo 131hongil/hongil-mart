@@ -301,9 +301,9 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
         <span id="edit-pay" style="color:#1b3a5c;font-weight:700;font-size:12px;margin-left:4px"></span>
       </div>
       <div class="frow" style="align-items:flex-end">
-        <div class="fg"><label>발인일</label><input type="date" id="e-날짜"></div>
-        <div class="fg"><label>분향실</label><input type="text" id="e-분향실" style="width:68px"></div>
-        <div class="fg"><label>고인</label><input type="text" id="e-고인" style="width:90px"></div>
+        <div class="fg"><label>발인일</label><input type="date" id="e-날짜" oninput="updateEditFileName()"></div>
+        <div class="fg"><label>분향실</label><input type="text" id="e-분향실" style="width:68px" oninput="updateEditFileName()"></div>
+        <div class="fg"><label>고인</label><input type="text" id="e-고인" style="width:90px" oninput="updateEditFileName()"></div>
         <div class="fg"><label>상주</label><input type="text" id="e-상주" style="width:90px"></div>
         <div class="fg"><label>연락처</label><input type="text" id="e-연락처" style="width:120px"></div>
         <div class="fg"><label>인원수</label>
@@ -818,14 +818,20 @@ let currentUser=null;
 function apiCall(params){
   return new Promise((resolve,reject)=>{
     const cb='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    const p=Object.assign({token:currentToken,callback:cb},params);
-    const qs=Object.keys(p).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(
-      typeof p[k]==='object'?JSON.stringify(p[k]):p[k]
-    )).join('&');
+    // token, callback은 별도, 나머지는 'data' 파라미터 하나로 압축
+    const payload={...params, token:currentToken, callback:cb};
+    // 각 값을 개별 파라미터로 (객체는 JSON 문자열)
+    const parts=[];
+    Object.keys(payload).forEach(k=>{
+      const v=payload[k];
+      const sv=typeof v==='object'&&v!==null?JSON.stringify(v):String(v);
+      parts.push(encodeURIComponent(k)+'='+encodeURIComponent(sv));
+    });
+    const qs=parts.join('&');
     const sc=document.createElement('script');
-    const tm=setTimeout(()=>{cleanup();reject(new Error('서버 응답 시간 초과'));},30000);
+    const tm=setTimeout(()=>{cleanup();reject(new Error('서버 응답 시간 초과 (30초)'));},30000);
     window[cb]=d=>{cleanup();d.status==='error'?reject(new Error(d.message)):resolve(d.data);};
-    sc.onerror=()=>{cleanup();reject(new Error('네트워크 오류'));};
+    sc.onerror=()=>{cleanup();reject(new Error('네트워크 오류. 인터넷 연결 또는 팝업 차단을 확인하세요.'));};
     sc.src=API+'?'+qs;
     document.head.appendChild(sc);
     function cleanup(){clearTimeout(tm);delete window[cb];sc.parentNode?.removeChild(sc);}
@@ -834,8 +840,25 @@ function apiCall(params){
 async function apiGet(action,params){return apiCall(Object.assign({action},params||{}));}
 async function apiPost(action,body){
   showSaving(true);
-  try{return await apiCall(Object.assign({action},body||{}));}
-  finally{showSaving(false);}
+  try{
+    let payload=Object.assign({action},body||{});
+    // saveJung: items를 URL에서 제거 (URL 길이 초과 방지)
+    // items는 saveJungItems로 별도 저장
+    if(action==='saveJung'&&payload.jung&&payload.jung.items){
+      const items=[...(payload.jung.items||[])];
+      payload={...payload, jung:{...payload.jung, items:[]}};
+      const result=await apiCall(payload);
+      // items 청크 저장
+      if(items.length>0){
+        for(let i=0;i<items.length;i+=10){
+          await apiCall({action:'saveJungItems',id:payload.jung.id,
+            items:items.slice(i,i+10),offset:i,total:items.length});
+        }
+      }
+      return result;
+    }
+    return await apiCall(payload);
+  }finally{showSaving(false);}
 }
 function showSaving(v){
   const el=document.getElementById('ubSaving');
@@ -1136,16 +1159,13 @@ async function createJungsan(){
   showSaving(true);
   try{
     const jungBase={...jung,items:[]};
-    await apiCall({action:'saveJung',token:currentToken,callback:'cb'+Date.now(),jung:jungBase});
+    await apiPost('saveJung',{jung:jungBase});
 
     // items 10개씩 청크로 저장
     const chunkSize=10;
     for(let i=0;i<items.length;i+=chunkSize){
       const chunk=items.slice(i,i+chunkSize);
-      await apiCall({
-        action:'saveJungItems',token:currentToken,callback:'cb'+Date.now(),
-        id:jung.id,items:chunk,offset:i,total:items.length
-      });
+      await apiPost('saveJungItems',{id:jung.id,items:chunk,offset:i,total:items.length});
     }
     alert(`✅ 정산서 생성 완료!\n\n📋 ${파일명}\n진행중 목록에서 확인하세요.`);
   }catch(e){
@@ -1369,6 +1389,19 @@ function onCapChange(){
   }
   j.인원수=n;j.items.forEach(it=>{if(!it.isAdd)it.주문량=BASIC.find(b=>b.품명===it.품명)?.qty[n]||0;});
   buildTable(j,false);
+  updateEditFileName();  // 파일명 자동 갱신
+}
+
+// 편집창 필드 변경 시 파일명 자동 갱신 (고인명, 날짜, 분향실, 인원수 변경 연동)
+function updateEditFileName(){
+  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  const 날짜=document.getElementById('e-날짜').value||j.날짜;
+  const 분향실=document.getElementById('e-분향실').value||j.분향실;
+  const 고인=document.getElementById('e-고인').value||j.고인;
+  const 인원수=+document.getElementById('e-인원수').value||j.인원수;
+  const mm=(날짜||'').slice(5,7),dd=(날짜||'').slice(8,10);
+  const 파일명=`최종정산서(${인원수})-${분향실}-${고인}-${mm}${dd}`;
+  document.getElementById('editTitleText').textContent=`📋 ${파일명} `;
 }
 function calcTotal(items){return(items||[]).reduce((s,it)=>{const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);return s+f*(it.단가||0);},0);}
 function updTotal(){const j=jungs.find(x=>x.id===editingId);const t=j?calcTotal(j.items):0;document.getElementById('editTotal').textContent=fmt(t)+' 원';return t;}
