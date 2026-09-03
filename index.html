@@ -1,1 +1,2155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>혼길마트 정산시스템</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- v1788251559 -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%231b3a5c'/><text y='.9em' font-size='72' x='50%' text-anchor='middle' dominant-baseline='top'>🏪</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%231b3a5c'/><text y='.9em' font-size='72' x='50%' text-anchor='middle' dominant-baseline='top'>🏪</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;color:#222}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:116px;min-width:116px;background:#1b3a5c;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;z-index:100;box-shadow:2px 0 8px rgba(0,0,0,.2)}
+.sidebar-logo{color:#fff;padding:12px 8px 10px;font-size:12px;font-weight:700;text-align:center;border-bottom:1px solid #2d5580;line-height:1.3}
+.sidebar-logo span{font-size:22px;display:block;margin-bottom:3px}
+.ntab{color:#9bbcd4;padding:11px 6px;cursor:pointer;border:none;background:none;font-size:11px;font-family:inherit;text-align:center;width:100%;border-left:3px solid transparent;line-height:1.4;transition:.15s}
+.ntab:hover{color:#fff;background:#2d5580}
+.ntab.on{color:#fff;background:#2d5580;border-left-color:#4da6ff}
+.ntab .ti{font-size:17px;display:block;margin-bottom:2px}
+.content{flex:1;padding:13px;min-width:0}
+.page{display:none}.page.on{display:block}
 
+.card{background:#fff;border-radius:8px;padding:13px;margin-bottom:11px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.card-title{font-size:14px;font-weight:700;color:#1b3a5c;margin-bottom:11px;padding-bottom:7px;border-bottom:2px solid #e0eaf5;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.frow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:7px;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:11px;color:#555;font-weight:700}
+.fg input,.fg select{padding:5px 7px;border:1px solid #ccc;border-radius:4px;font-size:13px;font-family:inherit}
+.fg input:focus,.fg select:focus{outline:none;border-color:#4da6ff}
+.fg input:disabled,.fg select:disabled{background:#f5f5f5;color:#888;cursor:not-allowed}
+
+.btn{padding:7px 13px;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:700;transition:.1s;display:inline-flex;align-items:center;gap:4px;user-select:none}
+.btn:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.2)}
+.btn:active{transform:translateY(1px) scale(0.96);filter:brightness(0.88);box-shadow:none}
+.ntab:active{transform:scale(0.94);filter:brightness(0.85)}
+.fbtn{transition:all 0.1s}
+.fbtn:active{transform:scale(0.94)}
+.cap-btn{transition:all 0.1s}
+.cap-btn:active{transform:scale(0.92)}
+.btn-primary{background:#1b3a5c;color:#fff}.btn-primary:hover{background:#2d5580}
+.btn-success{background:#217a3c;color:#fff}.btn-success:hover{background:#185f2e}
+.btn-danger{background:#c0392b;color:#fff}.btn-danger:hover{background:#962d22}
+.btn-warning{background:#e67e22;color:#fff}.btn-warning:hover{background:#ca6f1e}
+.btn-info{background:#1a7fa0;color:#fff}.btn-info:hover{background:#14637e}
+.btn-gray{background:#7f8c8d;color:#fff}.btn-gray:hover{background:#6c7a7d}
+.btn-purple{background:#7d3c98;color:#fff}.btn-purple:hover{background:#6c3483}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-group{display:flex;gap:6px;flex-wrap:wrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.badge-card{background:#d4edda;color:#155724}
+.badge-cash{background:#fff3cd;color:#856404}
+.badge-rcpt{background:#d1ecf1;color:#0c5460}
+.badge-ing{background:#fdebd0;color:#784212}
+.badge-done{background:#d5f5e3;color:#1e8449}
+
+/* ── 정산서 목록 ── */
+.filter-btns{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.fbtn{padding:7px 18px;border:2px solid #ccc;border-radius:6px;cursor:pointer;background:#fff;font-weight:700;font-size:13px;color:#555;font-family:inherit;transition:.15s}
+.fbtn:hover{border-color:#1b3a5c;color:#1b3a5c}
+.fbtn.on-ing{border-color:#e67e22;background:#e67e22;color:#fff}
+.fbtn.on-done{border-color:#217a3c;background:#217a3c;color:#fff}
+.fbtn.on-all{border-color:#1b3a5c;background:#1b3a5c;color:#fff}
+.jung-list{display:flex;flex-direction:column;gap:8px}
+.jung-item{background:#f8faff;border:1px solid #d0dff0;border-radius:7px;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.jung-item.done{background:#f0fff4;border-color:#52be80}
+.ji-name{font-weight:700;color:#1b3a5c;font-size:13px;flex:1;min-width:160px}
+.ji-sub{color:#888;font-size:11px;white-space:nowrap}
+.ji-cap{background:#1b3a5c;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.empty-msg{color:#aaa;text-align:center;padding:30px;font-size:13px}
+
+/* ── 정산서 테이블 ── */
+.jtbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.jtbl th{background:#1b3a5c;color:#fff;padding:6px 3px;text-align:center}
+.jtbl td{padding:3px 3px;border-bottom:1px solid #f0f0f0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jtbl tr.br td{background:#fafbfc}.jtbl tr.br:hover td{background:#f0f5ff}
+.jtbl tr.ar td{background:#fffde7}.jtbl tr.ar:hover td{background:#fff8c0}
+.jtbl tr.tr td{background:#e8f4fd;font-weight:700;font-size:13px;border-top:2px solid #1b3a5c}
+.jtbl td.nm{text-align:left;padding-left:5px;white-space:normal}
+.jtbl input.q{width:50px;padding:2px 3px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:12px}
+.jtbl input.q:focus{border-color:#4da6ff}
+.jtbl select.as{width:100%;padding:2px;border:1px solid #ccc;border-radius:3px;font-size:11px}
+.neg{color:#c0392b}
+.stamp{display:inline-block;border:2px solid #c0392b;color:#c0392b;padding:1px 7px;border-radius:3px;font-weight:700;font-size:11px;transform:rotate(-4deg);margin-left:5px;vertical-align:middle}
+
+/* ── 결산서 ── */
+.dtbl{width:100%;border-collapse:collapse;font-size:12px}
+.dtbl th{background:#1b3a5c;color:#fff;padding:6px;text-align:center}
+.dtbl td{padding:5px 6px;border-bottom:1px solid #f0f0f0;text-align:center}
+.dtbl tr:hover td{background:#f5f8ff}
+.dtbl td.left{text-align:left}
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:11px}
+.sum-box{background:#f0f5ff;border-left:4px solid #1b3a5c;border-radius:5px;padding:9px 10px}
+.sum-box .lbl{font-size:11px;color:#555}
+.sum-box .val{font-size:15px;font-weight:700;color:#1b3a5c;margin-top:2px}
+.chart-box{background:#fff;border:1px solid #e0eaf5;border-radius:7px;padding:7px 12px;margin-bottom:9px}
+.chart-box h4{font-size:12px;color:#1b3a5c;margin-bottom:6px;display:flex;gap:14px;align-items:center}
+.chart-legend{display:flex;gap:14px;font-size:11px;color:#555;margin-left:auto}
+.chart-legend span{display:flex;align-items:center;gap:4px}
+.chart-legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
+.chart-legend .bar-leg{width:14px;height:14px;border-radius:2px;background:#4472c4}
+
+/* ── 재고 ── */
+.stbl{border-collapse:collapse;font-size:13px;white-space:nowrap}
+.stbl th{background:#1b3a5c;color:#fff;padding:5px 4px;text-align:center;position:sticky;top:0;z-index:1}
+.stbl td{padding:3px 4px;border-bottom:1px solid #eee;text-align:center}
+.stbl tr:nth-child(even) td{background:#f9fafb}
+.stbl input.sv{width:52px;padding:2px 3px;border:1px solid #ddd;border-radius:2px;text-align:center;font-size:12px}
+.stbl td.snm{text-align:left;padding-left:6px;white-space:normal;min-width:120px}
+.stbl td.scat{color:#555;font-size:11px}
+.tbl-wrap{overflow-x:auto;max-height:calc(100vh - 200px);overflow-y:auto}
+
+/* ── 원가DB ── */
+.ptbl{width:100%;border-collapse:collapse;font-size:12px}
+.ptbl th{background:#1b3a5c;color:#fff;padding:6px;text-align:center;position:sticky;top:0}
+.ptbl td{padding:3px 4px;border-bottom:1px solid #eee}
+.ptbl tr:hover td{background:#f5f8ff}
+.ptbl input,.ptbl select{width:100%;padding:2px 4px;border:1px solid transparent;background:transparent;font-size:12px;font-family:inherit}
+.ptbl input:focus,.ptbl select:focus{border-color:#4da6ff;background:#fff;border-radius:3px;outline:none}
+.ptbl input[type=number]{text-align:right}
+
+/* ── 모달 ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-start;justify-content:center;overflow-y:auto}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:10px;padding:20px;min-width:320px;max-width:97%;max-height:92vh;overflow-y:auto}
+.modal h3{margin-bottom:13px;color:#1b3a5c}
+.radio-group{display:flex;flex-direction:column;gap:10px;margin:10px 0}
+.radio-group label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.cap-btns{display:flex;gap:6px;flex-wrap:wrap}
+.cap-btn{padding:5px 12px;border:2px solid #1b3a5c;border-radius:5px;cursor:pointer;background:#fff;font-weight:700;font-size:12px;color:#1b3a5c;font-family:inherit}
+.cap-btn:hover,.cap-btn.on{background:#1b3a5c;color:#fff}
+
+/* ── 마트관리 ── */
+.mgmt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}
+.mgmt-card{background:#f8faff;border:1px solid #d0dff0;border-radius:7px;padding:14px;cursor:pointer;transition:.15s;text-align:center}
+.mgmt-card:hover{background:#e0eaf5;border-color:#1b3a5c}
+.mgmt-card .icon{font-size:26px;margin-bottom:5px}
+.mgmt-card .name{font-weight:700;color:#1b3a5c;font-size:13px}
+.mgmt-card .desc{font-size:11px;color:#666;margin-top:2px}
+
+/* ── 인쇄 ── */
+@media print{
+  @page{margin:10mm;size:A4 portrait}
+  body > *:not(#printArea){display:none!important}
+  #printArea{display:block!important;
+    position:static!important;
+    width:100%!important;
+    padding:0!important;background:#fff!important}
+}
+#printArea{font-family:'Malgun Gothic',sans-serif}
+#printArea table{width:100%;border-collapse:collapse;font-size:11pt;table-layout:auto}
+#printArea th,#printArea td{border:1px solid #333;padding:3px 4px;text-align:center;word-break:keep-all}
+#printArea td.pnm{text-align:left;padding-left:5px}
+#printArea .ph1{font-size:18pt;font-weight:700;text-align:center;padding:6px 0 2px;letter-spacing:5px}
+#printArea .ph2{text-align:center;font-size:11pt;margin-bottom:4px}
+#printArea .phead{width:100%;border-collapse:collapse;margin-bottom:4px}
+#printArea .phead td{border:1px solid #333;padding:4px 10px;font-size:10.5pt}
+#printArea .phead td.lbl{background:#f5f5f5;font-weight:700;width:50px;text-align:center}
+#printArea .ptotal td{font-weight:700;background:#f5f5f5;font-size:11pt}
+#printArea .pnote{font-size:9pt;margin-top:4px;text-align:center;color:#444}
+#printArea tr{page-break-inside:avoid}
+#printArea{display:none}
+</style>
+</head>
+<body>
+
+<!-- ══ 로그인 화면 ══ -->
+<div id="loginScreen" style="
+  position:fixed;inset:0;background:linear-gradient(135deg,#1b3a5c 0%,#2d5580 100%);
+  display:flex;align-items:center;justify-content:center;z-index:9999;pointer-events:all">
+  <div style="background:#fff;border-radius:14px;padding:36px 40px;min-width:320px;
+              box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center;position:relative;z-index:10000">
+    <div style="font-size:42px;margin-bottom:6px">🏪</div>
+    <div style="font-size:20px;font-weight:700;color:#1b3a5c;margin-bottom:4px">혼길마트</div>
+    <div style="font-size:12px;color:#888;margin-bottom:24px">정산 관리 시스템</div>
+    <div id="loginError" style="background:#fde;color:#c0392b;border-radius:5px;
+      padding:8px 12px;font-size:12px;margin-bottom:12px;display:none"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+      <input id="li-id" type="text" placeholder="아이디" autocomplete="username"
+        style="padding:10px 12px;border:1px solid #ccc;border-radius:6px;font-size:14px;
+               font-family:inherit;text-align:center;pointer-events:all;position:relative;z-index:10001"
+        onkeydown="if(event.key==='Enter')document.getElementById('li-pw').focus()">
+      <input id="li-pw" type="password" placeholder="비밀번호" autocomplete="current-password"
+        style="padding:10px 12px;border:1px solid #ccc;border-radius:6px;font-size:14px;
+               font-family:inherit;text-align:center;pointer-events:all;position:relative;z-index:10001"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button onclick="doLogin()" id="loginBtn"
+      style="width:100%;padding:11px;background:#1b3a5c;color:#fff;border:none;border-radius:7px;
+             font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;pointer-events:all">
+      로그인
+    </button>
+    <div style="font-size:11px;color:#aaa;margin-top:14px">초기 계정: admin / 1234</div>
+  </div>
+</div>
+
+<div id="userBar" style="display:none;background:#0f2540;color:#9bbcd4;
+  padding:4px 14px;font-size:11px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;border-bottom:1px solid #2d5580">
+  <span>🏪 혼길마트 정산시스템</span>
+  <span id="ubSync" style="color:#52be80">●</span>
+  <span id="ubUser" style="color:#fff;font-weight:700;margin-left:4px"></span>
+  <span id="ubTime" style="margin-left:4px"></span>
+  <span id="ubBackup" style="color:#52be80;font-size:10px" title="마지막 자동백업 날짜"></span>
+  <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+    <span id="ubSaving" style="color:#f39c12;display:none">⏳ 저장중...</span>
+    <button onclick="autoBackupToFile('수동')" style="background:#217a3c;color:#fff;border:none;
+      border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit" title="지금 백업">💾 백업</button>
+    <button onclick="restoreSnapshot()" style="background:#2d5580;color:#9bbcd4;border:none;
+      border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit" title="스냅샷으로 복원">↩ 복원</button>
+    <button onclick="openUserMgmt()" style="background:#2d5580;color:#9bbcd4;border:none;
+      border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit">⚙ 계정</button>
+    <button onclick="doLogout()" style="background:#c0392b;color:#fff;border:none;
+      border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit">로그아웃</button>
+  </div>
+</div>
+
+<!-- ══ 계정 관리 모달 ══ -->
+<div class="overlay" id="userMgmtModal">
+  <div class="modal" style="max-width:420px">
+    <h3>⚙ 계정 관리</h3>
+    <div style="font-size:13px;color:#555;margin-bottom:14px">
+      현재 로그인: <strong id="umCurUser"></strong>
+      <span id="umRoleBadge" style="margin-left:6px;background:#1b3a5c;color:#fff;
+        padding:1px 7px;border-radius:8px;font-size:11px"></span>
+    </div>
+
+    <div style="border-top:1px solid #eee;padding-top:12px;margin-bottom:14px">
+      <div style="font-weight:700;color:#1b3a5c;font-size:12px;margin-bottom:8px">🔑 비밀번호 변경</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <input id="um-oldpw" type="password" placeholder="현재 비밀번호"
+          style="padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+        <input id="um-newpw" type="password" placeholder="새 비밀번호"
+          style="padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+        <button onclick="changePass()" class="btn btn-info btn-sm">변경</button>
+      </div>
+    </div>
+
+    <div id="adminSection" style="border-top:1px solid #eee;padding-top:12px;display:none">
+      <div style="font-weight:700;color:#1b3a5c;font-size:12px;margin-bottom:8px">👥 계정 추가 (관리자)</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;gap:6px">
+          <input id="um-newid" type="text" placeholder="아이디" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+          <input id="um-newname" type="text" placeholder="이름" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+        </div>
+        <div style="display:flex;gap:6px">
+          <input id="um-newinpw" type="password" placeholder="비밀번호" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+          <select id="um-role" style="width:90px;padding:7px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+            <option value="user">일반</option>
+            <option value="admin">관리자</option>
+          </select>
+        </div>
+        <button onclick="addUser()" class="btn btn-success btn-sm">계정 추가</button>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #eee;padding-top:12px;margin-top:4px" id="logSection" style="display:none">
+      <div style="font-weight:700;color:#1b3a5c;font-size:12px;margin-bottom:8px">📋 최근 작업 로그</div>
+      <div id="logList" style="max-height:180px;overflow-y:auto;font-size:11px"></div>
+    </div>
+
+    <div class="btn-group" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-gray" onclick="closeModal('userMgmtModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout" id="mainLayout" style="display:none">
+
+<!-- 사이드바 -->
+<div class="sidebar">
+  <div class="sidebar-logo"><span>🏪</span></div>
+  <button class="ntab on" onclick="showPage('진행중',this)"><span class="ti">📁</span>정산서<br>관리</button>
+  <button class="ntab" onclick="showPage('결산',this)"><span class="ti">📊</span>결산서</button>
+  <button class="ntab" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
+  <button class="ntab" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
+  <button class="ntab" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
+</div>
+
+<div class="content">
+
+<!-- ══ 정산서 관리 ══ -->
+<div id="page-진행중" class="page on">
+  <div class="card">
+    <div class="card-title">📁 정산서 관리
+      <button class="btn btn-success" onclick="openNewModal()" style="margin-left:auto">+ 새 정산서 생성</button>
+    </div>
+    <div class="filter-btns">
+      <button class="fbtn on-ing" id="f-진행중" onclick="setFilter('진행중',this)">진행중</button>
+      <button class="fbtn" id="f-완료" onclick="setFilter('완료',this)">완료</button>
+      <button class="fbtn" id="f-all" onclick="setFilter('all',this)">전체</button>
+    </div>
+    <div class="jung-list" id="jungList"></div>
+  </div>
+</div>
+
+<!-- ══ 정산서 편집 오버레이 (탭 없음, 목록 위에 뜨는 방식) ══ -->
+<div id="editOverlay" style="display:none;position:fixed;top:34px;left:116px;right:0;bottom:0;background:#eef2f7;overflow-y:auto;z-index:50;padding:10px 14px">
+
+    <div class="card">
+      <div class="card-title">
+        <span id="editTitleText">📋 정산서</span>
+        <span id="edit-stamp" style="display:none" class="stamp">정산완료</span>
+        <span id="edit-pay" style="color:#1b3a5c;font-weight:700;font-size:12px;margin-left:4px"></span>
+      </div>
+      <div class="frow" style="align-items:flex-end">
+        <div class="fg"><label>발인일</label><input type="date" id="e-날짜" oninput="updateEditFileName()"></div>
+        <div class="fg"><label>분향실</label><input type="text" id="e-분향실" style="width:68px" oninput="updateEditFileName()"></div>
+        <div class="fg"><label>고인</label><input type="text" id="e-고인" style="width:90px" oninput="updateEditFileName()"></div>
+        <div class="fg"><label>상주</label><input type="text" id="e-상주" style="width:90px"></div>
+        <div class="fg"><label>연락처</label><input type="text" id="e-연락처" style="width:120px"></div>
+        <div class="fg"><label>인원수</label>
+          <select id="e-인원수" onchange="onCapChange()">
+            <option value="50">50명</option><option value="150">150명</option>
+            <option value="300">300명</option><option value="500">500명</option>
+            <option value="1000">1000명</option>
+          </select>
+        </div>
+        <!-- 편집 버튼: 목록,저장,정산완료,인쇄 순 -->
+        <div class="btn-group" id="editBtnGroup" style="margin-left:auto">
+          <button class="btn btn-gray" onclick="closeEditOverlay()">← 목록</button>
+          <button class="btn btn-info" onclick="saveEditing()">💾 저장</button>
+          <button class="btn btn-success" id="btnDone" onclick="정산완료()">✅ 정산완료</button>
+          <button class="btn btn-info" onclick="doPrint()">🖨️ 인쇄</button>
+        </div>
+        <!-- 보기 버튼: 목록,수정,정산취소,인쇄 순 -->
+        <div class="btn-group" id="viewBtnGroup" style="margin-left:auto;display:none">
+          <button class="btn btn-gray" onclick="closeEditOverlay()">← 목록</button>
+          <button class="btn btn-purple" onclick="enableEdit()">✏️ 수정</button>
+          <button class="btn btn-danger" onclick="정산취소()" id="btnCancel">🔄 정산취소</button>
+          <button class="btn btn-info" onclick="doPrint()">🖨️ 인쇄</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 화면 테이블 -->
+    <div class="card" style="overflow-x:auto" id="editTableWrap">
+      <table class="jtbl">
+        <colgroup>
+          <col style="width:32px"><col style="width:200px"><col style="width:68px">
+          <col style="width:65px"><col style="width:55px"><col style="width:55px">
+          <col style="width:55px"><col style="width:55px"><col style="width:75px">
+        </colgroup>
+        <thead><tr>
+          <th>NO</th><th>품  목</th><th>단위</th><th>단가</th>
+          <th>주문량</th><th>추가</th><th>반품</th><th>최종</th><th>가격</th>
+        </tr></thead>
+        <tbody id="editBody"></tbody>
+        <tfoot><tr class="tr">
+          <td colspan="8" style="text-align:right;padding-right:10px">합&nbsp;&nbsp;&nbsp;계</td>
+          <td id="editTotal">0 원</td>
+        </tr></tfoot>
+      </table>
+      <div style="font-size:11px;color:#666;margin-top:7px">
+        ※ 묶음포장 개봉시 반품이 안됩니다.&nbsp;&nbsp;계좌번호 32-02-014675 제주은행 예금주: 송미봉
+      </div>
+    </div>
+
+
+</div><!-- /editOverlay -->
+
+<!-- ══ 인쇄 영역 (body 최상위) ══ -->
+<div id="printArea" style="display:none;position:fixed;top:-9999px;left:0;width:210mm;background:#fff;padding:10mm;box-sizing:border-box">
+  <div id="printContent"></div>
+</div>
+
+<!-- ══ 결산서 ══ -->
+<div id="page-결산" class="page">
+  <div class="card">
+    <div class="card-title">📊 결산서</div>
+    <div class="sum-grid" id="sumGrid"></div>
+    <div class="chart-box">
+      <h4>📊 월별 정산 현황
+        <div class="chart-legend">
+          <span><div class="bar-leg"></div> 정산액</span>
+          <span><i style="background:#e8821a;height:3px"></i> 건수</span>
+        </div>
+      </h4>
+      <canvas id="chartCombo" height="45"></canvas>
+    </div>
+    <div class="frow" style="margin-bottom:10px">
+      <div class="fg"><label>월 필터</label><input type="month" id="filterMonth" onchange="renderResults()"></div>
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('filterMonth').value='';renderResults()">전체보기</button>
+      <button class="btn btn-info btn-sm" onclick="exportCSV()">📥 CSV</button>
+    </div>
+    <div class="tbl-wrap" style="max-height:calc(100vh - 370px)">
+      <table class="dtbl">
+        <thead><tr><th>NO</th><th>분향실</th><th>고인</th><th>발인일</th><th>정산액</th><th>결제</th><th>인원수</th><th>비고</th><th>삭제</th></tr></thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 재고관리 ══ -->
+<div id="page-재고" class="page">
+  <div class="card">
+    <div class="card-title">📦 재고관리장</div>
+    <div class="frow" style="margin-bottom:10px;align-items:flex-end">
+      <div class="fg"><label>월 선택</label>
+        <select id="stockMonth" onchange="renderStock()">
+          <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+          <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+          <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+          <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+        </select>
+      </div>
+      <div class="fg"><label>연도</label><input type="number" id="stockYear" style="width:75px" value="" onchange="renderStock()"></div>
+      <button class="btn btn-purple btn-sm" onclick="openStockEditModal()">📝 재고량 수정</button>
+      <button class="btn btn-success btn-sm" onclick="saveStock()">💾 저장</button>
+      <button class="btn btn-info btn-sm" onclick="exportStock()">📥 CSV</button>
+      <span style="font-size:11px;color:#888;align-self:center">📌 이월량 직접 입력 후 저장</span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="stbl"><thead id="stockHead"></thead><tbody id="stockBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 원가DB ══ -->
+<div id="page-원가" class="page">
+  <div class="card">
+    <div class="card-title">💰 원가 DB</div>
+    <div class="frow" style="margin-bottom:10px">
+      <div class="fg"><label>검색</label><input type="text" id="priceSearch" placeholder="품목명..." onkeyup="renderPrice()" style="width:140px"></div>
+      <div class="fg"><label>구분</label>
+        <select id="priceFilter" onchange="renderPrice()">
+          <option value="">전체</option>
+          <option>기본물품</option><option>답례품</option><option>장지품</option>
+          <option>음료수</option><option>잡화</option><option>주 류</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addPriceItem()">+ 추가</button>
+      <button class="btn btn-success btn-sm" onclick="savePrice()">💾 저장</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="ptbl">
+        <thead><tr>
+          <th style="width:90px">구분</th>
+          <th>품목명</th>
+          <th style="width:80px">단위</th>
+          <th style="width:90px">판매가</th>
+          <th style="width:90px">원가</th>
+          <th style="width:60px">삭제</th>
+        </tr></thead>
+        <tbody id="priceBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 마트관리 ══ -->
+<div id="page-관리" class="page">
+  <div class="card">
+    <div class="card-title">⚙️ 마트관리</div>
+    <div class="mgmt-grid">
+      <div class="mgmt-card" onclick="openNewModal()"><div class="icon">📋</div><div class="name">새 정산서 생성</div><div class="desc">인원수·분향실·고인 입력</div></div>
+      <div class="mgmt-card" onclick="goTab('진행중',0)"><div class="icon">📁</div><div class="name">정산서 목록</div><div class="desc">진행중/완료 조회</div></div>
+      <div class="mgmt-card" onclick="goTab('결산',1)"><div class="icon">📊</div><div class="name">결산서</div><div class="desc">전체 정산 내역</div></div>
+      <div class="mgmt-card" onclick="goTab('재고',2)"><div class="icon">📦</div><div class="name">재고관리장</div><div class="desc">월별 출고 현황</div></div>
+      <div class="mgmt-card" onclick="goTab('원가',3)"><div class="icon">💰</div><div class="name">원가DB 관리</div><div class="desc">품목·단가 수정</div></div>
+      <div class="mgmt-card" onclick="backupData()"><div class="icon">💾</div><div class="name">데이터 백업</div><div class="desc">JSON 파일로 저장</div></div>
+      <div class="mgmt-card" onclick="document.getElementById('restoreFile').click()"><div class="icon">📂</div><div class="name">데이터 복원</div><div class="desc">백업 파일 불러오기</div></div>
+      <div class="mgmt-card" onclick="restoreSnapshot()"><div class="icon">↩</div><div class="name">스냅샷 복원</div><div class="desc">30분 단위 자동 저장본</div></div>
+      <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(this)">
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /layout -->
+
+<!-- ══ 새 정산서 모달 ══ -->
+<div class="overlay" id="newModal">
+  <div class="modal" style="max-width:460px">
+    <h3>📋 새 정산서 생성</h3>
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div class="fg">
+        <label>예상 인원수</label>
+        <div class="cap-btns" id="newCapBtns">
+          <div class="cap-btn on" onclick="selCap(50,this)">50명</div>
+          <div class="cap-btn" onclick="selCap(150,this)">150명</div>
+          <div class="cap-btn" onclick="selCap(300,this)">300명</div>
+          <div class="cap-btn" onclick="selCap(500,this)">500명</div>
+          <div class="cap-btn" onclick="selCap(1000,this)">1000명</div>
+        </div>
+      </div>
+      <div class="frow" style="margin:0;gap:10px">
+        <div class="fg">
+          <label>분향실 번호 <span style="color:#e74c3c">*</span></label>
+          <input type="text" id="nw-분향실" placeholder="숫자만 (예: 302)" style="width:110px"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'');updateNFN()">
+        </div>
+        <div class="fg">
+          <label>고인 성함 <span style="color:#e74c3c">*</span></label>
+          <input type="text" id="nw-고인" placeholder="한글 성함"
+            onkeyup="updateNFN()" onblur="filterHangul(this);updateNFN()">
+        </div>
+        <div class="fg">
+          <label>발인일 MMDD <span style="color:#e74c3c">*</span></label>
+          <input type="text" id="nw-날짜" placeholder="예: 0901" maxlength="4" style="width:82px"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'');updateNFN()">
+        </div>
+      </div>
+      <div class="frow" style="margin:0;gap:10px">
+        <div class="fg">
+          <label>상주 성함</label>
+          <input type="text" id="nw-상주" placeholder="한글 성함"
+            onblur="filterHangul(this)">
+        </div>
+        <div class="fg">
+          <label>연락처 (8자리)</label>
+          <input type="text" id="nw-연락처" placeholder="00001111 → 010-0000-1111"
+            maxlength="8" oninput="this.value=this.value.replace(/[^0-9]/g,'');fmtTel(this)" style="width:170px">
+        </div>
+      </div>
+      <div style="background:#f0f5ff;border-radius:5px;padding:8px 12px;font-size:12px;color:#1b3a5c">
+        📁 파일명: <strong id="nwFN">최종정산서(50)--홍길동-0901</strong>
+      </div>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-gray" onclick="closeModal('newModal')">취소</button>
+      <button class="btn btn-success" onclick="createJungsan()">✅ 생성</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 재고량 수정 모달 ══ -->
+<div class="overlay" id="stockEditModal">
+  <div class="modal" style="max-width:520px;width:96%">
+    <h3>📝 재고량 수정</h3>
+    <div style="background:#f0f5ff;border-radius:6px;padding:9px 12px;font-size:12px;color:#1b3a5c;margin-bottom:12px;line-height:1.8">
+      <strong>수정 방식 안내</strong><br>
+      ➕ <b>입고(+)</b>: 물품을 입고·추가. 재고가 늘어남 (표에 <span style="color:#217a3c">-값</span>으로 기록)<br>
+      ➖ <b>출고(-)</b>: 물품을 판매·출고. 재고가 줄어듦 (표에 <span style="color:#c0392b">+값</span>으로 기록)<br>
+      🔧 <b>설정(=)</b>: 해당 날짜 칸의 값을 입력한 숫자로 직접 지정
+    </div>
+    <div class="frow" style="margin-bottom:12px">
+      <div class="fg">
+        <label>수정 일자</label>
+        <input type="date" id="se-날짜" style="width:155px">
+      </div>
+    </div>
+    <div id="seRows" style="display:flex;flex-direction:column;gap:8px;max-height:50vh;overflow-y:auto;margin-bottom:12px"></div>
+    <button class="btn btn-primary btn-sm" onclick="addSeRow()" style="width:100%;margin-bottom:10px">+ 물품 추가</button>
+    <div class="btn-group" style="justify-content:flex-end">
+      <button class="btn btn-gray" onclick="closeModal('stockEditModal')">취소</button>
+      <button class="btn btn-success" onclick="saveStockEdit()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 결제방식 모달 ══ -->
+<div class="overlay" id="payModal">
+  <div class="modal" style="max-width:360px">
+    <h3>💳 결제방식 선택</h3>
+    <div style="color:#555;font-size:12px;margin-bottom:3px" id="payInfo"></div>
+    <div class="radio-group">
+      <label><input type="radio" name="pay" value="카드결제"> 💳 카드결제</label>
+      <label><input type="radio" name="pay" value="현금결제"> 💵 현금결제</label>
+      <label><input type="radio" name="pay" value="현금영수증"> 🧾 현금영수증</label>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-gray" onclick="closeModal('payModal')">취소</button>
+      <button class="btn btn-success" onclick="confirmPay()">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ 기본물품 데이터 ══
+const BASIC=[
+  {품명:"한라산21도소주(30병/박스)",단위:"360ml/병",단가:1900,qty:{50:30,150:30,300:30,500:30,1000:30}},
+  {품명:"참이슬소주(30병/박스)",단위:"360ml/병",단가:1900,qty:{50:60,150:60,300:120,500:150,1000:180}},
+  {품명:"카스맥주(20병/박스)",단위:"500ml/병",단가:2100,qty:{50:20,150:20,300:40,500:60,1000:80}},
+  {품명:"칠성사이다(20병/팩)",단위:"팩",단가:38000,qty:{50:1,150:1,300:2,500:3,1000:5}},
+  {품명:"삼다수 2.0/6병",단위:"팩",단가:5400,qty:{50:5,150:5,300:10,500:15,1000:25}},
+  {품명:"정사각티슈/6개",단위:"팩",단가:9000,qty:{50:2,150:2,300:6,500:6,1000:12}},
+  {품명:"키친타올/4롤",단위:"팩",단가:6600,qty:{50:1,150:1,300:1,500:2,1000:2}},
+  {품명:"행주",단위:"장",단가:1500,qty:{50:0,150:3,300:5,500:5,1000:10}},
+  {품명:"위생장갑/100매",단위:"개",단가:5700,qty:{50:1,150:1,300:1,500:2,1000:3}},
+  {품명:"위생백/100매",단위:"개",단가:3500,qty:{50:1,150:1,300:1,500:2,1000:3}},
+  {품명:"은박호일/중",단위:"개",단가:7900,qty:{50:1,150:1,300:1,500:1,1000:1}},
+  {품명:"물티슈/72매",단위:"개",단가:2500,qty:{50:3,150:3,300:5,500:7,1000:15}},
+  {품명:"메밀차/100T",단위:"개",단가:8200,qty:{50:1,150:1,300:1,500:2,1000:2}},
+  {품명:"호두율무차/50T",단위:"팩",단가:15300,qty:{50:1,150:1,300:1,500:2,1000:2}},
+  {품명:"맥심병커피/175g",단위:"병",단가:15900,qty:{50:1,150:1,300:1,500:1,1000:2}},
+  {품명:"맥심커피믹스/50T",단위:"개",단가:13000,qty:{50:1,150:0,300:0,500:0,1000:0},only50:true},
+  {품명:"맥심커피믹스/210T",단위:"개",단가:38500,qty:{50:0,150:1,300:1,500:2,1000:3},only150plus:true},
+  {품명:"백설탕/1kg",단위:"포",단가:2900,qty:{50:1,150:1,300:1,500:1,1000:1}},
+  {품명:"커피쟁반",단위:"개",단가:4000,qty:{50:1,150:2,300:3,500:4,1000:5}},
+  {품명:"가위",단위:"개",단가:5000,qty:{50:1,150:1,300:1,500:1,1000:1}},
+  {품명:"티스푼/2개",단위:"개",단가:3000,qty:{50:1,150:1,300:1,500:1,1000:1}},
+  {품명:"녹말이쑤시개",단위:"곽",단가:1900,qty:{50:1,150:1,300:1,500:1,1000:1}},
+  {품명:"나무요지",단위:"봉지",단가:500,qty:{50:1,150:1,300:1,500:1,1000:1}},
+  {품명:"다회용 소주컵",단위:"줄",단가:2900,qty:{50:2,150:4,300:6,500:8,1000:10}},
+  {품명:"종이컵",단위:"줄",단가:900,qty:{50:10,150:20,300:20,500:40,1000:60}},
+  {품명:"도감장갑",단위:"개",단가:900,qty:{50:10,150:10,300:20,500:20,1000:30}},
+  {품명:"예식장갑",단위:"개",단가:1100,qty:{50:10,150:10,300:10,500:10,1000:10}},
+  {품명:"검정비닐/100매",단위:"개",단가:4900,qty:{50:1,150:1,300:1,500:1,1000:1}},
+  {품명:"육개장/6개",단위:"팩",단가:6900,qty:{50:2,150:2,300:4,500:4,1000:6}},
+  {품명:"슬리퍼",단위:"켤레",단가:6000,qty:{50:2,150:2,300:3,500:4,1000:5}},
+  {품명:"기타잡화",단위:"식",단가:0,qty:{50:0,150:0,300:0,500:0,1000:0},isExtra:true},
+];
+
+const DEF_PRICE=[
+  {구분:"기본물품",품명:"오름소주(30병/박스)",단위:"360ml/병",가격:1900,원가:0},
+  {구분:"기본물품",품명:"한라산21도소주(30병/박스)",단위:"360ml/병",가격:1900,원가:0},
+  {구분:"기본물품",품명:"참이슬소주(30병/박스)",단위:"360ml/병",가격:1900,원가:0},
+  {구분:"기본물품",품명:"카스맥주(20병/박스)",단위:"500ml/병",가격:2100,원가:0},
+  {구분:"기본물품",품명:"칠성사이다(20병/팩)",단위:"팩",가격:38000,원가:0},
+  {구분:"기본물품",품명:"삼다수 2.0/6병",단위:"팩",가격:5400,원가:0},
+  {구분:"기본물품",품명:"정사각티슈/6개",단위:"팩",가격:9000,원가:0},
+  {구분:"기본물품",품명:"키친타올/4롤",단위:"팩",가격:6600,원가:0},
+  {구분:"기본물품",품명:"행주",단위:"장",가격:1500,원가:0},
+  {구분:"기본물품",품명:"위생장갑/100매",단위:"개",가격:5700,원가:0},
+  {구분:"기본물품",품명:"위생백/100매",단위:"개",가격:3500,원가:0},
+  {구분:"기본물품",품명:"은박호일/중",단위:"개",가격:7900,원가:0},
+  {구분:"기본물품",품명:"물티슈/72매",단위:"개",가격:2500,원가:0},
+  {구분:"기본물품",품명:"메밀차/100T",단위:"개",가격:8200,원가:0},
+  {구분:"기본물품",품명:"호두율무차/50T",단위:"팩",가격:15300,원가:0},
+  {구분:"기본물품",품명:"생강차/50T",단위:"개",가격:15300,원가:0},
+  {구분:"기본물품",품명:"맥심병커피/175g",단위:"병",가격:15900,원가:0},
+  {구분:"기본물품",품명:"맥심커피믹스/210T",단위:"개",가격:38500,원가:0},
+  {구분:"기본물품",품명:"백설탕/1kg",단위:"포",가격:2900,원가:0},
+  {구분:"기본물품",품명:"커피쟁반",단위:"개",가격:4000,원가:0},
+  {구분:"기본물품",품명:"가위",단위:"개",가격:5000,원가:0},
+  {구분:"기본물품",품명:"티스푼/2개",단위:"개",가격:3000,원가:0},
+  {구분:"기본물품",품명:"녹말이쑤시개",단위:"곽",가격:1900,원가:0},
+  {구분:"기본물품",품명:"나무요지",단위:"봉지",가격:500,원가:0},
+  {구분:"기본물품",품명:"다회용 소주컵",단위:"줄",가격:2900,원가:0},
+  {구분:"기본물품",품명:"종이컵",단위:"줄",가격:900,원가:0},
+  {구분:"기본물품",품명:"도감장갑",단위:"개",가격:900,원가:0},
+  {구분:"기본물품",품명:"예식장갑",단위:"개",가격:1100,원가:0},
+  {구분:"기본물품",품명:"검정비닐/100매",단위:"개",가격:4900,원가:0},
+  {구분:"기본물품",품명:"육개장/6개",단위:"팩",가격:6900,원가:0},
+  {구분:"기본물품",품명:"슬리퍼",단위:"켤레",가격:6000,원가:0},
+  {구분:"기본물품",품명:"맥심커피믹스/50T",단위:"개",가격:13000,원가:0},
+  {구분:"기본물품",품명:"칠성사이다/낱개",단위:"병",가격:2000,원가:0},
+  {구분:"기본물품",품명:"키친타올",단위:"",가격:2000,원가:0},
+  {구분:"기본물품",품명:"검정비닐/80매",단위:"개",가격:3900,원가:0},
+  {구분:"기본물품",품명:"순한소주(30/박스)",단위:"360mL/병",가격:1900,원가:0},
+  {구분:"답례품",품명:"깨나라 데일리 키친타올",단위:"팩/6롤",가격:6000,원가:0},
+  {구분:"답례품",품명:"깨나라 순수각티슈180매",단위:"팩/6박스",가격:11000,원가:0},
+  {구분:"답례품",품명:"깨나라 순수각티슈270매",단위:"팩/3박스",가격:8500,원가:0},
+  {구분:"답례품",품명:"깨나라 순수터치화장지",단위:"팩",가격:13000,원가:0},
+  {구분:"답례품",품명:"로얄라이프순백3겹화장지",단위:"팩",가격:13000,원가:0},
+  {구분:"답례품",품명:"로얄라이프순수3켭화장지",단위:"팩",가격:14000,원가:0},
+  {구분:"답례품",품명:"로얄라이프올데이앤화장지",단위:"팩",가격:9500,원가:0},
+  {구분:"답례품",품명:"잘풀리는집순수베이직",단위:"팩",가격:14000,원가:0},
+  {구분:"답례품",품명:"맥심커피믹스/50T(답)",단위:"개",가격:11000,원가:0},
+  {구분:"답례품",품명:"맥심커피믹스/100T",단위:"개",가격:18000,원가:0},
+  {구분:"답례품",품명:"맥심커피믹스/220T",단위:"개",가격:37000,원가:0},
+  {구분:"답례품",품명:"맥심커피믹스/230T",단위:"개",가격:39900,원가:0},
+  {구분:"답례품",품명:"안성탕면/5개입",단위:"팩",가격:4300,원가:0},
+  {구분:"답례품",품명:"잘풀리는집각티슈270*3",단위:"팩",가격:8500,원가:0},
+  {구분:"답례품",품명:"깨나라각티슈250*3",단위:"팩",가격:7900,원가:0},
+  {구분:"장지품",품명:"실장갑/10개",단위:"묶음",가격:4000,원가:0},
+  {구분:"장지품",품명:"우의",단위:"개",가격:1500,원가:0},
+  {구분:"장지품",품명:"흰수건",단위:"장",가격:3500,원가:0},
+  {구분:"장지품",품명:"반코팅장갑노랑/10개",단위:"묶음",가격:5500,원가:0},
+  {구분:"음료수",품명:"과일주스",단위:"박스",가격:16000,원가:0},
+  {구분:"음료수",품명:"두유",단위:"병",가격:1800,원가:0},
+  {구분:"음료수",품명:"레쓰비",단위:"캔",가격:700,원가:0},
+  {구분:"음료수",품명:"레쓰비/30캔",단위:"캔",가격:21000,원가:0},
+  {구분:"음료수",품명:"밀키스",단위:"캔",가격:1100,원가:0},
+  {구분:"음료수",품명:"박카스/10병",단위:"박스",가격:9000,원가:0},
+  {구분:"음료수",품명:"복숭아아이스티(파우치)",단위:"팩",가격:1400,원가:0},
+  {구분:"음료수",품명:"비락식혜",단위:"캔",가격:900,원가:0},
+  {구분:"음료수",품명:"비락식혜/24캔",단위:"캔",가격:21600,원가:0},
+  {구분:"음료수",품명:"비타파워/10병",단위:"박스",가격:6000,원가:0},
+  {구분:"음료수",품명:"삼다수 500ml",단위:"병",가격:600,원가:0},
+  {구분:"음료수",품명:"삼다수 500ml/20병",단위:"팩",가격:11000,원가:0},
+  {구분:"음료수",품명:"쌍화골드/10병",단위:"박스",가격:10000,원가:0},
+  {구분:"음료수",품명:"아메리카노블랙(파우치)",단위:"팩",가격:1400,원가:0},
+  {구분:"음료수",품명:"아메리카노스위트(파우치)",단위:"팩",가격:1400,원가:0},
+  {구분:"음료수",품명:"아메리카노헤이즐넛(파우",단위:"팩",가격:1400,원가:0},
+  {구분:"음료수",품명:"컨디션",단위:"개",가격:5000,원가:0},
+  {구분:"음료수",품명:"잔치집식혜/30캔",단위:"박스",가격:27000,원가:0},
+  {구분:"음료수",품명:"칸타타 라떼",단위:"캔",가격:1200,원가:0},
+  {구분:"음료수",품명:"칸타타 스위트",단위:"캔",가격:1200,원가:0},
+  {구분:"음료수",품명:"콘트라베이스 라떼",단위:"병",가격:2300,원가:0},
+  {구분:"음료수",품명:"콘트라베이스 블랙",단위:"병",가격:2300,원가:0},
+  {구분:"음료수",품명:"콘트라베이스 블랙스위트",단위:"병",가격:2300,원가:0},
+  {구분:"음료수",품명:"포카리스웨트 245ml",단위:"캔",가격:1200,원가:0},
+  {구분:"음료수",품명:"포카리스웨트 500ml",단위:"병",가격:2000,원가:0},
+  {구분:"음료수",품명:"피로회복제 낱개",단위:"개",가격:5000,원가:0},
+  {구분:"음료수",품명:"환타 600ml/24개입",단위:"팩",가격:40000,원가:0},
+  {구분:"음료수",품명:"코크제로250ml/30캔",단위:"박스",가격:42000,원가:0},
+  {구분:"음료수",품명:"코크제로250ml",단위:"캔",가격:1400,원가:0},
+  {구분:"음료수",품명:"박카스 낱개",단위:"병",가격:900,원가:0},
+  {구분:"음료수",품명:"까스활명수",단위:"병",가격:1300,원가:0},
+  {구분:"음료수",품명:"펩시",단위:"캔",가격:1000,원가:0},
+  {구분:"음료수",품명:"펩시*30캔",단위:"박스",가격:30000,원가:0},
+  {구분:"음료수",품명:"펩시제로",단위:"캔",가격:1000,원가:0},
+  {구분:"음료수",품명:"펩시제로*30캔",단위:"박스",가격:30000,원가:0},
+  {구분:"음료수",품명:"비타파워 낱개",단위:"병",가격:600,원가:0},
+  {구분:"음료수",품명:"코카콜라250ml",단위:"캔",가격:1400,원가:0},
+  {구분:"음료수",품명:"코카콜라250ml*30",단위:"박스",가격:42000,원가:0},
+  {구분:"음료수",품명:"코카콜라355ml",단위:"캔",가격:1400,원가:0},
+  {구분:"음료수",품명:"코카콜라356ml*24",단위:"박스",가격:28800,원가:0},
+  {구분:"주 류",품명:"막걸리",단위:"병",가격:1800,원가:0},
+  {구분:"음료수",품명:"아침헛개",단위:"병",가격:1500,원가:0},
+  {구분:"음료수",품명:"데미소다",단위:"캔",가격:1100,원가:0},
+  {구분:"음료수",품명:"구론산",단위:"병",가격:1100,원가:0},
+  {구분:"잡화",품명:"가그린",단위:"병",가격:2100,원가:0},
+  {구분:"잡화",품명:"가위",단위:"개",가격:5000,원가:0},
+  {구분:"잡화",품명:"검정비닐소/100매",단위:"개",가격:3500,원가:0},
+  {구분:"잡화",품명:"꼬북칩",단위:"개",가격:3100,원가:0},
+  {구분:"잡화",품명:"꿀꽈배기",단위:"개",가격:1700,원가:0},
+  {구분:"잡화",품명:"디어스킨 대형",단위:"팩",가격:5800,원가:0},
+  {구분:"잡화",품명:"디어스킨 중형",단위:"팩",가격:5800,원가:0},
+  {구분:"잡화",품명:"모나미펜(3개입)",단위:"팩",가격:1500,원가:0},
+  {구분:"잡화",품명:"웅기보",단위:"개",가격:1000,원가:0},
+  {구분:"잡화",품명:"신사양말",단위:"켤레",가격:3000,원가:0},
+  {구분:"잡화",품명:"얼음컵",단위:"개",가격:1000,원가:0},
+  {구분:"잡화",품명:"여성양말",단위:"켤레",가격:2000,원가:0},
+  {구분:"잡화",품명:"치약칫솔세트",단위:"세트",가격:3500,원가:0},
+  {구분:"잡화",품명:"여행용4종세트",단위:"세트",가격:10900,원가:0},
+  {구분:"잡화",품명:"웅기보(피로회복제)세트",단위:"포",가격:5000,원가:0},
+  {구분:"잡화",품명:"윷가락",단위:"개",가격:7000,원가:0},
+  {구분:"잡화",품명:"자유시간",단위:"개",가격:1100,원가:0},
+  {구분:"잡화",품명:"치약",단위:"개",가격:1500,원가:0},
+  {구분:"잡화",품명:"치토스",단위:"개",가격:1700,원가:0},
+  {구분:"잡화",품명:"칫솔",단위:"개",가격:1500,원가:0},
+  {구분:"잡화",품명:"카드",단위:"개",가격:9000,원가:0},
+  {구분:"잡화",품명:"카드패드",단위:"개 ",가격:5000,원가:0},
+  {구분:"잡화",품명:"프리미엄 물티슈/72매",단위:"개",가격:2500,원가:0},
+  {구분:"잡화",품명:"라이타",단위:"개",가격:1500,원가:0},
+  {구분:"잡화",품명:"편지봉투(20매)",단위:"개",가격:1000,원가:0},
+  {구분:"잡화",품명:"고추장",단위:"개",가격:2000,원가:0},
+  {구분:"잡화",품명:"비닐흰색(소)/100매",단위:"개",가격:3000,원가:0},
+  {구분:"기타",품명:"기타물품",단위:"",가격:0,원가:0},
+];
+const STOCK_EXTRA=[
+  {구분:"답례품",품명:"깨나라 데일리 키친타올"},
+  {구분:"답례품",품명:"깨나라 순수각티슈200매"},
+  {구분:"답례품",품명:"깨나라 순수각티슈180매"},
+  {구분:"답례품",품명:"깨나라 순수각티슈270매"},
+  {구분:"답례품",품명:"깨나라 순수터치화장지"},
+  {구분:"답례품",품명:"로얄라이프순백3겹화장지"},
+  {구분:"답례품",품명:"로얄라이프순수3켭화장지"},
+  {구분:"답례품",품명:"로얄라이프올데이앤화장지"},
+  {구분:"답례품",품명:"잘풀리는집순수베이직"},
+  {구분:"답례품",품명:"맥심커피믹스/50T(답)"},
+  {구분:"답례품",품명:"맥심커피믹스/100T"},
+  {구분:"답례품",품명:"맥심커피믹스/220T"},
+  {구분:"답례품",품명:"안성탕면/5개입"},
+  {구분:"답례품",품명:"잘풀리는집각티슈270*3"},
+  {구분:"장지품",품명:"반코팅장갑노랑/10개"},
+  {구분:"장지품",품명:"실장갑/10개"},
+  {구분:"장지품",품명:"우의"},
+  {구분:"장지품",품명:"흰수건"},
+  {구분:"음료수",품명:"과일주스"},
+  {구분:"음료수",품명:"두유"},
+  {구분:"음료수",품명:"레쓰비"},
+  {구분:"음료수",품명:"밀키스"},
+  {구분:"음료수",품명:"박카스/10병"},
+  {구분:"음료수",품명:"복숭아아이스티(파우치)"},
+  {구분:"음료수",품명:"비락식혜"},
+  {구분:"음료수",품명:"비타파워/10병"},
+  {구분:"음료수",품명:"삼다수 500ml"},
+  {구분:"음료수",품명:"삼다수 500ml/20병"},
+  {구분:"음료수",품명:"쌍화골드/10병"},
+  {구분:"음료수",품명:"아메리카노블랙(파우치)"},
+  {구분:"음료수",품명:"아메리카노스위트(파우치)"},
+  {구분:"음료수",품명:"아메리카노헤이즐넛(파우"},
+  {구분:"음료수",품명:"여명808"},
+  {구분:"음료수",품명:"잔치집식혜/30캔"},
+  {구분:"음료수",품명:"칸타타 라떼"},
+  {구분:"음료수",품명:"칸타타 스위트"},
+  {구분:"음료수",품명:"콘트라베이스 라떼"},
+  {구분:"음료수",품명:"콘트라베이스 블랙"},
+  {구분:"음료수",품명:"콘트라베이스 블랙스위트"},
+  {구분:"음료수",품명:"포카리스웨트 240ml"},
+  {구분:"음료수",품명:"포카리스웨트 500ml"},
+  {구분:"음료수",품명:"피로회복제 낱개"},
+  {구분:"음료수",품명:"환타 600ml/24개입"},
+  {구분:"음료수",품명:"코크제로250ml/30캔"},
+  {구분:"음료수",품명:"코크제로250ml"},
+  {구분:"음료수",품명:"박카스 낱개"},
+  {구분:"음료수",품명:"까스활명수"},
+  {구분:"음료수",품명:"펩시제로"},
+  {구분:"잡화",품명:"가그린"},
+  {구분:"잡화",품명:"검정비닐소/100매"},
+  {구분:"잡화",품명:"과자류"},
+  {구분:"잡화",품명:"꼬북칩"},
+  {구분:"잡화",품명:"꿀꽈배기"},
+  {구분:"잡화",품명:"디어스킨 대형"},
+  {구분:"잡화",품명:"디어스킨 중형"},
+  {구분:"잡화",품명:"모나미펜(3개입)"},
+  {구분:"잡화",품명:"방울토마토2kg"},
+  {구분:"잡화",품명:"신사양말"},
+  {구분:"잡화",품명:"얼음컵"},
+  {구분:"잡화",품명:"여성양말"},
+  {구분:"잡화",품명:"여행용2종세트"},
+  {구분:"잡화",품명:"여행용4종세트"},
+  {구분:"잡화",품명:"웅기보(피로회복제)"},
+  {구분:"잡화",품명:"윷가락"},
+  {구분:"잡화",품명:"자유시간"},
+  {구분:"잡화",품명:"치약"},
+  {구분:"잡화",품명:"치토스"},
+  {구분:"잡화",품명:"칫솔"},
+  {구분:"잡화",품명:"카드"},
+  {구분:"잡화",품명:"카드패드"},
+  {구분:"잡화",품명:"홈런볼"},
+  {구분:"잡화",품명:"화투"},
+  {구분:"잡화",품명:"흰비닐"},
+  {구분:"잡화",품명:"면도기"},
+  {구분:"잡화",품명:"프리미엄 물티슈/72매"},
+  {구분:"잡화",품명:"라이타"}
+];
+
+
+// ══ Firebase Realtime Database 연동 ══
+const FB_CONFIG={
+  apiKey:"AIzaSyDoloODoAZ6T_lSSi0gl9aQu91VFQRZmPo",
+  databaseURL:"https://hongil-mart-default-rtdb.firebaseio.com",
+  projectId:"hongil-mart",
+  appId:"1:401830236418:web:52031f60638048e0cfb21b"
+};
+let FB=null, DB=null;
+let currentUser=null;
+
+// Firebase 초기화
+async function initFirebase(){
+  const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+  const {getDatabase,ref,set,get,remove,update,onValue}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+  FB=initializeApp(FB_CONFIG);
+  DB=getDatabase(FB);
+  window._fbRef=ref; window._fbSet=set; window._fbGet=get;
+  window._fbRemove=remove; window._fbUpdate=update; window._fbOnValue=onValue;
+}
+
+// DB 헬퍼
+function fbRef(path){return window._fbRef(DB,path);}
+async function fbGet(path){
+  const snap=await window._fbGet(fbRef(path));
+  return snap.exists()?snap.val():null;
+}
+async function fbSet(path,val){return window._fbSet(fbRef(path),val);}
+async function fbRemove(path){return window._fbRemove(fbRef(path));}
+
+// 실시간 동기화 리스너 (jungs가 변경되면 즉시 화면 갱신)
+function startRealtimeSync(){
+  if(!window._fbOnValue)return;
+  window._fbOnValue(fbRef('jungs'),snap=>{
+    const data=snap.exists()?snap.val():null;
+    jungs=data?Object.values(data).map(normalizeJung):[];
+    renderJungList();
+  });
+  window._fbOnValue(fbRef('results'),snap=>{
+    const data=snap.exists()?snap.val():null;
+    results=data?Object.values(data).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
+    renderResults();
+    if(typeof buildCharts==='function')buildCharts();
+  });
+}
+
+function showSaving(v){
+  const el=document.getElementById('ubSaving');
+  if(el)el.style.display=v?'inline':'none';
+}
+
+// 로컬 계정 (Firebase Auth 대신 DB에 users 저장)
+function hashPw(pw){
+  // 간단한 해시 (보안용도가 아닌 기본 보호)
+  let h=0;
+  for(let i=0;i<pw.length;i++) h=Math.imul(31,h)+pw.charCodeAt(i)|0;
+  return 'hm_'+Math.abs(h).toString(36)+'_'+pw.length;
+}
+function showSaving(v){
+  const el=document.getElementById('ubSaving');
+  if(el)el.style.display=v?'inline':'none';
+}
+
+// ── 로그인 ──
+async function doLogin(){
+  const id=document.getElementById('li-id').value.trim();
+  const pw=document.getElementById('li-pw').value;
+  if(!id||!pw){showLoginErr('아이디와 비밀번호를 입력하세요.');return;}
+  const btn=document.getElementById('loginBtn');
+  btn.textContent='로그인 중...';btn.disabled=true;
+  try{
+    if(!DB) await initFirebase();
+    let user=await fbGet('users/'+id);
+    if(!user&&id==='admin'){
+      user={id:'admin',이름:'관리자',pw:hashPw('1234'),역할:'admin'};
+      await fbSet('users/admin',user);
+    }
+    if(!user){showLoginErr('아이디가 존재하지 않습니다.');return;}
+    if(user.pw!==hashPw(pw)){showLoginErr('비밀번호가 올바르지 않습니다.');return;}
+    currentUser={id:user.id,이름:user.이름,역할:user.역할};
+    localStorage.setItem('hm_user',JSON.stringify(currentUser));
+    localStorage.setItem('hm_expire',Date.now()+12*60*60*1000);
+    fbSet('users/'+id+'/lastLogin',new Date().toISOString()).catch(()=>{});
+    onLoginSuccess();
+  }catch(e){showLoginErr('로그인 실패: '+e.message);}
+  finally{btn.textContent='로그인';btn.disabled=false;}
+}
+function showLoginErr(msg){
+  const el=document.getElementById('loginError');
+  el.textContent=msg;el.style.display='';
+}
+async function onLoginSuccess(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainLayout').style.display='';
+  document.getElementById('userBar').style.display='flex';
+  document.getElementById('ubUser').textContent=currentUser.이름+'('+currentUser.id+')';
+  document.getElementById('ubSync').style.color='#f39c12';
+  setInterval(()=>document.getElementById('ubTime').textContent=new Date().toLocaleTimeString('ko-KR'),1000);
+  setInterval(()=>{
+    const exp=+localStorage.getItem('hm_expire')||0;
+    if(currentUser&&Date.now()>=exp){alert('로그인 시간이 만료됐습니다.');doLogout();}
+  },60000);
+  await loadAllData();
+  startAutoBackup();
+}
+function doLogout(){
+  if(!confirm('로그아웃 하시겠습니까?'))return;
+  localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
+  currentUser=null;
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mainLayout').style.display='none';
+  document.getElementById('userBar').style.display='none';
+  document.getElementById('li-pw').value='';
+  document.getElementById('loginError').style.display='none';
+}
+
+// ── 데이터 로드 ──
+async function loadAllData(){
+  try{
+    if(!DB) await initFirebase();
+    document.getElementById('ubSync').style.color='#f39c12';
+    const [jData,rData,sData,pData]=await Promise.all([
+      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB')
+    ]);
+    jungs    =jData?Object.values(jData).map(normalizeJung):[];
+    results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
+    stockData=sData||{};
+    priceDB  =pData?Object.values(pData):DEF_PRICE;
+    document.getElementById('ubSync').style.color='#52be80';
+    renderJungList();renderResults();renderStock();renderPrice();
+    if(typeof buildCharts==='function')buildCharts();
+    // 실시간 동기화 시작 (다른 사람 변경사항 즉시 반영)
+    startRealtimeSync();
+  }catch(e){
+    document.getElementById('ubSync').style.color='#e74c3c';
+    alert('데이터 로드 실패: '+e.message);
+  }
+}
+function normalizeDate(v){
+  if(!v)return'';
+  if(typeof v==='string')return v.slice(0,10);
+  if(v instanceof Date)return v.toISOString().slice(0,10);
+  if(typeof v==='number'){const d=new Date((v-25569)*86400*1000);return d.toISOString().slice(0,10);}
+  return String(v).slice(0,10);
+}
+function normalizeJung(j){
+  return{...j,id:String(j.id||''),파일명:String(j.파일명||''),인원수:+j.인원수||50,
+    분향실:String(j.분향실||''),고인:String(j.고인||''),날짜:normalizeDate(j.날짜),
+    상주:String(j.상주||''),연락처:String(j.연락처||''),상태:String(j.상태||'진행중'),
+    결제:String(j.결제||''),생성일:String(j.생성일||new Date().toISOString()),
+    완료일:String(j.완료일||''),생성자:String(j.생성자||''),수정자:String(j.수정자||''),
+    items:(j.items||[]).map(it=>({...it,품명:String(it.품명||''),단위:String(it.단위||''),
+      단가:+it.단가||0,주문량:+it.주문량||0,추가:+it.추가||0,반품:+it.반품||0,isAdd:!!it.isAdd}))};
+}
+
+// ── 계정 관리 ──
+function openUserMgmt(){
+  document.getElementById('umCurUser').textContent=currentUser.이름;
+  document.getElementById('umRoleBadge').textContent=currentUser.역할==='admin'?'관리자':'일반';
+  document.getElementById('adminSection').style.display=currentUser.역할==='admin'?'':'none';
+  document.getElementById('um-oldpw').value='';document.getElementById('um-newpw').value='';
+  loadLogs();document.getElementById('userMgmtModal').classList.add('show');
+}
+async function loadLogs(){
+  try{
+    const data=await fbGet('logs');
+    const logs=data?Object.values(data).sort((a,b)=>b.시간.localeCompare(a.시간)).slice(0,50):[];
+    const el=document.getElementById('logList');
+    el.innerHTML=logs.map(l=>'<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">'+
+      '<span style="color:#888">'+new Date(l.시간).toLocaleString('ko-KR')+'</span> '+
+      '<span style="color:#1b3a5c;font-weight:700">'+l.사용자+'</span> '+
+      '<span style="color:#555">'+l.작업+'</span></div>').join('');
+    document.getElementById('logSection').style.display='';
+  }catch(e){console.error(e);}
+}
+async function addLog(사용자,작업,대상){
+  fbSet('logs/'+Date.now(),{시간:new Date().toISOString(),사용자,작업,대상:대상||''}).catch(()=>{});
+}
+async function changePass(){
+  const oldPw=document.getElementById('um-oldpw').value;
+  const newPw=document.getElementById('um-newpw').value;
+  if(!oldPw||!newPw){alert('비밀번호를 입력하세요.');return;}
+  const user=await fbGet('users/'+currentUser.id);
+  if(!user||user.pw!==hashPw(oldPw)){alert('현재 비밀번호가 올바르지 않습니다.');return;}
+  await fbSet('users/'+currentUser.id+'/pw',hashPw(newPw));
+  alert('비밀번호가 변경됐습니다.');
+}
+async function addUser(){
+  const newId=document.getElementById('um-newid').value.trim();
+  const newName=document.getElementById('um-newname').value.trim();
+  const newPw=document.getElementById('um-newinpw').value;
+  const newRole=document.getElementById('um-role').value;
+  if(!newId||!newPw){alert('아이디와 비밀번호를 입력하세요.');return;}
+  const existing=await fbGet('users/'+newId);
+  if(existing){alert('이미 존재하는 아이디입니다.');return;}
+  await fbSet('users/'+newId,{id:newId,이름:newName||newId,pw:hashPw(newPw),역할:newRole||'user'});
+  alert('계정 추가 완료!');
+  ['um-newid','um-newname','um-newinpw'].forEach(id=>document.getElementById(id).value='');
+}
+
+
+let priceDB=[],results=[],stockData={},jungs=[];
+let editingId=null,newCap=50,listFilter='진행중',pendingId=null;
+
+// ── Firebase 저장 헬퍼 ──
+async function jungs_save(j){
+  if(!j)j=jungs.find(x=>x.id===editingId);
+  if(!j)return;
+  fbSet('jungs/'+j.id,j).catch(e=>console.error('jung 저장 오류:',e));
+}
+async function results_save(){}
+async function stock_save(){
+  fbSet('stockData',stockData).catch(e=>console.error('재고 저장 오류:',e));
+}
+async function price_save(){
+  const obj={};priceDB.forEach((p,i)=>obj[i]=p);
+  fbSet('priceDB',obj).catch(e=>console.error('원가DB 저장 오류:',e));
+}
+
+
+let chartCombo=null;
+
+// ══ 초기화 ══
+async function init(){
+  const now=new Date();
+  document.getElementById('stockMonth').value=now.getMonth()+1;
+  document.getElementById('stockYear').value=now.getFullYear();
+  document.getElementById('filterMonth').value=now.toISOString().slice(0,7);
+  document.getElementById('nw-날짜').value=('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2);
+  updateNFN();
+  // 세션 복원: token 기반 (12시간 유효)
+  // Firebase: token 불필요
+  const savedUser=localStorage.getItem('hm_user');
+  const expire=+localStorage.getItem('hm_expire')||0;
+  if(savedUser && Date.now()<expire){
+    currentUser=JSON.parse(savedUser);
+    initFirebase().then(()=>onLoginSuccess());
+  } else if(savedUser && Date.now()>=expire){
+    const user=JSON.parse(savedUser);
+    document.getElementById('li-id').value=user.id||'';
+    localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
+    showLoginErr('로그인 시간이 만료됐습니다. 비밀번호를 다시 입력해 주세요.');
+    document.getElementById('li-pw').focus();
+  }
+}
+
+// ══ 탭 ══
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('page-'+name).classList.add('on');
+  if(btn) btn.classList.add('on');
+  if(name==='재고') renderStock();
+  if(name==='결산'){renderResults();buildCharts();}
+  if(name==='원가') renderPrice();
+  // 헤더 날짜 항상 TODAY
+  const eDate=document.getElementById('e-날짜');
+  if(name==='편집'&&eDate&&!eDate.value) eDate.value=new Date().toISOString().slice(0,10);
+}
+function goTab(name,idx){showPage(name,document.querySelectorAll('.ntab')[idx]);}
+function backToList(){
+  goTab('진행중',0);
+}
+
+// ══ 새 정산서 ══
+function openNewModal(){
+  // 이전 입력값 초기화
+  ['nw-분향실','nw-고인','nw-상주','nw-연락처'].forEach(id=>document.getElementById(id).value='');
+  newCap=50;
+  document.querySelectorAll('#newCapBtns .cap-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelector('#newCapBtns .cap-btn').classList.add('on');
+  const now=new Date();
+  document.getElementById('nw-날짜').value=('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2);
+  updateNFN();
+  document.getElementById('newModal').classList.add('show');
+}
+function selCap(n,el){
+  newCap=n;
+  document.querySelectorAll('#newCapBtns .cap-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');updateNFN();
+}
+function updateNFN(){
+  const b=document.getElementById('nw-분향실')?.value||'';
+  const g=document.getElementById('nw-고인')?.value||'홍길동';
+  const d=document.getElementById('nw-날짜')?.value||'0901';
+  document.getElementById('nwFN').textContent=`최종정산서(${newCap})-${b}-${g}-${d}`;
+}
+function filterHangul(inp){
+  // blur 시점에 한글 외 문자 제거 (입력 중 조합 방해 없이)
+  inp.value=inp.value.replace(/[^가-힣\s]/g,'');
+}
+function parseTel(val){
+  const d=val.replace(/[^0-9]/g,'');
+  if(d.length===8) return '010-'+d.slice(0,4)+'-'+d.slice(4);
+  return d;
+}
+async function createJungsan(){
+  filterHangul(document.getElementById('nw-고인'));
+  filterHangul(document.getElementById('nw-상주'));
+  const 분향실=document.getElementById('nw-분향실').value.trim();
+  const 고인=document.getElementById('nw-고인').value.trim();
+  const 날짜str=document.getElementById('nw-날짜').value.trim();
+  const 상주=document.getElementById('nw-상주').value.trim();
+  const 연락처raw=document.getElementById('nw-연락처').value.trim();
+  if(!분향실||!고인||!날짜str){alert('분향실·고인·발인일(MMDD)은 필수입니다.');return;}
+  if(날짜str.length!==4||isNaN(날짜str)){alert('발인일은 MMDD 4자리 숫자로 입력하세요.\n예) 9월 1일 → 0901');return;}
+  const 연락처=parseTel(연락처raw);
+  const year=new Date().getFullYear();
+  const mm=날짜str.slice(0,2),dd=날짜str.slice(2,4);
+  const 날짜full=`${year}-${mm}-${dd}`;
+  const 파일명=`최종정산서(${newCap})-${분향실}-${고인}-${날짜str}`;
+  const items=BASIC
+    .filter(b=>{
+      if(b.isExtra) return false;
+      if(b.only50 && newCap!==50) return false;
+      if(b.only150plus && newCap===50) return false;
+      return true;
+    })
+    .map(b=>({품명:b.품명,단위:b.단위,단가:b.단가,주문량:b.qty[newCap]||0,추가:0,반품:0,isAdd:false}));
+  for(let k=0;k<15;k++) items.push({품명:'',단위:'',단가:0,주문량:0,추가:0,반품:0,isAdd:true});
+
+  const jung={
+    id:Date.now().toString(),파일명,인원수:newCap,분향실,고인,
+    날짜:날짜full,상주,연락처,상태:'진행중',결제:'',items,
+    생성일:new Date().toISOString(),완료일:'',생성자:currentUser?.이름||''
+  };
+
+  // 1. 창 먼저 닫기 + 로컬에 추가 → 진행중 목록에 즉시 표시
+  closeModal('newModal');
+  jungs.push(jung);
+  renderJungList();
+
+  // 2. Firebase 저장 (청크 불필요 - 크기 제한 없음)
+  fbSet('jungs/'+jung.id, jung)
+    .then(()=>{
+      addLog(currentUser?.이름||'','정산서생성',파일명);
+      alert(`✅ 정산서 생성 완료!\n\n📋 ${파일명}\n진행중 목록에서 확인하세요.`);
+    })
+    .catch(e=>{
+      console.error('생성 저장 오류:',e);
+      alert(`✅ 정산서가 목록에 추가됐습니다.\n📋 ${파일명}\n\n⚠️ 저장 실패: ${e.message}`);
+    });
+}
+
+// ══ 정산서 목록 ══
+function setFilter(f,btn){
+  listFilter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>{b.className='fbtn';});
+  if(f==='진행중') btn.className='fbtn on-ing';
+  else if(f==='완료') btn.className='fbtn on-done';
+  else btn.className='fbtn on-all';
+  renderJungList();
+}
+function renderJungList(){
+  const el=document.getElementById('jungList');
+  let list=jungs;
+  if(listFilter==='진행중') list=jungs.filter(j=>j.상태==='진행중');
+  if(listFilter==='완료')   list=jungs.filter(j=>j.상태==='완료');
+  list=[...list].reverse();
+  if(!list.length){el.innerHTML='<div class="empty-msg">정산서가 없습니다.</div>';return;}
+  el.innerHTML='';
+  list.forEach(j=>{
+    const done=j.상태==='완료';
+    const total=calcTotal(j.items);
+    const div=document.createElement('div');
+    div.className='jung-item'+(done?' done':'');
+    div.innerHTML=`
+      <span class="ji-cap">${j.인원수}명</span>
+      <span class="ji-name">${j.파일명}</span>
+      <span class="ji-sub">발인 ${j.날짜}</span>
+      <span class="ji-sub">생성 ${j.생성일.slice(0,10)}</span>
+      <span style="margin-left:auto;font-weight:700;color:#1b3a5c;white-space:nowrap">${fmt(total)}원</span>
+      ${done?`<span class="badge badge-done">✅ 완료</span><span class="badge badge-${j.결제==='카드결제'?'card':j.결제==='현금결제'?'cash':'rcpt'}">${j.결제}</span>`:`<span class="badge badge-ing">진행중</span>`}
+      <div class="btn-group" onclick="event.stopPropagation()">
+        ${j.메모?`<span class="badge" style="background:#f39c12;color:#fff;cursor:pointer" onclick="openMemo('${j.id}')">📝 메모있음</span>`:''}
+        <button class="btn btn-sm" style="background:#6c757d;color:#fff" onclick="openMemo('${j.id}')" title="메모">📋</button>
+        ${!done?`<button class="btn btn-primary btn-sm" onclick="openEdit('${j.id}')">✏️ 편집</button>`:''}
+        <button class="btn btn-gray btn-sm" onclick="openView('${j.id}')">👁 보기</button>
+        <button class="btn btn-info btn-sm" onclick="printJung('${j.id}')">🖨️</button>
+        ${(done||currentUser?.역할==='admin')?`<button class="btn btn-danger btn-sm" onclick="delJung('${j.id}')">삭제</button>`:''}
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+// ══ 편집 / 보기 ══
+// 편집: 진행중 상태 → 수량·추가물품 모두 수정 가능
+// 보기: 완료 상태 → 읽기 전용. 수정 버튼 클릭 시에만 편집 활성화
+function openEdit(id){
+  const j=jungs.find(x=>x.id===id);if(!j)return;
+  if(j.상태==='완료'){openView(id);return;}
+  editingId=id;
+  document.getElementById('editOverlay').style.display='block';
+  loadForm(j,false);
+}
+function openView(id){
+  const j=jungs.find(x=>x.id===id);if(!j)return;
+  editingId=id;
+  document.getElementById('editOverlay').style.display='block';
+  loadForm(j,true);
+}
+function enableEdit(){
+  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  loadForm(j,false,true);
+}
+function loadForm(j,readOnly,forceEdit=false){
+  document.getElementById('editTitleText').textContent=`📋 ${j.파일명} `;
+  document.getElementById('e-날짜').value=j.날짜;
+  document.getElementById('e-분향실').value=j.분향실;
+  document.getElementById('e-고인').value=j.고인;
+  document.getElementById('e-상주').value=j.상주||'';
+  document.getElementById('e-연락처').value=j.연락처||'';
+  document.getElementById('e-인원수').value=j.인원수;
+  ['e-날짜','e-분향실','e-고인','e-상주','e-연락처','e-인원수'].forEach(id=>{
+    document.getElementById(id).disabled=readOnly;
+  });
+  document.getElementById('edit-stamp').style.display=j.상태==='완료'?'':'none';
+  document.getElementById('edit-pay').textContent=j.결제?'/ '+j.결제+' 완료!':'';
+
+  // 버튼 그룹
+  const isDone=j.상태==='완료';
+  if(readOnly&&isDone){
+    // 보기 모드: 수정/인쇄/목록만
+    document.getElementById('editBtnGroup').style.display='none';
+    document.getElementById('viewBtnGroup').style.display='';
+  } else {
+    // 편집 모드
+    document.getElementById('editBtnGroup').style.display='';
+    document.getElementById('viewBtnGroup').style.display='none';
+    document.getElementById('btnDone').style.display=isDone&&!forceEdit?'none':'';
+  }
+  buildTable(j,readOnly);
+}
+function buildTable(j,readOnly){
+  const body=document.getElementById('editBody');body.innerHTML='';
+  const items=j.items||[];
+  const opts=priceDB.map(p=>`<option value="${esc(p.품명)}" data-u="${esc(p.단위)}" data-p="${p.가격}">${p.품명}</option>`).join('');
+  let bNo=1,aNo=BASIC.length+1;
+  items.forEach((item,idx)=>{
+    const isA=item.isAdd||false;
+    const f=(item.주문량||0)+(item.추가||0)-(item.반품||0);
+    const g=f*(item.단가||0);
+    if(isA&&!item.품명&&readOnly) return;
+    const tr=document.createElement('tr');
+    tr.className=isA?('ar'+(item.품명?'':' empty')):'br';
+    if(isA){
+      // 기타물품이면 단위·단가 직접 입력 가능
+      const isEtc=item.품명==='기타물품';
+      const 단위셀=readOnly?item.단위
+        :(isEtc?`<input type="text" value="${esc(item.단위||'')}" placeholder="단위" data-i="${idx}" data-f="단위"
+            onchange="onQExtra(this)" style="width:50px;padding:2px;border:1px solid #ccc;border-radius:3px;font-size:11px">`:item.단위);
+      const 단가셀=readOnly?(item.단가?fmt(item.단가):'')
+        :(isEtc?`<input type="number" value="${item.단가||0}" placeholder="단가" data-i="${idx}" data-f="단가"
+            onchange="onQExtra(this);onQ(this)" style="width:62px;padding:2px;border:1px solid #ccc;border-radius:3px;font-size:11px;text-align:right"
+            onwheel="event.preventDefault()" onfocus="this.select()">`:item.단가?fmt(item.단가):'');
+      tr.innerHTML=`
+        <td>${item.품명?aNo++:''}</td>
+        <td class="nm">${readOnly?item.품명:`<select class="as" data-i="${idx}" onchange="onSel(this)"><option value="">-- 선택 --</option>${opts}</select>`}</td>
+        <td>${단위셀}</td><td>${단가셀}</td>
+        <td>${qc(item.주문량,idx,'주문량',readOnly)}</td>
+        <td>${qc(item.추가,idx,'추가',readOnly)}</td>
+        <td>${qc(item.반품,idx,'반품',readOnly)}</td>
+        <td class="${f<0?'neg':''}">${f||''}</td>
+        <td>${g?fmt(g):''}</td>`;
+    } else {
+      tr.innerHTML=`
+        <td>${bNo++}</td>
+        <td class="nm">${item.품명}</td>
+        <td>${item.단위}</td><td>${fmt(item.단가)}</td>
+        <td>${qc(item.주문량,idx,'주문량',readOnly)}</td>
+        <td>${qc(item.추가,idx,'추가',readOnly)}</td>
+        <td>${qc(item.반품,idx,'반품',readOnly)}</td>
+        <td class="${f<0?'neg':''}">${f}</td>
+        <td>${fmt(g)}</td>`;
+    }
+    body.appendChild(tr);
+    if(isA&&item.품명&&!readOnly){
+      const sel=tr.querySelector('select');
+      if(sel) for(let o of sel.options){if(o.value===item.품명){o.selected=true;break;}}
+    }
+  });
+  updTotal();
+}
+function qc(v,idx,f,ro){
+  if(ro) return v||0;
+  return `<input class="q" type="number" value="${v||0}" min="0" data-i="${idx}" data-f="${f}"
+    onchange="onQ(this)"
+    onwheel="event.preventDefault()"
+    onfocus="this.select()"
+    onkeydown="onQKey(event,this)">`;
+}
+
+// 정산서 입력칸 키보드 네비게이션
+function onQKey(e,inp){
+  const allInputs=[...document.querySelectorAll('#editBody input.q, #editBody select.as')];
+  const idx=allInputs.indexOf(inp);
+  if(e.key==='Enter'||e.key==='ArrowDown'){
+    e.preventDefault();
+    const next=allInputs[idx+1];
+    if(next){next.focus();if(next.select)next.select();}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    const prev=allInputs[idx-1];
+    if(prev){prev.focus();if(prev.select)prev.select();}
+  } else if(e.key==='ArrowRight'){
+    // 커서가 끝에 있을 때만 다음 칸으로
+    if(inp.selectionStart===String(inp.value).length){
+      e.preventDefault();
+      const next=allInputs[idx+1];
+      if(next){next.focus();if(next.select)next.select();}
+    }
+  } else if(e.key==='ArrowLeft'){
+    if(inp.selectionStart===0){
+      e.preventDefault();
+      const prev=allInputs[idx-1];
+      if(prev){prev.focus();if(prev.select)prev.select();}
+    }
+  }
+}
+// 기타물품 단위·단가 직접 입력
+function onQExtra(inp){
+  const idx=+inp.dataset.i, f=inp.dataset.f;
+  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  if(f==='단위') j.items[idx].단위=inp.value;
+  if(f==='단가'){
+    j.items[idx].단가=+inp.value||0;
+    // 가격 셀 갱신
+    const tr=inp.closest('tr');
+    const it=j.items[idx];
+    const fin=(it.주문량||0)+(it.추가||0)-(it.반품||0);
+    const g=fin*(it.단가||0);
+    tr.cells[8].textContent=g?fmt(g):'';
+    updTotal();
+  }
+}
+function onSel(sel){
+  const idx=+sel.dataset.i;const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  const opt=sel.options[sel.selectedIndex];
+  j.items[idx].품명=opt.value;j.items[idx].단위=opt.dataset.u||'';j.items[idx].단가=+opt.dataset.p||0;
+  buildTable(j,false);
+  // 저장은 💾 저장 버튼 클릭 시 처리
+}
+function onQ(inp){
+  const idx=+inp.dataset.i,f=inp.dataset.f;
+  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  j.items[idx][f]=+inp.value||0;
+  const it=j.items[idx],tr=inp.closest('tr');
+  const fin=(it.주문량||0)+(it.추가||0)-(it.반품||0);
+  const g=fin*(it.단가||0);
+  tr.cells[7].textContent=fin;tr.cells[7].className=fin<0?'neg':'';
+  tr.cells[8].textContent=g?fmt(g):'';
+  updTotal();
+  // 저장은 💾 저장 버튼 클릭 시 처리
+}
+function onCapChange(){
+  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  const n=+document.getElementById('e-인원수').value;
+  if(!confirm(`인원수를 ${n}명으로 변경하면 기본물품 수량이 초기화됩니다. 계속하시겠습니까?`)){
+    document.getElementById('e-인원수').value=j.인원수;return;
+  }
+  j.인원수=n;j.items.forEach(it=>{if(!it.isAdd)it.주문량=BASIC.find(b=>b.품명===it.품명)?.qty[n]||0;});
+  buildTable(j,false);
+  updateEditFileName();  // 파일명 자동 갱신
+}
+
+// 편집창 필드 변경 시 파일명 자동 갱신 (고인명, 날짜, 분향실, 인원수 변경 연동)
+function updateEditFileName(){
+  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  const 날짜=document.getElementById('e-날짜').value||j.날짜;
+  const 분향실=document.getElementById('e-분향실').value||j.분향실;
+  const 고인=document.getElementById('e-고인').value||j.고인;
+  const 인원수=+document.getElementById('e-인원수').value||j.인원수;
+  const mm=(날짜||'').slice(5,7),dd=(날짜||'').slice(8,10);
+  const 파일명=`최종정산서(${인원수})-${분향실}-${고인}-${mm}${dd}`;
+  document.getElementById('editTitleText').textContent=`📋 ${파일명} `;
+}
+function calcTotal(items){return(items||[]).reduce((s,it)=>{const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);return s+f*(it.단가||0);},0);}
+function updTotal(){const j=jungs.find(x=>x.id===editingId);const t=j?calcTotal(j.items):0;document.getElementById('editTotal').textContent=fmt(t)+' 원';return t;}
+function closeEditOverlay(){
+  document.getElementById('editOverlay').style.display='none';
+  editingId=null;
+}
+async function saveEditing(){
+  if(!editingId)return;
+  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  j.날짜=document.getElementById('e-날짜').value;
+  j.분향실=document.getElementById('e-분향실').value;
+  j.고인=document.getElementById('e-고인').value;
+  j.상주=document.getElementById('e-상주').value;
+  j.연락처=document.getElementById('e-연락처').value;
+  const mm=(j.날짜||'').slice(5,7),dd=(j.날짜||'').slice(8,10);
+  j.파일명=`최종정산서(${j.인원수})-${j.분향실}-${j.고인}-${mm}${dd}`;
+
+  // 화면 즉시 갱신 + 메시지 바로 표시
+  renderJungList();
+  alert(`✅ 저장 완료!\n\n📋 ${j.파일명}\n정산액: ${fmt(calcTotal(j.items))}원\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+
+  // 서버 저장 백그라운드
+  fbSet('jungs/'+j.id,j).then(()=>addLog(currentUser?.이름||'','정산서저장',j.파일명)).catch(e=>console.error('저장 오류:',e));
+}
+// ── 메모 ──
+function openMemo(id){
+  const j=jungs.find(x=>x.id===id);if(!j)return;
+  const memo=prompt(`📋 메모 (${j.고인})
+
+저장하려면 내용 입력, 삭제하려면 비워두세요:`,j.메모||'');
+  if(memo===null)return; // 취소
+  j.메모=memo.trim();
+  renderJungList();
+  fbSet('jungs/'+j.id+'/메모',j.메모).catch(e=>console.error(e));
+}
+async function delJung(id){
+  if(!confirm('이 정산서를 삭제하시겠습니까?'))return;
+  jungs=jungs.filter(j=>j.id!==id);
+  if(editingId===id){editingId=null;document.getElementById('editOverlay').style.display='none';}
+  renderJungList();
+  fbRemove('jungs/'+id).catch(()=>{});
+}
+
+// ══ 인쇄 ══
+// 목록에서 직접 인쇄
+function printJung(id){
+  const prev=editingId;
+  editingId=id;
+  doPrint();
+  editingId=prev;
+}
+function doPrint(){
+  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  const today=new Date();
+  const dStr=`${today.getFullYear()}년 ${String(today.getMonth()+1).padStart(2,'0')}월 ${String(today.getDate()).padStart(2,'0')}일`;
+  const isDone=j.상태==='완료';
+  const pItems=j.items.filter(it=>{
+    if(it.isAdd){
+      if(isDone){const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);return it.품명&&f!==0;}
+      return true;
+    }
+    return true;
+  });
+  let no=1,rows='';
+  pItems.forEach(it=>{
+    const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
+    if(it.isAdd&&!it.품명&&!isDone){
+      rows+=`<tr style="height:22px"><td>${no++}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+    } else {
+      rows+=`<tr>
+        <td>${no++}</td>
+        <td class="pnm">${it.품명}</td>
+        <td style="white-space:nowrap">${it.단위}</td>
+        <td class="right">${it.단가?fmt(it.단가):''}</td>
+        <td>${it.주문량||0}</td>
+        <td>${it.추가||''}</td>
+        <td>${it.반품||''}</td>
+        <td>${f||''}</td>
+        <td class="right">${(f&&it.단가)?fmt(f*it.단가):''}</td>
+      </tr>`;
+    }
+  });
+  const total=calcTotal(j.items);
+  const printHtml=`<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="UTF-8">
+<title>최종정산서</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Malgun Gothic',sans-serif;padding:5mm 6mm;font-size:11pt}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #333;padding:3px 5px;text-align:center;line-height:1.4}
+td.pnm{text-align:left;padding-left:6px}
+td.right{text-align:right;padding-right:5px}
+th{padding:4px 5px;font-size:10.5pt}
+.ph1{font-size:18pt;font-weight:700;text-align:center;padding:3px 0 2px;letter-spacing:4px}
+.ph2{text-align:center;font-size:11pt;margin-bottom:3px}
+.phead{margin-bottom:3px}
+.phead td{padding:4px 8px;font-size:11pt;line-height:1.4}
+.phead td.lbl{background:#f5f5f5;font-weight:700;width:60px;text-align:center;white-space:nowrap}
+.ptotal td{font-weight:700;background:#f5f5f5;font-size:11pt}
+.pnote{font-size:9pt;margin-top:3px;text-align:center;color:#444}
+@media print{@page{margin:7mm;size:A4 portrait}}
+<\/style>
+</head><body>
+<div class="ph1">최 종 정 산 서</div>
+<div class="ph2">${dStr}${j.결제?' &nbsp;&nbsp; <span style="background:#1b3a5c;color:#fff;padding:2px 10px;border-radius:10px;font-size:10pt">'+j.결제+'</span>':''}</div>
+<table class="phead" style="margin-bottom:3px">
+  <tr>
+    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${j.분향실}</td>
+    <td class="lbl" style="width:60px">고인</td><td>故 ${j.고인} 님</td>
+    <td style="text-align:right;font-weight:700;width:80px">혼길마트</td>
+  </tr>
+  <tr>
+    <td class="lbl" style="width:60px">상주</td><td style="width:140px">${j.상주?j.상주+' 님':''}</td>
+    <td class="lbl" style="width:60px">연락처</td><td>${j.연락처||''}</td>
+    <td style="text-align:right;width:80px">742-0077</td>
+  </tr>
+</table>
+<table>
+  <thead><tr>
+    <th style="width:28px">NO</th>
+    <th>품&nbsp;&nbsp;목</th>
+    <th style="width:68px">단위</th>
+    <th style="width:58px">단가</th>
+    <th style="width:44px">주문량</th>
+    <th style="width:44px">추가<br>주문량</th>
+    <th style="width:44px">반품량</th>
+    <th style="width:44px">최종<br>주문량</th>
+    <th style="width:65px">가격</th>
+  </tr></thead>
+  <tbody>${rows}<\/tbody>
+  <tfoot><tr class="ptotal">
+    <td colspan="8" style="text-align:right;padding-right:6px">합&nbsp;&nbsp;&nbsp;계</td>
+    <td class="right">${fmt(total)}</td>
+  </tr></tfoot>
+</table>
+<div class="pnote">※ 묶음포장 개봉시 반품이 안됩니다.&nbsp;&nbsp;&nbsp;계좌번호 32-02-014675 제주은행 예금주: 송미봉</div>
+<script>
+window.onload=function(){
+  // A4 인쇄 가능 높이 계산 (297mm - 여백14mm)
+  var A4px=1054; // 283mm * 3.7795px/mm
+  var bodyH=document.body.scrollHeight;
+  if(bodyH>A4px){
+    var ratio=A4px/bodyH;
+    // 최소 55%까지 허용
+    if(ratio<0.55) ratio=0.55;
+    var pct=Math.floor(ratio*100);
+    // zoom: 인쇄에도 적용되는 CSS 속성
+    document.body.style.zoom=pct+'%';
+    // style 태그로도 추가 (일부 브라우저 대응)
+    var st=document.createElement('style');
+    st.textContent='@media print{body{zoom:'+pct+'%}}';
+    document.head.appendChild(st);
+  }
+  setTimeout(function(){window.print();setTimeout(function(){window.close();},1500);},400);
+};
+<\/script>
+</body></html>`;
+
+  const w=window.open('','_blank','width=820,height=1000,scrollbars=yes');
+  if(!w){
+    alert('팝업이 차단됐습니다.\n\n주소창 오른쪽 팝업 차단 아이콘을 클릭해서\n이 사이트의 팝업을 허용해 주세요.');
+    return;
+  }
+  w.document.open();
+  w.document.write(printHtml);
+  w.document.close();
+}
+
+
+// ══ 정산완료 ══
+async function 정산완료(){
+  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  if(j.상태==='완료'){alert('이미 정산 완료된 건입니다.');return;}
+  if(!j.분향실||!j.고인){alert('분향실과 고인 정보를 입력해 주세요.');return;}
+  // 헤더 정보만 업데이트 (저장 버튼과 별도로 동작)
+  j.날짜=document.getElementById('e-날짜').value||j.날짜;
+  j.분향실=document.getElementById('e-분향실').value||j.분향실;
+  j.고인=document.getElementById('e-고인').value||j.고인;
+  j.상주=document.getElementById('e-상주').value||j.상주;
+  j.연락처=document.getElementById('e-연락처').value||j.연락처;
+  const mm=(j.날짜||'').slice(5,7),dd=(j.날짜||'').slice(8,10);
+  j.파일명=`최종정산서(${j.인원수})-${j.분향실}-${j.고인}-${mm}${dd}`;
+  const total=calcTotal(j.items);
+  if(!confirm(`정산완료 처리를 진행하시겠습니까?\n\n분향실: ${j.분향실}\n고  인: ${j.고인}\n정산액: ${fmt(total)}원`))return;
+  pendingId=j.id;
+  document.getElementById('payInfo').textContent=`분향실 ${j.분향실} / ${j.고인} / ${fmt(total)}원`;
+  document.querySelectorAll('input[name=pay]').forEach(r=>r.checked=false);
+  document.getElementById('payModal').classList.add('show');
+}
+async function confirmPay(){
+  const pay=document.querySelector('input[name=pay]:checked')?.value;
+  if(!pay){alert('결제방식을 선택해 주세요.');return;}
+  closeModal('payModal');
+  const j=jungs.find(x=>x.id===pendingId);if(!j)return;
+
+  // 1. 로컬 상태 즉시 반영
+  j.상태='완료';j.결제=pay;j.완료일=new Date().toISOString();
+  const total=calcTotal(j.items);
+  const newResult={id:Date.now().toString(),분향실:j.분향실,고인:j.고인,날짜:j.날짜,금액:total,결제:pay,인원수:j.인원수,상주:j.상주||'',연락처:j.연락처||'',비고:'',time:new Date().toISOString()};
+  results.push(newResult);
+  const m=new Date(j.날짜).getMonth()+1,d=new Date(j.날짜).getDate();
+  if(!stockData[m])stockData[m]={};
+  j.items.forEach(it=>{
+    const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
+    if(it.품명&&f>0){
+      if(!stockData[m][it.품명])stockData[m][it.품명]={};
+      stockData[m][it.품명][d]=(stockData[m][it.품명][d]||0)+f;
+    }
+  });
+
+  // 2. 화면 즉시 갱신 + 완료 메시지 바로 표시
+  document.getElementById('edit-stamp').style.display='';
+  document.getElementById('edit-pay').textContent='/ '+pay+' 완료!';
+  loadForm(j,true);renderJungList();renderResults();
+  alert(`정산 완료!\n\n분향실: ${j.분향실} / ${j.고인}\n정산액: ${fmt(total)}원\n결제: ${pay}`);
+
+  // 3. 서버 저장은 백그라운드로 (메시지 확인 후 처리)
+  fbSet('jungs/'+j.id,j).catch(e=>console.error('정산완료 jung 저장:',e));
+  fbSet('results/'+newResult.id,newResult).catch(e=>console.error('결산서 저장:',e));
+  fbSet('stockData',stockData).catch(e=>console.error('재고 저장:',e));
+  addLog(currentUser?.이름||'','정산완료',j.파일명);
+}
+
+// ══ 정산취소 ══
+async function 정산취소(){
+  const j=jungs.find(x=>x.id===editingId);if(!j||j.상태!=='완료')return;
+  if(!confirm(
+    `정산을 취소하시겠습니까?\n\n분향실: ${j.분향실} / ${j.고인}\n\n` +
+    `⚠️ 결산서에서 해당 건이 삭제되고\n재고관리장에서 반영된 수량이 원복됩니다.`
+  )) return;
+
+  // 1. 결산서에서 해당 건 제거
+  const before=results.length;
+  const removedIds=results
+    .filter(r=>r.날짜===j.날짜&&r.분향실===j.분향실&&r.고인===j.고인)
+    .map(r=>r.id);
+  results=results.filter(r=>!(r.날짜===j.날짜&&r.분향실===j.분향실&&r.고인===j.고인));
+  const removed=before-results.length;
+
+  // 2. 재고관리장 수량 원복
+  const m=new Date(j.날짜).getMonth()+1;
+  const d=new Date(j.날짜).getDate();
+  if(stockData[m]){
+    j.items.forEach(it=>{
+      const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
+      if(it.품명&&f>0&&stockData[m][it.품명]){
+        stockData[m][it.품명][d]=Math.max(0,(stockData[m][it.품명][d]||0)-f);
+      }
+    });
+  }
+
+  // 3. 정산서 상태 → 진행중
+  j.상태='진행중';j.결제='';j.완료일='';
+
+  // 4. 화면 즉시 갱신 + 메시지 바로 표시
+  renderJungList();renderResults();
+  loadForm(j,false);
+  alert(`🔄 정산 취소 완료!\n\n결산서 ${removed}건 삭제\n재고 수량 원복 완료\n\n이제 정산서를 수정할 수 있습니다.`);
+
+  // 5. 서버 저장 백그라운드
+  fbSet('jungs/'+j.id,j).catch(e=>console.error('정산취소 jung:',e));
+  fbSet('stockData',stockData).catch(e=>console.error('정산취소 재고:',e));
+  removedIds.forEach(id=>fbRemove('results/'+id).catch(()=>{}));
+  addLog(currentUser?.이름||'','정산취소',j.파일명);
+}
+function renderResults(){
+  const fm=document.getElementById('filterMonth')?.value||'';
+  let list=fm?results.filter(r=>r.날짜.startsWith(fm)):results;
+  const total=results.reduce((s,r)=>s+(r.금액||0),0);
+  const tm=new Date().toISOString().slice(0,7);
+  const mc=results.filter(r=>r.날짜.startsWith(tm)).length;
+  const mt=results.filter(r=>r.날짜.startsWith(tm)).reduce((s,r)=>s+(r.금액||0),0);
+  document.getElementById('sumGrid').innerHTML=`
+    <div class="sum-box"><div class="lbl">전체 건수</div><div class="val">${results.length}건</div></div>
+    <div class="sum-box"><div class="lbl">전체 정산액</div><div class="val">${fmt(total)}원</div></div>
+    <div class="sum-box"><div class="lbl">이번달 건수</div><div class="val">${mc}건</div></div>
+    <div class="sum-box"><div class="lbl">이번달 정산액</div><div class="val">${fmt(mt)}원</div></div>`;
+  const body=document.getElementById('resultBody');body.innerHTML='';
+  list.slice().reverse().forEach((r,i)=>{
+    const idx=results.indexOf(r);const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${results.length-idx}</td><td>${r.분향실}</td><td class="left">${r.고인}</td><td>${r.날짜}</td>
+      <td style="text-align:right">${fmt(r.금액||0)}</td>
+      <td><span class="badge badge-${r.결제==='카드결제'?'card':r.결제==='현금결제'?'cash':'rcpt'}">${r.결제||''}</span></td>
+      <td>${r.인원수||''}명</td><td>${r.비고||''}</td>
+      <td>${currentUser?.역할==='admin'?`<button class="btn btn-danger btn-sm" onclick="delResult(${idx})">삭제</button>`:'-'}</td>`;
+    body.appendChild(tr);
+  });
+}
+async function delResult(idx){
+  if(!confirm('삭제?'))return;
+  const r=results[idx];
+  results.splice(idx,1);
+  fbRemove('results/'+id).catch(()=>{});
+  renderResults();buildCharts();
+}
+function exportCSV(){
+  let csv='NO,분향실,고인,발인일,정산액,결제방식,인원수,상주,연락처,비고\n';
+  results.forEach((r,i)=>{csv+=`${i+1},${r.분향실},${r.고인},${r.날짜},${r.금액||0},${r.결제||''},${r.인원수||''},${r.상주||''},${r.연락처||''},${r.비고||''}\n`;});
+  dl('\uFEFF'+csv,'결산서_'+new Date().toISOString().slice(0,10)+'.csv','text/csv');
+}
+
+// ── 월별 차트 ──
+function buildCharts(){
+  // 올해 전체 월별 데이터
+  const yr=new Date().getFullYear();
+  const months=[];
+  for(let i=1;i<=12;i++) months.push(`${yr}-${String(i).padStart(2,'0')}`);
+  const labels=months.map(m=>parseInt(m.split('-')[1])+'월');
+  const counts=months.map(m=>results.filter(r=>r.날짜.startsWith(m)).length);
+  const amounts=months.map(m=>results.filter(r=>r.날짜.startsWith(m)).reduce((s,r)=>s+(r.금액||0),0));
+
+  if(chartCombo) chartCombo.destroy();
+  chartCombo=new Chart(document.getElementById('chartCombo'),{
+    data:{
+      labels,
+      datasets:[
+        {
+          type:'bar',
+          label:'정산액',
+          data:amounts,
+          backgroundColor:'rgba(68,114,196,0.85)',
+          borderColor:'#2d5a9e',
+          borderWidth:1,
+          yAxisID:'yAmt',
+          order:2
+        },
+        {
+          type:'line',
+          label:'건수',
+          data:counts,
+          borderColor:'#e8821a',
+          backgroundColor:'rgba(232,130,26,0)',
+          pointBackgroundColor:'#e8821a',
+          pointRadius:5,
+          pointHoverRadius:7,
+          tension:0.3,
+          borderWidth:2.5,
+          yAxisID:'yCnt',
+          order:1,
+          datalabels:{
+            anchor:'end',align:'top',
+            color:'#c0580a',font:{weight:'bold',size:11},
+            formatter:v=>v>0?v+' 건':''
+          }
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label:ctx=>{
+              if(ctx.dataset.label==='정산액') return ' 정산액: '+fmt(ctx.raw)+'원';
+              return ' 건수: '+ctx.raw+'건';
+            }
+          }
+        }
+      },
+      scales:{
+        yAmt:{
+          type:'linear',position:'left',beginAtZero:true,
+          ticks:{callback:v=>fmt(v)+'원',font:{size:10}},
+          grid:{color:'rgba(0,0,0,.06)'}
+        },
+        yCnt:{
+          type:'linear',position:'right',beginAtZero:true,
+          ticks:{stepSize:1,font:{size:10}},
+          grid:{display:false}
+        }
+      }
+    }
+  });
+}
+
+// ══ 재고관리 ══
+// 구분/품명/이월량/현재재고/입고량/1일~31일
+// 포장단위 정의 {품명: {단위:n, 라벨:'박스'}}
+const PACK_UNIT={
+  // {n:묶음단위, label:묶음명, sub:낱개단위, sublabel:낱개명, sub2:중간단위, sub2label:중간명}
+  // 주류: 00박스 0병
+  '한라산21도소주(30병/박스)':{n:30,label:'박스',sublabel:'병'},
+  '참이슬소주(30병/박스)':{n:30,label:'박스',sublabel:'병'},
+  '오름소주(30병/박스)':{n:30,label:'박스',sublabel:'병'},
+  '카스맥주(20병/박스)':{n:20,label:'박스',sublabel:'병'},
+  // 각티슈: 00박스 0개
+  '정사각티슈/6개':{n:6,label:'박스',sublabel:'개'},
+  // 종이컵: 00박스 00줄 (1박스=20줄)
+  '종이컵':{n:20,label:'박스',sublabel:'줄'},
+  // 장갑: 0묶음 0장
+  '도감장갑':{n:10,label:'묶음',sublabel:'장'},
+  '예식장갑':{n:10,label:'묶음',sublabel:'장'},
+};
+
+function renderStock(){
+  const m=+document.getElementById('stockMonth').value;
+  const yr=+document.getElementById('stockYear').value||new Date().getFullYear();
+  const days=new Date(yr,m,0).getDate();
+  const mData=stockData[m]||{};
+
+  let th='<tr><th>구분</th><th style="min-width:120px">품명</th><th>이월량</th><th>현재재고</th><th style="background:#2a5298;color:#fff;font-size:11px;min-width:80px;white-space:nowrap">포장단위</th>';
+  for(let d=1;d<=days;d++) th+=`<th>${d}</th>`;
+  th+='<th>출고합계</th></tr>';
+  document.getElementById('stockHead').innerHTML=th;
+
+  const body=document.getElementById('stockBody');body.innerHTML='';
+  const _extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
+  const ALL_STOCK=[...BASIC,..._extra.map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}))];
+  ALL_STOCK.forEach(item=>{
+    const p=mData[item.품명]||{};
+    const 이월=p['이월']||0;
+    let outSum=0,dayTds='';
+    for(let d=1;d<=days;d++){
+      const v=p[d]||0;outSum+=v;
+      dayTds+=`<td style="font-size:11px;color:${v>0?'#c0392b':v<0?'#217a3c':'#aaa'}">${v!==0?v:''}</td>`;
+    }
+    const 현재재고=이월-outSum;
+        const pk=PACK_UNIT[item.품명];
+    let packTd='<td style="color:#ccc;font-size:11px;min-width:80px">-</td>';
+    if(pk){
+      packTd=`<td style="font-size:11px;font-weight:700;background:#eef2ff;white-space:nowrap;min-width:80px;padding:2px 5px;color:${현재재고<0?'#c0392b':'#2a5298'}">${fmtPack(현재재고,pk)}</td>`;
+    }
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="scat">기본</td>
+      <td class="snm">${item.품명}</td>
+      <td><input class="sv" type="number" value="${이월||''}" data-p="${esc(item.품명)}" data-m="${m}" data-d="이월"
+        onchange="updStock(this);calcStockRow(this)"
+        onwheel="event.preventDefault()"
+        onfocus="this.select()"></td>
+      <td id="cr-${safeKey(item.품명)}" style="font-weight:700;color:${현재재고<0?'#c0392b':'#1b3a5c'}">${현재재고}</td>
+      ${packTd}
+      ${dayTds}
+      <td style="font-weight:700;color:#c0392b">${outSum||''}</td>`;
+    body.appendChild(tr);
+  });
+}
+function safeKey(s){return(s||'').replace(/[^a-zA-Z0-9]/g,'_');}
+
+// 포장단위 표시 함수
+// 양수: 3박스 15병 / 음수: ▼2박스 (부족)
+function fmtPack(qty, pk){
+  if(qty===0) return '0'+pk.label;
+  const abs=Math.abs(qty);
+  const boxes=Math.floor(abs/pk.n);
+  const rem=abs%pk.n;
+  let txt='';
+  if(boxes>0) txt+=boxes+pk.label;
+  if(rem>0) txt+=(txt?' ':'')+rem+pk.sublabel;
+  if(!txt) txt='0'+pk.label;
+  return qty<0?'▼'+txt:txt;
+}
+function updStock(inp){
+  const{p:품명,m,d}=inp.dataset;
+  if(!stockData[m])stockData[m]={};
+  if(!stockData[m][품명])stockData[m][품명]={};
+  stockData[m][품명][d]=+inp.value||0;
+  // 저장은 💾 저장 버튼 클릭 시 처리
+}
+function calcStockRow(inp){
+  const{p:품명,m}=inp.dataset;
+  const p=stockData[m]?.[품명]||{};
+  const 이월=+inp.value||0;
+  let out=0;
+  Object.keys(p).forEach(k=>{if(!isNaN(k))out+=p[k]||0;});
+  const 현재=이월-out;
+  const el=document.getElementById('cr-'+safeKey(품명));
+  if(el){el.textContent=현재;el.style.color=현재<0?'#c0392b':'#1b3a5c';}
+  // 포장단위 칸 갱신
+  const pk=PACK_UNIT[품명];
+  if(pk){
+    const tr=inp.closest('tr');
+    // 현재재고 다음 td가 포장단위 칸
+    const packTd=el?.nextElementSibling;
+    if(packTd){
+      packTd.innerHTML=fmtPack(현재,pk);
+      packTd.style.color=현재<0?'#c0392b':'#2a5298';
+    }
+  }
+}
+// ── 재고량 수정 모달 ──
+function openStockEditModal(){
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('se-날짜').value=today;
+  document.getElementById('seRows').innerHTML='';
+  addSeRow();addSeRow();addSeRow(); // 기본 3행
+  document.getElementById('stockEditModal').classList.add('show');
+}
+function addSeRow(){
+  const allStockItems=[...BASIC,...(typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[])];
+  const opts=[...new Map(allStockItems.map(b=>[b.품명,b])).values()]
+    .map(b=>`<option value="${esc(b.품명)}">${b.품명}</option>`).join('');
+  const div=document.createElement('div');
+  div.className='se-row';
+  div.style.cssText='display:flex;gap:8px;align-items:flex-end;background:#f8faff;border:1px solid #d0dff0;border-radius:6px;padding:8px 10px';
+  div.innerHTML=`
+    <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:11px;color:#555;font-weight:700">물품 선택</label>
+      <select style="padding:5px;border:1px solid #ccc;border-radius:4px;font-size:12px;font-family:inherit">
+        <option value="">-- 선택 --</option>${opts}
+      </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:11px;color:#555;font-weight:700">수량</label>
+      <input type="number" placeholder="수량" min="1"
+        style="width:70px;padding:5px 6px;border:1px solid #ccc;border-radius:4px;font-size:12px;text-align:center">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:11px;color:#555;font-weight:700">방식</label>
+      <select style="width:80px;padding:5px;border:1px solid #ccc;border-radius:4px;font-size:12px;font-family:inherit">
+        <option value="in">➕ 입고</option>
+        <option value="out">➖ 출고</option>
+        <option value="set">🔧 설정</option>
+      </select>
+    </div>
+    <button onclick="this.closest('.se-row').remove()"
+      style="background:#c0392b;color:#fff;border:none;border-radius:4px;padding:6px 9px;cursor:pointer;font-size:13px;font-weight:700">✕</button>`;
+  document.getElementById('seRows').appendChild(div);
+}
+async function saveStockEdit(){
+  const 날짜str=document.getElementById('se-날짜').value;
+  if(!날짜str){alert('수정 일자를 입력해 주세요.');return;}
+  const 날짜obj=new Date(날짜str);
+  const m=날짜obj.getMonth()+1;
+  const d=날짜obj.getDate();
+
+  if(!stockData[m])stockData[m]={};
+  let changed=0;
+  document.querySelectorAll('.se-row').forEach(row=>{
+    const sels=row.querySelectorAll('select');
+    const numInp=row.querySelector('input[type=number]');
+    const 품명=sels[0]?.value;
+    const qty=+numInp?.value||0;
+    const mode=sels[1]?.value||'in';
+    if(!품명||qty===0) return;
+    if(!stockData[m][품명])stockData[m][품명]={};
+    const cur=stockData[m][품명][d]||0;
+    if(mode==='in'){
+      // 입고: 재고 증가 → 표에 음수(-값)로 기록 (출고 반대)
+      stockData[m][품명][d]=cur - qty;
+    } else if(mode==='out'){
+      // 출고: 재고 감소 → 표에 양수(+값)로 기록
+      stockData[m][품명][d]=cur + qty;
+    } else {
+      // 설정: 해당 칸을 직접 지정
+      stockData[m][품명][d]=qty;
+    }
+    changed++;
+  });
+  if(changed===0){alert('수정할 물품과 수량을 입력해 주세요.');return;}
+  showSaving(true);
+  try{await fbSet('stockData',stockData);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  showSaving(false);
+  closeModal('stockEditModal');
+  if(m===+document.getElementById('stockMonth').value) renderStock();
+  alert(`${m}월 ${d}일 재고 ${changed}건 수정 완료!`);
+}
+async function saveStock(){
+  showSaving(true);
+  try{await fbSet('stockData',stockData);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  showSaving(false);
+  const m=+document.getElementById('stockMonth').value;
+  alert(`✅ 재고 저장 완료!\n\n${m}월 재고관리장\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+}
+function exportStock(){
+  const m=+document.getElementById('stockMonth').value;
+  const days=new Date(new Date().getFullYear(),m,0).getDate();
+  const mData=stockData[m]||{};
+  let csv='품명,이월량,현재재고';
+  for(let d=1;d<=days;d++)csv+=`,${d}일`;csv+=',출고합계\n';
+  BASIC.forEach(it=>{
+    const p=mData[it.품명]||{};
+    const 이월=p['이월']||0;
+    let out=0,row=it.품명+','+이월;
+    for(let d=1;d<=days;d++){const v=p[d]||0;out+=v;row+=','+v;}
+    csv+=row+','+(이월-out)+','+out+'\n';
+  });
+  dl('\uFEFF'+csv,`재고_${m}월.csv`,'text/csv');
+}
+
+// ══ 원가DB ══
+function renderPrice(){
+  const search=document.getElementById('priceSearch').value.toLowerCase();
+  const filter=document.getElementById('priceFilter').value;
+  const body=document.getElementById('priceBody');body.innerHTML='';
+  priceDB.filter(p=>(!filter||p.구분===filter)&&(!search||p.품명.toLowerCase().includes(search)))
+  .forEach(p=>{
+    const idx=priceDB.indexOf(p);
+    const CATS=['기본물품','답례품','장지품','음료수','잡화','주 류'];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><select onchange="priceDB[${idx}].구분=this.value" style="border:none;background:transparent;width:100%;font-size:12px">${CATS.map(c=>`<option${p.구분===c?' selected':''}>${c}</option>`).join('')}</select></td>
+      <td><input value="${esc(p.품명)}" onchange="priceDB[${idx}].품명=this.value"></td>
+      <td><input value="${esc(p.단위)}" onchange="priceDB[${idx}].단위=this.value"></td>
+      <td><input type="number" value="${p.가격||0}" onchange="priceDB[${idx}].가격=+this.value||0"></td>
+      <td><input type="number" value="${p.원가||0}" onchange="priceDB[${idx}].원가=+this.value||0"></td>
+      <td><button class="btn btn-danger btn-sm" onclick="delPrice(${idx})">삭제</button></td>`;
+    body.appendChild(tr);
+  });
+}
+function addPriceItem(){priceDB.push({구분:'기본물품',품명:'새 품목',단위:'개',가격:0,원가:0});renderPrice();}
+function delPrice(idx){if(!confirm('삭제?'))return;priceDB.splice(idx,1);price_save();renderPrice();}
+async function savePrice(){
+  showSaving(true);
+  try{const obj={};priceDB.forEach((p,i)=>obj[i]=p);await fbSet('priceDB',obj);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  showSaving(false);
+  alert(`✅ 원가DB 저장 완료!\n\n총 ${priceDB.length}개 품목\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+}
+
+// ══ 마트관리 ══
+function backupData(){
+  autoBackupToFile('수동');
+  alert(`백업 완료!\n정산서: ${jungs.length}건 / 결산서: ${results.length}건\n\n혼길마트_백업 폴더에 저장하세요.`);
+}
+
+// ── 자동 백업 ──
+function startAutoBackup(){
+  const today=new Date().toISOString().slice(0,10);
+  const lastBackup=localStorage.getItem('hm_last_backup')||'';
+
+  // 1. 오늘 첫 실행 시 자동 파일 백업
+  if(lastBackup!==today){
+    setTimeout(function(){
+      autoBackupToFile('아침');
+    }, 3000);
+  }
+
+  // 2. 4시간마다 백업
+  setInterval(function(){
+    autoBackupToFile('정기');
+  }, 4*60*60*1000);
+
+  // 3. 매일 20:20 백업 - 다음 20:20까지 남은 ms 계산
+  function scheduleEvening(){
+    const now=new Date();
+    const target=new Date(now);
+    target.setHours(20,20,0,0);
+    if(now>=target) target.setDate(target.getDate()+1); // 이미 지났으면 내일
+    const delay=target-now;
+    setTimeout(function(){
+      autoBackupToFile('저녁마감');
+      scheduleEvening(); // 다음날 20:20 예약
+    }, delay);
+    // 다음 20:20까지 남은 시간 표시
+    const h=Math.floor(delay/3600000), m=Math.floor((delay%3600000)/60000);
+    console.log(`[자동백업] 다음 저녁마감 백업까지 ${h}시간 ${m}분`);
+  }
+  scheduleEvening();
+
+  // 4. 30분마다 localStorage 스냅샷
+  setInterval(function(){
+    autoSnapshot();
+  }, 30*60*1000);
+
+  updateBackupStatus();
+}
+
+function autoBackupToFile(label){
+  const data={jungs,results,stockData,priceDB,timestamp:new Date().toISOString(),version:'1.0'};
+  const today=new Date().toISOString().slice(0,10);
+  const timeStr=new Date().toTimeString().slice(0,5).replace(':','');
+  const filename=`혼길마트_${today}_${timeStr}_${label}.json`;
+  dl(JSON.stringify(data,null,2),filename,'application/json');
+  localStorage.setItem('hm_last_backup',today);
+  localStorage.setItem('hm_last_backup_time',new Date().toLocaleString('ko-KR'));
+  updateBackupStatus();
+  autoSnapshot(); // 파일 백업 시 스냅샷도 함께 저장
+  console.log(`[자동백업] ${filename} 저장됨`);
+}
+
+function autoSnapshot(){
+  // localStorage에 최근 스냅샷 3개 유지
+  const snap={jungs,results,stockData,priceDB,timestamp:new Date().toISOString()};
+  const snaps=JSON.parse(localStorage.getItem('hm_snapshots')||'[]');
+  snaps.unshift(snap);
+  if(snaps.length>3) snaps.splice(3);
+  localStorage.setItem('hm_snapshots',JSON.stringify(snaps));
+  updateBackupStatus();
+}
+
+function updateBackupStatus(){
+  const lastTime=localStorage.getItem('hm_last_backup_time')||'-';
+  const el=document.getElementById('ubBackup');
+  if(el) el.textContent='💾 '+lastTime;
+}
+
+function restoreSnapshot(){
+  const snaps=JSON.parse(localStorage.getItem('hm_snapshots')||'[]');
+  if(!snaps.length){alert('스냅샷이 없습니다.');return;}
+  const options=snaps.map((s,i)=>`${i+1}. ${new Date(s.timestamp).toLocaleString('ko-KR')} (정산서 ${s.jungs?.length||0}건)`).join('\n');
+  const choice=prompt(`복구할 스냅샷을 선택하세요 (번호 입력):\n\n${options}`);
+  const idx=parseInt(choice)-1;
+  if(isNaN(idx)||idx<0||idx>=snaps.length){return;}
+  const snap=snaps[idx];
+  if(!confirm(`${new Date(snap.timestamp).toLocaleString('ko-KR')} 스냅샷으로 복원하시겠습니까?`))return;
+  if(snap.jungs)   {jungs=snap.jungs;   const obj={};jungs.forEach(j=>obj[j.id]=j);fbSet('jungs',obj).catch(()=>{});}
+  if(snap.results) {results=snap.results;const obj={};results.forEach(r=>obj[r.id||Date.now()]=r);fbSet('results',obj).catch(()=>{});}
+  if(snap.stockData){stockData=snap.stockData;fbSet('stockData',stockData).catch(()=>{});}
+  if(snap.priceDB) {priceDB=snap.priceDB;const obj={};priceDB.forEach((p,i)=>obj[i]=p);fbSet('priceDB',obj).catch(()=>{});}
+  renderJungList();renderResults();renderStock();renderPrice();
+  if(typeof buildCharts==='function')buildCharts();
+  alert('스냅샷 복원 완료!');
+}
+
+function restoreData(input){
+  const file=input.files[0];
+  if(!file)return;
+  if(!confirm(`"${file.name}" 파일로 복원하시겠습니까?\n\n⚠️ 현재 데이터가 모두 덮어씌워집니다.`)){
+    input.value='';return;
+  }
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.jungs&&!data.results&&!data.priceDB){
+        alert('올바른 백업 파일이 아닙니다.');return;
+      }
+      // Firebase에 저장
+      if(data.jungs){
+        jungs=data.jungs;
+        const obj={};data.jungs.forEach(j=>obj[j.id]=j);
+        await fbSet('jungs',obj);
+      }
+      if(data.results){
+        results=data.results;
+        const obj={};data.results.forEach(r=>obj[r.id||Date.now()]=r);
+        await fbSet('results',obj);
+      }
+      if(data.stockData){
+        stockData=data.stockData;
+        await fbSet('stockData',stockData);
+      }
+      if(data.priceDB){
+        priceDB=data.priceDB;
+        const obj={};data.priceDB.forEach((p,i)=>obj[i]=p);
+        await fbSet('priceDB',obj);
+      }
+      renderJungList();renderResults();renderStock();renderPrice();
+      if(typeof buildCharts==='function')buildCharts();
+      alert(`✅ 복원 완료!\n\n정산서: ${jungs.length}건\n결산서: ${results.length}건\n백업일시: ${data.timestamp?new Date(data.timestamp).toLocaleString('ko-KR'):'-'}`);
+    }catch(err){
+      alert('파일 읽기 오류: '+err.message);
+    }
+    input.value='';
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+// ══ 유틸 ══
+function fmt(n){return(+n||0).toLocaleString('ko-KR');}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function dl(c,name,type){const b=new Blob([c],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+
+init();
+</script>
+</body>
+</html>
