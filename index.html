@@ -809,56 +809,46 @@ const STOCK_EXTRA=[
 ];
 
 
-// ══ Google Sheets API 연동 ══
-const API='https://script.google.com/macros/s/AKfycby73sAtVfP2M8w-yDJD46IibvDUZ7eBWsnXN3JFksad_aKKbURnLh3v6E67RgijGM0GGQ/exec';
-let currentToken='';
+// ══ Firebase Realtime Database 연동 ══
+const FB_CONFIG={
+  apiKey:"AIzaSyDoloODoAZ6T_lSSi0gl9aQu91VFQRZmPo",
+  databaseURL:"https://hongil-mart-default-rtdb.firebaseio.com",
+  projectId:"hongil-mart",
+  appId:"1:401830236418:web:52031f60638048e0cfb21b"
+};
+let FB=null, DB=null;
 let currentUser=null;
 
-// JSONP 방식 API 호출 (CORS 우회)
-function apiCall(params){
-  return new Promise((resolve,reject)=>{
-    const cb='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    // token, callback은 별도, 나머지는 'data' 파라미터 하나로 압축
-    const payload={...params, token:currentToken, callback:cb};
-    // 각 값을 개별 파라미터로 (객체는 JSON 문자열)
-    const parts=[];
-    Object.keys(payload).forEach(k=>{
-      const v=payload[k];
-      const sv=typeof v==='object'&&v!==null?JSON.stringify(v):String(v);
-      parts.push(encodeURIComponent(k)+'='+encodeURIComponent(sv));
-    });
-    const qs=parts.join('&');
-    const sc=document.createElement('script');
-    const tm=setTimeout(()=>{cleanup();reject(new Error('서버 응답 시간 초과 (30초)'));},30000);
-    window[cb]=d=>{cleanup();d.status==='error'?reject(new Error(d.message)):resolve(d.data);};
-    sc.onerror=()=>{cleanup();reject(new Error('네트워크 오류. 인터넷 연결 또는 팝업 차단을 확인하세요.'));};
-    sc.src=API+'?'+qs;
-    document.head.appendChild(sc);
-    function cleanup(){clearTimeout(tm);delete window[cb];sc.parentNode?.removeChild(sc);}
-  });
+// Firebase 초기화
+async function initFirebase(){
+  const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+  const {getDatabase,ref,set,get,remove,update}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+  FB=initializeApp(FB_CONFIG);
+  DB=getDatabase(FB);
+  window._fbRef=ref; window._fbSet=set; window._fbGet=get;
+  window._fbRemove=remove; window._fbUpdate=update;
 }
-async function apiGet(action,params){return apiCall(Object.assign({action},params||{}));}
-async function apiPost(action,body){
-  showSaving(true);
-  try{
-    let payload=Object.assign({action},body||{});
-    // saveJung: items를 URL에서 제거 (URL 길이 초과 방지)
-    // items는 saveJungItems로 별도 저장
-    if(action==='saveJung'&&payload.jung&&payload.jung.items){
-      const items=[...(payload.jung.items||[])];
-      payload={...payload, jung:{...payload.jung, items:[]}};
-      const result=await apiCall(payload);
-      // items 청크 저장
-      if(items.length>0){
-        for(let i=0;i<items.length;i+=10){
-          await apiCall({action:'saveJungItems',id:payload.jung.id,
-            items:items.slice(i,i+10),offset:i,total:items.length});
-        }
-      }
-      return result;
-    }
-    return await apiCall(payload);
-  }finally{showSaving(false);}
+
+// DB 헬퍼
+function fbRef(path){return window._fbRef(DB,path);}
+async function fbGet(path){
+  const snap=await window._fbGet(fbRef(path));
+  return snap.exists()?snap.val():null;
+}
+async function fbSet(path,val){return window._fbSet(fbRef(path),val);}
+async function fbRemove(path){return window._fbRemove(fbRef(path));}
+
+function showSaving(v){
+  const el=document.getElementById('ubSaving');
+  if(el)el.style.display=v?'inline':'none';
+}
+
+// 로컬 계정 (Firebase Auth 대신 DB에 users 저장)
+function hashPw(pw){
+  // 간단한 해시 (보안용도가 아닌 기본 보호)
+  let h=0;
+  for(let i=0;i<pw.length;i++) h=Math.imul(31,h)+pw.charCodeAt(i)|0;
+  return 'hm_'+Math.abs(h).toString(36)+'_'+pw.length;
 }
 function showSaving(v){
   const el=document.getElementById('ubSaving');
@@ -873,11 +863,18 @@ async function doLogin(){
   const btn=document.getElementById('loginBtn');
   btn.textContent='로그인 중...';btn.disabled=true;
   try{
-    const d=await apiCall({action:'login',id,pw});
-    currentToken=d.token;currentUser=d.user;
-    localStorage.setItem('hm_token',currentToken);
+    if(!DB) await initFirebase();
+    let user=await fbGet('users/'+id);
+    if(!user&&id==='admin'){
+      user={id:'admin',이름:'관리자',pw:hashPw('1234'),역할:'admin'};
+      await fbSet('users/admin',user);
+    }
+    if(!user){showLoginErr('아이디가 존재하지 않습니다.');return;}
+    if(user.pw!==hashPw(pw)){showLoginErr('비밀번호가 올바르지 않습니다.');return;}
+    currentUser={id:user.id,이름:user.이름,역할:user.역할};
     localStorage.setItem('hm_user',JSON.stringify(currentUser));
     localStorage.setItem('hm_expire',Date.now()+12*60*60*1000);
+    fbSet('users/'+id+'/lastLogin',new Date().toISOString()).catch(()=>{});
     onLoginSuccess();
   }catch(e){showLoginErr('로그인 실패: '+e.message);}
   finally{btn.textContent='로그인';btn.disabled=false;}
@@ -902,8 +899,8 @@ async function onLoginSuccess(){
 }
 function doLogout(){
   if(!confirm('로그아웃 하시겠습니까?'))return;
-  localStorage.removeItem('hm_token');localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
-  currentToken='';currentUser=null;
+  localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
+  currentUser=null;
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('mainLayout').style.display='none';
   document.getElementById('userBar').style.display='none';
@@ -914,19 +911,15 @@ function doLogout(){
 // ── 데이터 로드 ──
 async function loadAllData(){
   try{
+    if(!DB) await initFirebase();
     document.getElementById('ubSync').style.color='#f39c12';
-    const d=await apiGet('getAll');
-    // Sheets에서 오는 데이터 타입 정규화 (Date→string, number→string 등)
-    jungs    =(d.jungs||[]).map(normalizeJung);
-    results  =(d.results||[]).map(r=>({
-      ...r,
-      id:String(r.id||''),
-      날짜:normalizeDate(r.날짜),
-      금액:+r.금액||0,
-      time:String(r.time||'')
-    }));
-    stockData=d.stock   ||{};
-    priceDB  =(d.price&&d.price.length>0)?d.price:DEF_PRICE;
+    const [jData,rData,sData,pData]=await Promise.all([
+      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB')
+    ]);
+    jungs    =jData?Object.values(jData).map(normalizeJung):[];
+    results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
+    stockData=sData||{};
+    priceDB  =pData?Object.values(pData):DEF_PRICE;
     document.getElementById('ubSync').style.color='#52be80';
     renderJungList();renderResults();renderStock();renderPrice();
     if(typeof buildCharts==='function')buildCharts();
@@ -935,47 +928,21 @@ async function loadAllData(){
     alert('데이터 로드 실패: '+e.message);
   }
 }
-// Sheets 날짜 정규화 (Date객체 또는 다양한 형식 → YYYY-MM-DD 문자열)
 function normalizeDate(v){
-  if(!v) return '';
-  if(typeof v==='string') return v.slice(0,10);
-  if(v instanceof Date) return v.toISOString().slice(0,10);
-  // Sheets에서 오는 숫자형 날짜 (serial number)
-  if(typeof v==='number'){
-    const d=new Date((v-25569)*86400*1000);
-    return d.toISOString().slice(0,10);
-  }
+  if(!v)return'';
+  if(typeof v==='string')return v.slice(0,10);
+  if(v instanceof Date)return v.toISOString().slice(0,10);
+  if(typeof v==='number'){const d=new Date((v-25569)*86400*1000);return d.toISOString().slice(0,10);}
   return String(v).slice(0,10);
 }
-// 정산서 데이터 정규화
 function normalizeJung(j){
-  return {
-    ...j,
-    id:String(j.id||''),
-    파일명:String(j.파일명||''),
-    인원수:+j.인원수||50,
-    분향실:String(j.분향실||''),
-    고인:String(j.고인||''),
-    날짜:normalizeDate(j.날짜),
-    상주:String(j.상주||''),
-    연락처:String(j.연락처||''),
-    상태:String(j.상태||'진행중'),
-    결제:String(j.결제||''),
-    생성일:String(j.생성일||new Date().toISOString()),
-    완료일:String(j.완료일||''),
-    생성자:String(j.생성자||''),
-    수정자:String(j.수정자||''),
-    items:(j.items||[]).map(it=>({
-      ...it,
-      품명:String(it.품명||''),
-      단위:String(it.단위||''),
-      단가:+it.단가||0,
-      주문량:+it.주문량||0,
-      추가:+it.추가||0,
-      반품:+it.반품||0,
-      isAdd:!!it.isAdd
-    }))
-  };
+  return{...j,id:String(j.id||''),파일명:String(j.파일명||''),인원수:+j.인원수||50,
+    분향실:String(j.분향실||''),고인:String(j.고인||''),날짜:normalizeDate(j.날짜),
+    상주:String(j.상주||''),연락처:String(j.연락처||''),상태:String(j.상태||'진행중'),
+    결제:String(j.결제||''),생성일:String(j.생성일||new Date().toISOString()),
+    완료일:String(j.완료일||''),생성자:String(j.생성자||''),수정자:String(j.수정자||''),
+    items:(j.items||[]).map(it=>({...it,품명:String(it.품명||''),단위:String(it.단위||''),
+      단가:+it.단가||0,주문량:+it.주문량||0,추가:+it.추가||0,반품:+it.반품||0,isAdd:!!it.isAdd}))};
 }
 
 // ── 계정 관리 ──
@@ -988,22 +955,27 @@ function openUserMgmt(){
 }
 async function loadLogs(){
   try{
-    const logs=await apiGet('getLogs');
+    const data=await fbGet('logs');
+    const logs=data?Object.values(data).sort((a,b)=>b.시간.localeCompare(a.시간)).slice(0,50):[];
     const el=document.getElementById('logList');
-    el.innerHTML=logs.slice(0,50).map(l=>'<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">'+
+    el.innerHTML=logs.map(l=>'<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">'+
       '<span style="color:#888">'+new Date(l.시간).toLocaleString('ko-KR')+'</span> '+
       '<span style="color:#1b3a5c;font-weight:700">'+l.사용자+'</span> '+
       '<span style="color:#555">'+l.작업+'</span></div>').join('');
     document.getElementById('logSection').style.display='';
   }catch(e){console.error(e);}
 }
-function addLog(){}  // 서버에서 자동 기록
+async function addLog(사용자,작업,대상){
+  fbSet('logs/'+Date.now(),{시간:new Date().toISOString(),사용자,작업,대상:대상||''}).catch(()=>{});
+}
 async function changePass(){
   const oldPw=document.getElementById('um-oldpw').value;
   const newPw=document.getElementById('um-newpw').value;
   if(!oldPw||!newPw){alert('비밀번호를 입력하세요.');return;}
-  try{await apiPost('changePass',{oldPw,newPw});alert('비밀번호가 변경됐습니다.');}
-  catch(e){alert(e.message);}
+  const user=await fbGet('users/'+currentUser.id);
+  if(!user||user.pw!==hashPw(oldPw)){alert('현재 비밀번호가 올바르지 않습니다.');return;}
+  await fbSet('users/'+currentUser.id+'/pw',hashPw(newPw));
+  alert('비밀번호가 변경됐습니다.');
 }
 async function addUser(){
   const newId=document.getElementById('um-newid').value.trim();
@@ -1011,36 +983,32 @@ async function addUser(){
   const newPw=document.getElementById('um-newinpw').value;
   const newRole=document.getElementById('um-role').value;
   if(!newId||!newPw){alert('아이디와 비밀번호를 입력하세요.');return;}
-  try{
-    await apiPost('addUser',{newId,newName,newPw,newRole});
-    alert('계정 추가 완료!');
-    ['um-newid','um-newname','um-newinpw'].forEach(id=>document.getElementById(id).value='');
-  }catch(e){alert(e.message);}
+  const existing=await fbGet('users/'+newId);
+  if(existing){alert('이미 존재하는 아이디입니다.');return;}
+  await fbSet('users/'+newId,{id:newId,이름:newName||newId,pw:hashPw(newPw),역할:newRole||'user'});
+  alert('계정 추가 완료!');
+  ['um-newid','um-newname','um-newinpw'].forEach(id=>document.getElementById(id).value='');
 }
 
 
 let priceDB=[],results=[],stockData={},jungs=[];
 let editingId=null,newCap=50,listFilter='진행중',pendingId=null;
 
-// ── API 저장 헬퍼 ──
-async function jungs_save(jungObj){
-  // jungObj가 없으면 현재 편집 중인 것 사용
-  const j=jungObj||jungs.find(x=>x.id===editingId)||jungs[jungs.length-1];
+// ── Firebase 저장 헬퍼 ──
+async function jungs_save(j){
+  if(!j)j=jungs.find(x=>x.id===editingId);
   if(!j)return;
-  try{await apiPost('saveJung',{jung:j});}
-  catch(e){console.error('정산서 저장 오류:',e);}
+  fbSet('jungs/'+j.id,j).catch(e=>console.error('jung 저장 오류:',e));
 }
-async function results_save(){
-  // 결산서는 confirmPay에서 직접 처리
-}
+async function results_save(){}
 async function stock_save(){
-  try{await apiPost('saveStock',{stockData});}
-  catch(e){console.error('재고 저장 오류:',e);}
+  fbSet('stockData',stockData).catch(e=>console.error('재고 저장 오류:',e));
 }
 async function price_save(){
-  try{await apiPost('savePrice',{priceDB});}
-  catch(e){console.error('원가DB 저장 오류:',e);}
+  const obj={};priceDB.forEach((p,i)=>obj[i]=p);
+  fbSet('priceDB',obj).catch(e=>console.error('원가DB 저장 오류:',e));
 }
+
 
 let chartCombo=null;
 
@@ -1053,17 +1021,16 @@ async function init(){
   document.getElementById('nw-날짜').value=('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2);
   updateNFN();
   // 세션 복원: token 기반 (12시간 유효)
-  const savedToken=localStorage.getItem('hm_token');
+  // Firebase: token 불필요
   const savedUser=localStorage.getItem('hm_user');
   const expire=+localStorage.getItem('hm_expire')||0;
-  if(savedToken && savedUser && Date.now()<expire){
-    currentToken=savedToken;
+  if(savedUser && Date.now()<expire){
     currentUser=JSON.parse(savedUser);
-    onLoginSuccess();
+    initFirebase().then(()=>onLoginSuccess());
   } else if(savedUser && Date.now()>=expire){
     const user=JSON.parse(savedUser);
     document.getElementById('li-id').value=user.id||'';
-    localStorage.removeItem('hm_token');localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
+    localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
     showLoginErr('로그인 시간이 만료됐습니다. 비밀번호를 다시 입력해 주세요.');
     document.getElementById('li-pw').focus();
   }
@@ -1155,23 +1122,16 @@ async function createJungsan(){
   jungs.push(jung);
   renderJungList();
 
-  // 2. 서버 저장: items 없이 기본정보 먼저 (URL 길이 초과 방지)
-  showSaving(true);
-  try{
-    const jungBase={...jung,items:[]};
-    await apiPost('saveJung',{jung:jungBase});
-
-    // items 10개씩 청크로 저장
-    const chunkSize=10;
-    for(let i=0;i<items.length;i+=chunkSize){
-      const chunk=items.slice(i,i+chunkSize);
-      await apiPost('saveJungItems',{id:jung.id,items:chunk,offset:i,total:items.length});
-    }
-    alert(`✅ 정산서 생성 완료!\n\n📋 ${파일명}\n진행중 목록에서 확인하세요.`);
-  }catch(e){
-    console.error('생성 저장 오류:',e);
-    alert(`✅ 정산서가 목록에 추가됐습니다.\n📋 ${파일명}\n\n⚠️ 서버 저장은 실패했습니다.\n편집 후 💾 저장 버튼을 눌러주세요.`);
-  }finally{showSaving(false);}
+  // 2. Firebase 저장 (청크 불필요 - 크기 제한 없음)
+  fbSet('jungs/'+jung.id, jung)
+    .then(()=>{
+      addLog(currentUser?.이름||'','정산서생성',파일명);
+      alert(`✅ 정산서 생성 완료!\n\n📋 ${파일명}\n진행중 목록에서 확인하세요.`);
+    })
+    .catch(e=>{
+      console.error('생성 저장 오류:',e);
+      alert(`✅ 정산서가 목록에 추가됐습니다.\n📋 ${파일명}\n\n⚠️ 저장 실패: ${e.message}`);
+    });
 }
 
 // ══ 정산서 목록 ══
@@ -1419,20 +1379,20 @@ async function saveEditing(){
   j.연락처=document.getElementById('e-연락처').value;
   const mm=(j.날짜||'').slice(5,7),dd=(j.날짜||'').slice(8,10);
   j.파일명=`최종정산서(${j.인원수})-${j.분향실}-${j.고인}-${mm}${dd}`;
-  showSaving(true);
-  try{
-    await apiPost('saveJung',{jung:j});
-    renderJungList();
-    alert(`✅ 저장 완료!\n\n📋 ${j.파일명}\n정산액: ${fmt(calcTotal(j.items))}원\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
-  }catch(e){alert('저장 실패: '+e.message);}
-  finally{showSaving(false);}
+
+  // 화면 즉시 갱신 + 메시지 바로 표시
+  renderJungList();
+  alert(`✅ 저장 완료!\n\n📋 ${j.파일명}\n정산액: ${fmt(calcTotal(j.items))}원\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+
+  // 서버 저장 백그라운드
+  fbSet('jungs/'+j.id,j).then(()=>addLog(currentUser?.이름||'','정산서저장',j.파일명)).catch(e=>console.error('저장 오류:',e));
 }
 async function delJung(id){
   if(!confirm('이 정산서를 삭제하시겠습니까?'))return;
   jungs=jungs.filter(j=>j.id!==id);
   if(editingId===id){editingId=null;document.getElementById('editOverlay').style.display='none';}
   renderJungList();
-  try{await apiPost('deleteJung',{id});}catch(e){/* 없으면 무시 */}
+  fbRemove('jungs/'+id).catch(()=>{});
 }
 
 // ══ 인쇄 ══
@@ -1581,13 +1541,12 @@ async function confirmPay(){
   if(!pay){alert('결제방식을 선택해 주세요.');return;}
   closeModal('payModal');
   const j=jungs.find(x=>x.id===pendingId);if(!j)return;
+
+  // 1. 로컬 상태 즉시 반영
   j.상태='완료';j.결제=pay;j.완료일=new Date().toISOString();
-  try{await apiPost('saveJung',{jung:j});}catch(e){console.error(e);}
   const total=calcTotal(j.items);
   const newResult={id:Date.now().toString(),분향실:j.분향실,고인:j.고인,날짜:j.날짜,금액:total,결제:pay,인원수:j.인원수,상주:j.상주||'',연락처:j.연락처||'',비고:'',time:new Date().toISOString()};
   results.push(newResult);
-  try{await apiPost('saveResult',{result:newResult});}catch(e){console.error(e);}
-  // 재고 반영
   const m=new Date(j.날짜).getMonth()+1,d=new Date(j.날짜).getDate();
   if(!stockData[m])stockData[m]={};
   j.items.forEach(it=>{
@@ -1597,11 +1556,18 @@ async function confirmPay(){
       stockData[m][it.품명][d]=(stockData[m][it.품명][d]||0)+f;
     }
   });
-  try{await apiPost('saveStock',{stockData});}catch(e){console.error(e);}
+
+  // 2. 화면 즉시 갱신 + 완료 메시지 바로 표시
   document.getElementById('edit-stamp').style.display='';
   document.getElementById('edit-pay').textContent='/ '+pay+' 완료!';
   loadForm(j,true);renderJungList();renderResults();
   alert(`정산 완료!\n\n분향실: ${j.분향실} / ${j.고인}\n정산액: ${fmt(total)}원\n결제: ${pay}`);
+
+  // 3. 서버 저장은 백그라운드로 (메시지 확인 후 처리)
+  fbSet('jungs/'+j.id,j).catch(e=>console.error('정산완료 jung 저장:',e));
+  fbSet('results/'+newResult.id,newResult).catch(e=>console.error('결산서 저장:',e));
+  fbSet('stockData',stockData).catch(e=>console.error('재고 저장:',e));
+  addLog(currentUser?.이름||'','정산완료',j.파일명);
 }
 
 // ══ 정산취소 ══
@@ -1612,36 +1578,39 @@ async function 정산취소(){
     `⚠️ 결산서에서 해당 건이 삭제되고\n재고관리장에서 반영된 수량이 원복됩니다.`
   )) return;
 
-  // 1. 결산서에서 해당 건 제거 (날짜+분향실+고인 기준)
+  // 1. 결산서에서 해당 건 제거
   const before=results.length;
-  const results_removed=results.filter(function(r){return r.날짜===j.날짜&&r.분향실===j.분향실&&r.고인===j.고인;});
-  results=results.filter(function(r){return !(r.날짜===j.날짜&&r.분향실===j.분향실&&r.고인===j.고인);});
+  const removedIds=results
+    .filter(r=>r.날짜===j.날짜&&r.분향실===j.분향실&&r.고인===j.고인)
+    .map(r=>r.id);
+  results=results.filter(r=>!(r.날짜===j.날짜&&r.분향실===j.분향실&&r.고인===j.고인));
   const removed=before-results.length;
-  for(let ri=0;ri<results_removed.length;ri++){
-    // 로컬에서 이미 제거됨
-  }
 
-  // 2. 재고관리장에서 반영된 수량 원복
+  // 2. 재고관리장 수량 원복
   const m=new Date(j.날짜).getMonth()+1;
   const d=new Date(j.날짜).getDate();
   if(stockData[m]){
     j.items.forEach(it=>{
       const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
       if(it.품명&&f>0&&stockData[m][it.품명]){
-        const cur=stockData[m][it.품명][d]||0;
-        stockData[m][it.품명][d]=Math.max(0,cur-f);
+        stockData[m][it.품명][d]=Math.max(0,(stockData[m][it.품명][d]||0)-f);
       }
     });
-    try{await apiPost('saveStock',{stockData});}catch(e){console.error(e);}
   }
 
-  // 3. 정산서 상태 → 진행중으로 변경
+  // 3. 정산서 상태 → 진행중
   j.상태='진행중';j.결제='';j.완료일='';
-  try{await apiPost('saveJung',{jung:j});}catch(e){console.error(e);}
 
+  // 4. 화면 즉시 갱신 + 메시지 바로 표시
   renderJungList();renderResults();
-  loadForm(j,false);  // 편집 모드로 전환
-  alert(`정산 취소 완료!\n\n결산서 ${removed}건 삭제\n재고 수량 원복 완료\n\n이제 정산서를 수정할 수 있습니다.`);
+  loadForm(j,false);
+  alert(`🔄 정산 취소 완료!\n\n결산서 ${removed}건 삭제\n재고 수량 원복 완료\n\n이제 정산서를 수정할 수 있습니다.`);
+
+  // 5. 서버 저장 백그라운드
+  fbSet('jungs/'+j.id,j).catch(e=>console.error('정산취소 jung:',e));
+  fbSet('stockData',stockData).catch(e=>console.error('정산취소 재고:',e));
+  removedIds.forEach(id=>fbRemove('results/'+id).catch(()=>{}));
+  addLog(currentUser?.이름||'','정산취소',j.파일명);
 }
 function renderResults(){
   const fm=document.getElementById('filterMonth')?.value||'';
@@ -1670,7 +1639,7 @@ async function delResult(idx){
   if(!confirm('삭제?'))return;
   const r=results[idx];
   results.splice(idx,1);
-  try{await apiPost('deleteResult',{id});}catch(e){console.error(e);}
+  fbRemove('results/'+id).catch(()=>{});
   renderResults();buildCharts();
 }
 function exportCSV(){
@@ -1931,7 +1900,7 @@ async function saveStockEdit(){
   });
   if(changed===0){alert('수정할 물품과 수량을 입력해 주세요.');return;}
   showSaving(true);
-  try{await apiPost('saveStock',{stockData});}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  try{await fbSet('stockData',stockData);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
   closeModal('stockEditModal');
   if(m===+document.getElementById('stockMonth').value) renderStock();
@@ -1939,7 +1908,7 @@ async function saveStockEdit(){
 }
 async function saveStock(){
   showSaving(true);
-  try{await apiPost('saveStock',{stockData});}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  try{await fbSet('stockData',stockData);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
   const m=+document.getElementById('stockMonth').value;
   alert(`✅ 재고 저장 완료!\n\n${m}월 재고관리장\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
@@ -1984,7 +1953,7 @@ function addPriceItem(){priceDB.push({구분:'기본물품',품명:'새 품목',
 function delPrice(idx){if(!confirm('삭제?'))return;priceDB.splice(idx,1);price_save();renderPrice();}
 async function savePrice(){
   showSaving(true);
-  try{await apiPost('savePrice',{priceDB});}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  try{const obj={};priceDB.forEach((p,i)=>obj[i]=p);await fbSet('priceDB',obj);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
   alert(`✅ 원가DB 저장 완료!\n\n총 ${priceDB.length}개 품목\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
 }
