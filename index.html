@@ -846,19 +846,27 @@ async function fbSet(path,val){return window._fbSet(fbRef(path),val);}
 async function fbRemove(path){return window._fbRemove(fbRef(path));}
 
 // 실시간 동기화 리스너 (jungs가 변경되면 즉시 화면 갱신)
+let _syncPause=false; // 내가 직접 삭제 시 동기화 일시 중단
 function startRealtimeSync(){
   if(!window._fbOnValue)return;
   window._fbOnValue(fbRef('jungs'),snap=>{
+    if(_syncPause)return;
     const data=snap.exists()?snap.val():null;
     jungs=data?Object.values(data).map(normalizeJung):[];
     renderJungList();
   });
   window._fbOnValue(fbRef('results'),snap=>{
+    if(_syncPause)return;
     const data=snap.exists()?snap.val():null;
     results=data?Object.values(data).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
     renderResults();
     if(typeof buildCharts==='function')buildCharts();
   });
+}
+// 삭제 시 동기화 잠깐 멈추기 (2초)
+function pauseSync(){
+  _syncPause=true;
+  setTimeout(()=>{_syncPause=false;},2000);
 }
 
 function showSaving(v){
@@ -1190,11 +1198,11 @@ function renderJungList(){
       ${done?`<span class="badge badge-done">✅ 완료</span><span class="badge badge-${j.결제==='카드결제'?'card':j.결제==='현금결제'?'cash':'rcpt'}">${j.결제}</span>`:`<span class="badge badge-ing">진행중</span>`}
       <div class="btn-group" onclick="event.stopPropagation()">
         ${j.메모?`<span class="badge" style="background:#f39c12;color:#fff;cursor:pointer" onclick="openMemo('${j.id}')">📝 메모있음</span>`:''}
-        <button class="btn btn-sm" style="background:#6c757d;color:#fff" onclick="openMemo('${j.id}')" title="메모">📋</button>
+        <button class="btn btn-sm" style="background:#6c757d;color:#fff" onclick="openMemo('${j.id}')">📋 메모</button>
         ${!done?`<button class="btn btn-primary btn-sm" onclick="openEdit('${j.id}')">✏️ 편집</button>`:''}
         <button class="btn btn-gray btn-sm" onclick="openView('${j.id}')">👁 보기</button>
-        <button class="btn btn-info btn-sm" onclick="printJung('${j.id}')">🖨️</button>
-        ${(done||currentUser?.역할==='admin')?`<button class="btn btn-danger btn-sm" onclick="delJung('${j.id}')">삭제</button>`:''}
+        <button class="btn btn-info btn-sm" onclick="printJung('${j.id}')">🖨️ 인쇄</button>
+        ${(!done||currentUser?.역할==='admin')?`<button class="btn btn-danger btn-sm" onclick="delJung('${j.id}')">삭제</button>`:''}
       </div>`;
     el.appendChild(div);
   });
@@ -1447,31 +1455,26 @@ function doPrint(){
   const today=new Date();
   const dStr=`${today.getFullYear()}년 ${String(today.getMonth()+1).padStart(2,'0')}월 ${String(today.getDate()).padStart(2,'0')}일`;
   const isDone=j.상태==='완료';
+  // 진행중/완료 모두 동일한 형식: 빈 행 제외, 수량 있는 항목만 표시
   const pItems=j.items.filter(it=>{
-    if(it.isAdd){
-      if(isDone){const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);return it.품명&&f!==0;}
-      return true;
-    }
-    return true;
+    const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
+    if(it.isAdd) return it.품명&&f!==0; // 추가물품: 품명있고 수량있는 것만
+    return f>0; // 기본물품: 수량 있는 것만
   });
   let no=1,rows='';
   pItems.forEach(it=>{
     const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
-    if(it.isAdd&&!it.품명&&!isDone){
-      rows+=`<tr style="height:22px"><td>${no++}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
-    } else {
-      rows+=`<tr>
-        <td>${no++}</td>
-        <td class="pnm">${it.품명}</td>
-        <td style="white-space:nowrap">${it.단위}</td>
-        <td class="right">${it.단가?fmt(it.단가):''}</td>
-        <td>${it.주문량||0}</td>
-        <td>${it.추가||''}</td>
-        <td>${it.반품||''}</td>
-        <td>${f||''}</td>
-        <td class="right">${(f&&it.단가)?fmt(f*it.단가):''}</td>
-      </tr>`;
-    }
+    rows+=`<tr>
+      <td>${no++}</td>
+      <td class="pnm">${it.품명}</td>
+      <td style="white-space:nowrap">${it.단위}</td>
+      <td class="right">${it.단가?fmt(it.단가):''}</td>
+      <td>${it.주문량||0}</td>
+      <td>${it.추가||''}</td>
+      <td>${it.반품||''}</td>
+      <td>${f||''}</td>
+      <td class="right">${(f&&it.단가)?fmt(f*it.단가):''}</td>
+    </tr>`;
   });
   const total=calcTotal(j.items);
   const printHtml=`<!DOCTYPE html>
@@ -1497,7 +1500,7 @@ th{padding:4px 5px;font-size:10.5pt}
 <\/style>
 </head><body>
 <div class="ph1">최 종 정 산 서</div>
-<div class="ph2">${dStr}${j.결제?' &nbsp;&nbsp; <span style="background:#1b3a5c;color:#fff;padding:2px 10px;border-radius:10px;font-size:10pt">'+j.결제+'</span>':''}</div>
+<div class="ph2">${dStr}${j.결제?' &nbsp;&nbsp; <span style="background:#333;color:#fff;padding:2px 10px;border-radius:10px;font-size:10pt;font-weight:700">'+j.결제+'</span>':''}</div>
 <table class="phead" style="margin-bottom:3px">
   <tr>
     <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${j.분향실}</td>
@@ -1682,11 +1685,13 @@ function renderResults(){
   });
 }
 async function delResult(idx){
-  if(!confirm('삭제?'))return;
-  const r=results[idx];
+  const r=results[idx];if(!r)return;
+  if(!confirm('이 결산서를 삭제하시겠습니까?'))return;
+  const id=r.id;
+  pauseSync(); // 동기화 일시 중단
   results.splice(idx,1);
-  fbRemove('results/'+id).catch(()=>{});
   renderResults();buildCharts();
+  if(id) fbRemove('results/'+id).catch(e=>console.error('결산서 삭제 오류:',e));
 }
 function exportCSV(){
   let csv='NO,분향실,고인,발인일,정산액,결제방식,인원수,상주,연락처,비고\n';
