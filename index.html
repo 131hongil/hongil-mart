@@ -2044,10 +2044,10 @@ function restoreSnapshot(){
   if(isNaN(idx)||idx<0||idx>=snaps.length){return;}
   const snap=snaps[idx];
   if(!confirm(`${new Date(snap.timestamp).toLocaleString('ko-KR')} 스냅샷으로 복원하시겠습니까?`))return;
-  if(snap.jungs)   {jungs=snap.jungs;   ST.set('jungs',jungs);}
-  if(snap.results) {results=snap.results;ST.set('results',results);}
-  if(snap.stockData){stockData=snap.stockData;ST.set('stockData',stockData);}
-  if(snap.priceDB) {priceDB=snap.priceDB;ST.set('priceDB',priceDB);}
+  if(snap.jungs)   {jungs=snap.jungs;   const obj={};jungs.forEach(j=>obj[j.id]=j);fbSet('jungs',obj).catch(()=>{});}
+  if(snap.results) {results=snap.results;const obj={};results.forEach(r=>obj[r.id||Date.now()]=r);fbSet('results',obj).catch(()=>{});}
+  if(snap.stockData){stockData=snap.stockData;fbSet('stockData',stockData).catch(()=>{});}
+  if(snap.priceDB) {priceDB=snap.priceDB;const obj={};priceDB.forEach((p,i)=>obj[i]=p);fbSet('priceDB',obj).catch(()=>{});}
   renderJungList();renderResults();renderStock();renderPrice();
   if(typeof buildCharts==='function')buildCharts();
   alert('스냅샷 복원 완료!');
@@ -2060,20 +2060,35 @@ function restoreData(input){
     input.value='';return;
   }
   const reader=new FileReader();
-  reader.onload=function(e){
+  reader.onload=async function(e){
     try{
       const data=JSON.parse(e.target.result);
-      // 유효성 검사
       if(!data.jungs&&!data.results&&!data.priceDB){
         alert('올바른 백업 파일이 아닙니다.');return;
       }
-      if(data.jungs)   {jungs=data.jungs;   ST.set('jungs',jungs);}
-      if(data.results) {results=data.results;ST.set('results',results);}
-      if(data.stockData){stockData=data.stockData;ST.set('stockData',stockData);}
-      if(data.priceDB) {priceDB=data.priceDB;ST.set('priceDB',priceDB);}
+      // Firebase에 저장
+      if(data.jungs){
+        jungs=data.jungs;
+        const obj={};data.jungs.forEach(j=>obj[j.id]=j);
+        await fbSet('jungs',obj);
+      }
+      if(data.results){
+        results=data.results;
+        const obj={};data.results.forEach(r=>obj[r.id||Date.now()]=r);
+        await fbSet('results',obj);
+      }
+      if(data.stockData){
+        stockData=data.stockData;
+        await fbSet('stockData',stockData);
+      }
+      if(data.priceDB){
+        priceDB=data.priceDB;
+        const obj={};data.priceDB.forEach((p,i)=>obj[i]=p);
+        await fbSet('priceDB',obj);
+      }
       renderJungList();renderResults();renderStock();renderPrice();
       if(typeof buildCharts==='function')buildCharts();
-      alert(`복원 완료!\n\n정산서: ${jungs.length}건\n결산서: ${results.length}건\n백업일시: ${data.timestamp?new Date(data.timestamp).toLocaleString('ko-KR'):'-'}`);
+      alert(`✅ 복원 완료!\n\n정산서: ${jungs.length}건\n결산서: ${results.length}건\n백업일시: ${data.timestamp?new Date(data.timestamp).toLocaleString('ko-KR'):'-'}`);
     }catch(err){
       alert('파일 읽기 오류: '+err.message);
     }
