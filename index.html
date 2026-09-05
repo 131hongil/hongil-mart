@@ -251,6 +251,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
           <input id="um-newinpw" type="password" placeholder="비밀번호" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
           <select id="um-role" style="width:90px;padding:7px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
             <option value="user">일반</option>
+            <option value="result">결산담당</option>
             <option value="admin">관리자</option>
           </select>
         </div>
@@ -275,9 +276,10 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 <div class="sidebar">
   <div class="sidebar-logo"><span>🏪</span></div>
   <button class="ntab on" onclick="showPage('진행중',this)"><span class="ti">📁</span>정산서<br>관리</button>
-  <button class="ntab" onclick="showPage('결산',this)"><span class="ti">📊</span>결산서</button>
+  <button class="ntab" id="tab-결산" style="display:none" onclick="showPage('결산',this)"><span class="ti">📊</span>결산서</button>
   <button class="ntab" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
   <button class="ntab" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
+  <button class="ntab" id="tab-알바" style="display:none" onclick="showPage('알바',this)"><span class="ti">🗓️</span>알바<br>관리</button>
   <button class="ntab" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
 </div>
 
@@ -366,6 +368,96 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 <!-- ══ 인쇄 영역 (body 최상위) ══ -->
 <div id="printArea" style="display:none;position:fixed;top:-9999px;left:0;width:210mm;background:#fff;padding:10mm;box-sizing:border-box">
   <div id="printContent"></div>
+</div>
+
+<!-- ══ 알바 관리 ══ -->
+<div id="page-알바" class="page">
+  <div class="card">
+    <div class="card-title">🗓️ 아르바이트 근무 관리
+      <div class="btn-group" style="margin-left:auto">
+        <button class="btn btn-primary btn-sm" onclick="openAlbaModal()">+ 근무 추가</button>
+        <button class="btn btn-success btn-sm" onclick="saveAlba()">💾 저장</button>
+        <button class="btn btn-info btn-sm" onclick="exportAlba()">📥 CSV</button>
+      </div>
+    </div>
+    <!-- 기본 설정 -->
+    <div class="frow" style="margin-bottom:8px;align-items:flex-end;flex-wrap:wrap;gap:8px">
+      <div class="fg"><label>월 선택</label>
+        <input type="month" id="albaMonth" onchange="renderAlba()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+      </div>
+      <div class="fg"><label>시급(원)</label>
+        <input type="number" id="albaWage" value="10030" style="width:90px;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit" onchange="renderAlba()">
+      </div>
+    </div>
+    <!-- 4대보험 요율 설정 -->
+    <div style="background:#f8faff;border:1px solid #d0dff0;border-radius:8px;padding:10px 14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#1b3a5c;margin-bottom:8px">⚙️ 4대보험 공제율 (근로자 부담분 %)</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">국민연금</label>
+          <input type="number" id="ins-pension" value="4.5" step="0.1" style="width:70px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="renderAlba()">
+          <span style="font-size:11px;color:#888">%</span>
+        </div>
+        <div><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">건강보험</label>
+          <input type="number" id="ins-health" value="3.545" step="0.001" style="width:70px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="renderAlba()">
+          <span style="font-size:11px;color:#888">%</span>
+        </div>
+        <div><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">장기요양</label>
+          <input type="number" id="ins-care" value="0.4591" step="0.0001" style="width:70px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="renderAlba()">
+          <span style="font-size:11px;color:#888">%</span>
+        </div>
+        <div><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">고용보험</label>
+          <input type="number" id="ins-employ" value="0.9" step="0.1" style="width:70px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="renderAlba()">
+          <span style="font-size:11px;color:#888">%</span>
+        </div>
+        <div style="font-size:11px;color:#888;align-self:center">
+          총 공제율: <b id="totalInsRate" style="color:#c0392b">-</b>%
+        </div>
+      </div>
+    </div>
+    <!-- 알바 요약 -->
+    <div id="albaSummary" style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap"></div>
+    <!-- 근무 목록 -->
+    <div class="tbl-wrap" style="max-height:calc(100vh - 380px)">
+      <table class="dtbl">
+        <thead><tr>
+          <th>NO</th><th>이름</th><th>날짜</th><th>출근</th><th>퇴근</th>
+          <th>근무시간</th><th>총급여</th><th>4대보험</th><th>실수령액</th><th>메모</th><th>삭제</th>
+        </tr></thead>
+        <tbody id="albaBody"></tbody>
+        <tfoot><tr id="albaTotals" style="background:#f0f5ff;font-weight:700"></tr></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 알바 근무 추가 모달 ══ -->
+<div class="overlay" id="albaModal">
+  <div class="modal" style="max-width:420px;width:96%">
+    <h3>+ 근무 추가</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin:14px 0">
+      <div class="fg"><label>이름</label>
+        <input type="text" id="alba-name" placeholder="아르바이트 이름" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+      </div>
+      <div class="fg"><label>날짜</label>
+        <input type="date" id="alba-date" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+      </div>
+      <div style="display:flex;gap:10px">
+        <div class="fg"><label>출근 시간</label>
+          <input type="time" id="alba-start" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+        </div>
+        <div class="fg"><label>퇴근 시간</label>
+          <input type="time" id="alba-end" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+        </div>
+      </div>
+      <div class="fg"><label>메모</label>
+        <input type="text" id="alba-memo" placeholder="특이사항" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+      </div>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end">
+      <button class="btn btn-gray" onclick="closeModal('albaModal')">취소</button>
+      <button class="btn btn-success" onclick="addAlbaRecord()">✅ 추가</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══ 결산서 ══ -->
@@ -460,7 +552,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
     <div class="mgmt-grid">
       <div class="mgmt-card" onclick="openNewModal()"><div class="icon">📋</div><div class="name">새 정산서 생성</div><div class="desc">인원수·분향실·고인 입력</div></div>
       <div class="mgmt-card" onclick="goTab('진행중',0)"><div class="icon">📁</div><div class="name">정산서 목록</div><div class="desc">진행중/완료 조회</div></div>
-      <div class="mgmt-card" onclick="goTab('결산',1)"><div class="icon">📊</div><div class="name">결산서</div><div class="desc">전체 정산 내역</div></div>
+      <div class="mgmt-card" id="mgmt-결산" onclick="goTab('결산',1)"><div class="icon">📊</div><div class="name">결산서</div><div class="desc">전체 정산 내역</div></div>
       <div class="mgmt-card" onclick="goTab('재고',2)"><div class="icon">📦</div><div class="name">재고관리장</div><div class="desc">월별 출고 현황</div></div>
       <div class="mgmt-card" onclick="goTab('원가',3)"><div class="icon">💰</div><div class="name">원가DB 관리</div><div class="desc">품목·단가 수정</div></div>
       <div class="mgmt-card" onclick="backupData()"><div class="icon">💾</div><div class="name">데이터 백업</div><div class="desc">JSON 파일로 저장</div></div>
@@ -919,6 +1011,10 @@ async function onLoginSuccess(){
   document.getElementById('mainLayout').style.display='';
   document.getElementById('userBar').style.display='flex';
   document.getElementById('ubUser').textContent=currentUser.이름+'('+currentUser.id+')';
+  // 권한별 탭 표시
+  const canResult=currentUser.역할==='admin'||currentUser.역할==='result';
+  document.getElementById('tab-결산').style.display=canResult?'':'none';
+  document.getElementById('tab-알바').style.display=(currentUser.역할==='admin')?'':'none';
   document.getElementById('ubSync').style.color='#f39c12';
   setInterval(()=>document.getElementById('ubTime').textContent=new Date().toLocaleTimeString('ko-KR'),1000);
   setInterval(()=>{
@@ -944,13 +1040,14 @@ async function loadAllData(){
   try{
     if(!DB) await initFirebase();
     document.getElementById('ubSync').style.color='#f39c12';
-    const [jData,rData,sData,pData]=await Promise.all([
-      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB')
+    const [jData,rData,sData,pData,aData]=await Promise.all([
+      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData')
     ]);
     jungs    =jData?Object.values(jData).map(normalizeJung):[];
     results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
     stockData=sData?decodeStockData(sData):{};
     priceDB  =pData?Object.values(pData):DEF_PRICE;
+    albaData =aData?Object.values(aData):[];
     document.getElementById('ubSync').style.color='#52be80';
     renderJungList();renderResults();renderStock();renderPrice();
     if(typeof buildCharts==='function')buildCharts();
@@ -1078,6 +1175,7 @@ function showPage(name,btn){
   if(name==='재고') renderStock();
   if(name==='결산'){renderResults();buildCharts();}
   if(name==='원가') renderPrice();
+  if(name==='알바'){initAlbaMonth();renderAlba();}
   // 헤더 날짜 항상 TODAY
   const eDate=document.getElementById('e-날짜');
   if(name==='편집'&&eDate&&!eDate.value) eDate.value=new Date().toISOString().slice(0,10);
@@ -1661,6 +1759,137 @@ async function 정산취소(){
   removedIds.forEach(id=>fbRemove('results/'+id).catch(()=>{}));
   addLog(currentUser?.이름||'','정산취소',j.파일명);
 }
+
+// ══ 알바 관리 ══
+let albaData=[];
+
+function initAlbaMonth(){
+  const now=new Date();
+  document.getElementById('albaMonth').value=
+    now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+}
+function openAlbaModal(){
+  document.getElementById('alba-name').value='';
+  document.getElementById('alba-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('alba-start').value='09:00';
+  document.getElementById('alba-end').value='18:00';
+  document.getElementById('alba-memo').value='';
+  document.getElementById('albaModal').classList.add('show');
+}
+function addAlbaRecord(){
+  const name=document.getElementById('alba-name').value.trim();
+  const date=document.getElementById('alba-date').value;
+  const start=document.getElementById('alba-start').value;
+  const end=document.getElementById('alba-end').value;
+  const memo=document.getElementById('alba-memo').value.trim();
+  if(!name||!date||!start||!end){alert('이름, 날짜, 출퇴근 시간을 입력하세요.');return;}
+  if(start>=end){alert('퇴근 시간이 출근 시간보다 늦어야 합니다.');return;}
+  albaData.push({id:Date.now().toString(),이름:name,날짜:date,출근:start,퇴근:end,메모:memo});
+  closeModal('albaModal');
+  renderAlba();
+}
+function calcHours(start,end){
+  const [sh,sm]=start.split(':').map(Number);
+  const [eh,em]=end.split(':').map(Number);
+  return ((eh*60+em)-(sh*60+sm))/60;
+}
+function getInsRates(){
+  const pension=+document.getElementById('ins-pension')?.value||4.5;
+  const health=+document.getElementById('ins-health')?.value||3.545;
+  const care=+document.getElementById('ins-care')?.value||0.4591;
+  const employ=+document.getElementById('ins-employ')?.value||0.9;
+  const total=pension+health+care+employ;
+  const el=document.getElementById('totalInsRate');
+  if(el)el.textContent=total.toFixed(4);
+  return{pension,health,care,employ,total};
+}
+function calcInsurance(pay,rates){
+  const pension=Math.round(pay*rates.pension/100);
+  const health=Math.round(pay*rates.health/100);
+  const care=Math.round(pay*rates.care/100);
+  const employ=Math.round(pay*rates.employ/100);
+  return{pension,health,care,employ,total:pension+health+care+employ};
+}
+function renderAlba(){
+  const month=document.getElementById('albaMonth')?.value||'';
+  const wage=+document.getElementById('albaWage')?.value||10030;
+  const rates=getInsRates();
+  const filtered=month?albaData.filter(r=>r.날짜.startsWith(month)):[...albaData];
+  filtered.sort((a,b)=>a.날짜.localeCompare(b.날짜));
+  const body=document.getElementById('albaBody');
+  if(!body)return;
+  body.innerHTML='';
+  let totalHours=0,totalPay=0,totalIns=0,totalNet=0;
+  const nameMap={};
+  filtered.forEach((r,i)=>{
+    const hrs=calcHours(r.출근,r.퇴근);
+    const pay=Math.round(hrs*wage);
+    const ins=calcInsurance(pay,rates);
+    const net=pay-ins.total;
+    totalHours+=hrs;totalPay+=pay;totalIns+=ins.total;totalNet+=net;
+    if(!nameMap[r.이름])nameMap[r.이름]={hours:0,pay:0,ins:0,net:0};
+    nameMap[r.이름].hours+=hrs;nameMap[r.이름].pay+=pay;
+    nameMap[r.이름].ins+=ins.total;nameMap[r.이름].net+=net;
+    const tr=document.createElement('tr');
+    tr.title=`국민연금:${fmt(ins.pension)}원 / 건강보험:${fmt(ins.health)}원 / 장기요양:${fmt(ins.care)}원 / 고용보험:${fmt(ins.employ)}원`;
+    tr.innerHTML=`<td>${i+1}</td>
+      <td style="font-weight:700">${r.이름}</td>
+      <td>${r.날짜}</td>
+      <td>${r.출근}</td><td>${r.퇴근}</td>
+      <td style="color:#1b3a5c;font-weight:700">${hrs.toFixed(1)}h</td>
+      <td style="color:#217a3c;font-weight:700">${fmt(pay)}원</td>
+      <td style="color:#c0392b;font-size:11px">-${fmt(ins.total)}원</td>
+      <td style="color:#1b3a5c;font-weight:700;background:#f0fff4">${fmt(net)}원</td>
+      <td style="color:#888;font-size:11px">${r.메모||''}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="delAlba('${r.id}')">삭제</button></td>`;
+    body.appendChild(tr);
+  });
+  const totRow=document.getElementById('albaTotals');
+  if(totRow)totRow.innerHTML=`<td colspan="5" style="text-align:right;padding-right:8px">합계</td>
+    <td style="color:#1b3a5c">${totalHours.toFixed(1)}h</td>
+    <td style="color:#217a3c">${fmt(totalPay)}원</td>
+    <td style="color:#c0392b">-${fmt(totalIns)}원</td>
+    <td style="color:#1b3a5c;background:#f0fff4">${fmt(totalNet)}원</td>
+    <td colspan="2"></td>`;
+  const summaryEl=document.getElementById('albaSummary');
+  if(summaryEl)summaryEl.innerHTML=Object.keys(nameMap).map(name=>`
+    <div style="background:#eef2ff;border-radius:8px;padding:10px 16px;min-width:200px">
+      <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:4px">${name}</div>
+      <div style="font-size:11px;color:#555">근무: <b>${nameMap[name].hours.toFixed(1)}시간</b></div>
+      <div style="font-size:12px;color:#217a3c">총급여: <b>${fmt(nameMap[name].pay)}원</b></div>
+      <div style="font-size:11px;color:#c0392b">4대보험: -${fmt(nameMap[name].ins)}원</div>
+      <div style="font-size:13px;color:#1b3a5c;font-weight:700;border-top:1px solid #d0dff0;margin-top:5px;padding-top:5px">
+        실수령: ${fmt(nameMap[name].net)}원
+      </div>
+    </div>`).join('');
+}
+
+function delAlba(id){
+  if(!confirm('삭제하시겠습니까?'))return;
+  albaData=albaData.filter(r=>r.id!==id);
+  renderAlba();
+}
+async function saveAlba(){
+  showSaving(true);
+  try{
+    const obj={};albaData.forEach(r=>obj[r.id]=r);
+    await fbSet('albaData',obj);
+    alert(`✅ 알바 근무 저장 완료!\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+  }catch(e){alert('저장 실패: '+e.message);}
+  finally{showSaving(false);}
+}
+function exportAlba(){
+  const month=document.getElementById('albaMonth')?.value||'';
+  const wage=+document.getElementById('albaWage')?.value||10030;
+  const filtered=month?albaData.filter(r=>r.날짜.startsWith(month)):[...albaData];
+  let csv='\uFEFF이름,날짜,출근,퇴근,근무시간(h),급여(원),메모\n';
+  filtered.forEach(r=>{
+    const hrs=calcHours(r.출근,r.퇴근);
+    csv+=`${r.이름},${r.날짜},${r.출근},${r.퇴근},${hrs.toFixed(1)},${Math.round(hrs*wage)},${r.메모||''}\n`;
+  });
+  dl(csv,'알바근무_'+(month||'전체')+'.csv','text/csv');
+}
+
 function renderResults(){
   const fm=document.getElementById('filterMonth')?.value||'';
   let list=fm?results.filter(r=>r.날짜.startsWith(fm)):results;
