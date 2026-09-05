@@ -949,7 +949,7 @@ async function loadAllData(){
     ]);
     jungs    =jData?Object.values(jData).map(normalizeJung):[];
     results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
-    stockData=sData||{};
+    stockData=sData?decodeStockData(sData):{};
     priceDB  =pData?Object.values(pData):DEF_PRICE;
     document.getElementById('ubSync').style.color='#52be80';
     renderJungList();renderResults();renderStock();renderPrice();
@@ -1035,7 +1035,7 @@ async function jungs_save(j){
 }
 async function results_save(){}
 async function stock_save(){
-  fbSet('stockData',stockData).catch(e=>console.error('재고 저장 오류:',e));
+  fbSet('stockData',encodeStockData(stockData)).catch(e=>console.error('재고 저장 오류:',e));
 }
 async function price_save(){
   const obj={};priceDB.forEach((p,i)=>obj[i]=p);
@@ -1615,7 +1615,7 @@ async function confirmPay(){
   // 3. 서버 저장은 백그라운드로 (메시지 확인 후 처리)
   fbSet('jungs/'+j.id,j).catch(e=>console.error('정산완료 jung 저장:',e));
   fbSet('results/'+newResult.id,newResult).catch(e=>console.error('결산서 저장:',e));
-  fbSet('stockData',stockData).catch(e=>console.error('재고 저장:',e));
+  fbSet('stockData',encodeStockData(stockData)).catch(e=>console.error('재고 저장:',e));
   addLog(currentUser?.이름||'','정산완료',j.파일명);
 }
 
@@ -1657,7 +1657,7 @@ async function 정산취소(){
 
   // 5. 서버 저장 백그라운드
   fbSet('jungs/'+j.id,j).catch(e=>console.error('정산취소 jung:',e));
-  fbSet('stockData',stockData).catch(e=>console.error('정산취소 재고:',e));
+  fbSet('stockData',encodeStockData(stockData)).catch(e=>console.error('정산취소 재고:',e));
   removedIds.forEach(id=>fbRemove('results/'+id).catch(()=>{}));
   addLog(currentUser?.이름||'','정산취소',j.파일명);
 }
@@ -1779,7 +1779,6 @@ function buildCharts(){
 // 구분/품명/이월량/현재재고/입고량/1일~31일
 // 포장단위 정의 {품명: {단위:n, 라벨:'박스'}}
 const PACK_UNIT={
-  // {n:묶음단위, label:묶음명, sub:낱개단위, sublabel:낱개명, sub2:중간단위, sub2label:중간명}
   // 주류: 00박스 0병
   '한라산21도소주(30병/박스)':{n:30,label:'박스',sublabel:'병'},
   '참이슬소주(30병/박스)':{n:30,label:'박스',sublabel:'병'},
@@ -1787,11 +1786,14 @@ const PACK_UNIT={
   '카스맥주(20병/박스)':{n:20,label:'박스',sublabel:'병'},
   // 각티슈: 00박스 0개
   '정사각티슈/6개':{n:6,label:'박스',sublabel:'개'},
-  // 종이컵: 00박스 00줄 (1박스=20줄)
+  // 종이컵: 00박스 00줄
   '종이컵':{n:20,label:'박스',sublabel:'줄'},
-  // 장갑: 0묶음 0장
+  // 장갑: 0묶음 0장 (10장=1묶음)
   '도감장갑':{n:10,label:'묶음',sublabel:'장'},
   '예식장갑':{n:10,label:'묶음',sublabel:'장'},
+  '도감장갑(흰장갑)':{n:10,label:'묶음',sublabel:'장'},
+  '예식장갑(흰장갑)':{n:10,label:'묶음',sublabel:'장'},
+  '위생장갑/100매':{n:1,label:'개',sublabel:''},
 };
 
 function renderStock(){
@@ -1809,7 +1811,8 @@ function renderStock(){
   const _extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
   const ALL_STOCK=[...BASIC,..._extra.map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}))];
   ALL_STOCK.forEach(item=>{
-    const p=mData[item.품명]||{};
+    // Firebase key 인코딩 처리: 원래 품명과 인코딩된 key 모두 검색
+    const p=mData[item.품명]||mData[toFbKey(item.품명)]||{};
     const 이월=p['이월']||0;
     let outSum=0,dayTds='';
     for(let d=1;d<=days;d++){
@@ -1855,24 +1858,29 @@ function fmtPack(qty, pk){
 function updStock(inp){
   const{p:품명,m,d}=inp.dataset;
   if(!stockData[m])stockData[m]={};
-  if(!stockData[m][품명])stockData[m][품명]={};
-  stockData[m][품명][d]=+inp.value||0;
-  // 저장은 💾 저장 버튼 클릭 시 처리
+  // 기존에 인코딩된 key로 저장된 경우 그 key 유지, 없으면 원래 품명 사용
+  const key=stockData[m][품명]!==undefined?품명:
+    (stockData[m][toFbKey(품명)]!==undefined?toFbKey(품명):품명);
+  if(!stockData[m][key])stockData[m][key]={};
+  stockData[m][key][d]=+inp.value||0;
+  // 현재재고 셀도 갱신
+  const 이월=stockData[m][key]['이월']||0;
+  let out=0;Object.keys(stockData[m][key]).forEach(k=>{if(!isNaN(k))out+=stockData[m][key][k]||0;});
+  const el=document.getElementById('cr-'+safeKey(품명));
+  if(el){el.textContent=이월-out;el.style.color=(이월-out)<0?'#c0392b':'#1b3a5c';}
 }
 function calcStockRow(inp){
   const{p:품명,m}=inp.dataset;
-  const p=stockData[m]?.[품명]||{};
+  const mData=stockData[m]||{};
+  const p=mData[품명]||mData[toFbKey(품명)]||{};
   const 이월=+inp.value||0;
   let out=0;
   Object.keys(p).forEach(k=>{if(!isNaN(k))out+=p[k]||0;});
   const 현재=이월-out;
   const el=document.getElementById('cr-'+safeKey(품명));
   if(el){el.textContent=현재;el.style.color=현재<0?'#c0392b':'#1b3a5c';}
-  // 포장단위 칸 갱신
   const pk=PACK_UNIT[품명];
   if(pk){
-    const tr=inp.closest('tr');
-    // 현재재고 다음 td가 포장단위 칸
     const packTd=el?.nextElementSibling;
     if(packTd){
       packTd.innerHTML=fmtPack(현재,pk);
@@ -1951,15 +1959,51 @@ async function saveStockEdit(){
   });
   if(changed===0){alert('수정할 물품과 수량을 입력해 주세요.');return;}
   showSaving(true);
-  try{await fbSet('stockData',stockData);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  try{await fbSet('stockData',encodeStockData(stockData));}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
   closeModal('stockEditModal');
   if(m===+document.getElementById('stockMonth').value) renderStock();
   alert(`${m}월 ${d}일 재고 ${changed}건 수정 완료!`);
 }
+// Firebase key 안전 변환 (특수문자 → 유니코드 이스케이프)
+function toFbKey(str){
+  return str.replace(/\./g,'·').replace(/#/g,'＃').replace(/\$/g,'＄')
+    .replace(/\//g,'／').replace(/\[/g,'［').replace(/\]/g,'］');
+}
+function fromFbKey(str){
+  return str.replace(/·/g,'.').replace(/＃/g,'#').replace(/＄/g,'$')
+    .replace(/／/g,'/').replace(/［/g,'[').replace(/］/g,']');
+}
+// stockData를 Firebase 안전 형태로 변환
+function encodeStockData(data){
+  const result={};
+  Object.keys(data).forEach(m=>{
+    result[m]={};
+    Object.keys(data[m]).forEach(품명=>{
+      const safeKey=toFbKey(품명);
+      result[m][safeKey]=data[m][품명];
+    });
+  });
+  return result;
+}
+// Firebase에서 읽은 stockData를 원래 형태로 변환
+function decodeStockData(data){
+  const result={};
+  Object.keys(data).forEach(m=>{
+    result[m]={};
+    Object.keys(data[m]).forEach(key=>{
+      const 품명=fromFbKey(key);
+      result[m][품명]=data[m][key];
+    });
+  });
+  return result;
+}
+
 async function saveStock(){
   showSaving(true);
-  try{await fbSet('stockData',stockData);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  try{
+    await fbSet('stockData',encodeStockData(stockData));
+  }catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
   const m=+document.getElementById('stockMonth').value;
   alert(`✅ 재고 저장 완료!\n\n${m}월 재고관리장\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
@@ -2097,7 +2141,7 @@ function restoreSnapshot(){
   if(!confirm(`${new Date(snap.timestamp).toLocaleString('ko-KR')} 스냅샷으로 복원하시겠습니까?`))return;
   if(snap.jungs)   {jungs=snap.jungs;   const obj={};jungs.forEach(j=>obj[j.id]=j);fbSet('jungs',obj).catch(()=>{});}
   if(snap.results) {results=snap.results;const obj={};results.forEach(r=>obj[r.id||Date.now()]=r);fbSet('results',obj).catch(()=>{});}
-  if(snap.stockData){stockData=snap.stockData;fbSet('stockData',stockData).catch(()=>{});}
+  if(snap.stockData){stockData=snap.stockData;fbSet('stockData',encodeStockData(stockData)).catch(()=>{});}
   if(snap.priceDB) {priceDB=snap.priceDB;const obj={};priceDB.forEach((p,i)=>obj[i]=p);fbSet('priceDB',obj).catch(()=>{});}
   renderJungList();renderResults();renderStock();renderPrice();
   if(typeof buildCharts==='function')buildCharts();
@@ -2130,7 +2174,7 @@ function restoreData(input){
       }
       if(data.stockData){
         stockData=data.stockData;
-        await fbSet('stockData',stockData);
+        await fbSet('stockData',encodeStockData(stockData));
       }
       if(data.priceDB){
         priceDB=data.priceDB;
