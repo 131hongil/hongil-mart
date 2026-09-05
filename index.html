@@ -252,7 +252,6 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
           <input id="um-newinpw" type="password" placeholder="비밀번호" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
           <select id="um-role" style="width:90px;padding:7px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
             <option value="user">일반</option>
-            <option value="result">결산담당</option>
             <option value="admin">관리자</option>
           </select>
         </div>
@@ -278,11 +277,11 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
   <div class="sidebar-logo"><span>🏪</span></div>
   <!-- 메뉴 영역 -->
   <div class="sidebar-inner">
-    <button class="ntab on" onclick="showPage('진행중',this)"><span class="ti">📁</span>정산서<br>관리</button>
+    <button class="ntab" onclick="showPage('진행중',this)"><span class="ti">📁</span>정산서<br>관리</button>
     <button class="ntab" id="tab-결산" style="display:none" onclick="showPage('결산',this)"><span class="ti">📊</span>결산서</button>
     <button class="ntab" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
     <button class="ntab" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
-    <button class="ntab" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
+    <button class="ntab on" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
   </div>
   <!-- 캘린더 + 시간계산 버튼 -->
   <div style="padding:5px 4px;border-top:1px solid #2d5580;flex-shrink:0">
@@ -298,7 +297,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 <div class="content">
 
 <!-- ══ 정산서 관리 ══ -->
-<div id="page-진행중" class="page on">
+<div id="page-진행중" class="page">
   <div class="card">
     <div class="card-title">📁 정산서 관리
       <button class="btn btn-success" onclick="openNewModal()" style="margin-left:auto">+ 새 정산서 생성</button>
@@ -558,7 +557,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 </div>
 
 <!-- ══ 마트관리 ══ -->
-<div id="page-관리" class="page">
+<div id="page-관리" class="page on">
   <div class="card">
     <div class="card-title">⚙️ 마트관리</div>
     <div class="mgmt-grid">
@@ -1024,7 +1023,7 @@ async function onLoginSuccess(){
   document.getElementById('userBar').style.display='flex';
   document.getElementById('ubUser').textContent=currentUser.이름+'('+currentUser.id+')';
   // 권한별 탭 표시
-  const canResult=currentUser.역할==='admin'||currentUser.역할==='result';
+  const canResult=currentUser.역할==='admin'||currentUser.id==='song';
   document.getElementById('tab-결산').style.display=canResult?'':'none';
   document.getElementById('tab-알바').style.display=(currentUser.역할==='admin')?'':'none';
   // 미니 캘린더 렌더링
@@ -1837,31 +1836,47 @@ function renderMiniCal(){
 // 캘린더 날짜 클릭 → 출퇴근 입력 팝업
 function openCalInput(dateKey,td){
   const myName=currentUser?.이름||'';
-  const log=albaWorkLog[dateKey]?.[myName]||{};
+  // 회차 배열: albaWorkLog[dateKey][myName] = [{출근,퇴근,승인}, ...]
+  const logs=Array.isArray(albaWorkLog[dateKey]?.[myName])
+    ? albaWorkLog[dateKey][myName]
+    : (albaWorkLog[dateKey]?.[myName]?.출근
+        ? [albaWorkLog[dateKey][myName]] // 구버전 단일 객체 → 배열로
+        : []);
   const [y,m,d]=dateKey.split('-');
-  const title=`${m}월 ${d}일 근무 시간 입력`;
-
-  // 기존 팝업 제거
+  const title=`${m}월 ${d}일 근무 입력`;
   const old=document.getElementById('calPopup');if(old)old.remove();
-
   const pop=document.createElement('div');
   pop.id='calPopup';
   pop.style.cssText=`position:fixed;z-index:9999;background:#fff;border-radius:10px;
-    box-shadow:0 8px 30px rgba(0,0,0,.4);padding:16px;width:240px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4);padding:16px;width:280px;
     top:50%;left:50%;transform:translate(-50%,-50%)`;
+
+  // 기존 회차 목록
+  let logsHtml=logs.map((l,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #eee">
+      <span style="font-size:11px;color:#888;width:40px">${i+1}회차</span>
+      <span style="font-size:12px;font-weight:700;color:#1b3a5c">${l.출근}~${l.퇴근}</span>
+      <span style="font-size:10px;color:${l.승인?'#2a5298':'#888'};margin-left:auto">${l.승인?'✅승인':'⏳'}</span>
+      ${!l.승인?`<button onclick="delCalInputSlot('${dateKey}',${i})" style="background:#c0392b;color:#fff;border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:11px">✕</button>`:''}
+    </div>`).join('');
+
   pop.innerHTML=`
-    <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:10px">📅 ${title}</div>
-    <div style="font-size:12px;color:#555;margin-bottom:4px">이름: <b>${myName}</b></div>
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <div style="flex:1">
-        <label style="font-size:11px;color:#555">출근</label>
-        <input type="time" id="calStart" value="${log.출근||'09:00'}"
-          style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px">
-      </div>
-      <div style="flex:1">
-        <label style="font-size:11px;color:#555">퇴근</label>
-        <input type="time" id="calEnd" value="${log.퇴근||'18:00'}"
-          style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px">
+    <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:8px">📅 ${title}</div>
+    <div style="font-size:12px;color:#555;margin-bottom:6px">👤 ${myName}</div>
+    ${logsHtml?`<div style="margin-bottom:8px">${logsHtml}</div>`:''}
+    <div style="background:#f8faff;border-radius:6px;padding:8px;margin-bottom:8px">
+      <div style="font-size:11px;color:#1b3a5c;font-weight:700;margin-bottom:6px">+ 근무 추가</div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1">
+          <label style="font-size:10px;color:#555">출근</label>
+          <input type="time" id="calStart" value="${logs.length===0?'09:00':''}"
+            style="width:100%;padding:5px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px">
+        </div>
+        <div style="flex:1">
+          <label style="font-size:10px;color:#555">퇴근</label>
+          <input type="time" id="calEnd"
+            style="width:100%;padding:5px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px">
+        </div>
       </div>
     </div>
     <div style="display:flex;gap:6px">
@@ -1869,13 +1884,9 @@ function openCalInput(dateKey,td){
         style="flex:1;background:#217a3c;color:#fff;border:none;border-radius:5px;padding:7px;cursor:pointer;font-weight:700;font-family:inherit;font-size:12px">
         ✅ 저장
       </button>
-      ${log.출근?`<button onclick="delCalInput('${dateKey}')"
-        style="background:#c0392b;color:#fff;border:none;border-radius:5px;padding:7px;cursor:pointer;font-family:inherit;font-size:12px">
-        🗑️
-      </button>`:''}
       <button onclick="document.getElementById('calPopup').remove()"
         style="background:#eee;color:#333;border:none;border-radius:5px;padding:7px;cursor:pointer;font-family:inherit;font-size:12px">
-        취소
+        닫기
       </button>
     </div>`;
   document.body.appendChild(pop);
@@ -1889,19 +1900,38 @@ async function saveCalInput(dateKey){
   if(start>=end){alert('퇴근 시간이 출근 시간보다 늦어야 합니다.');return;}
   const myName=currentUser?.이름||'';
   if(!albaWorkLog[dateKey])albaWorkLog[dateKey]={};
-  albaWorkLog[dateKey][myName]={출근:start,퇴근:end,승인:false,입력자:myName,입력일:new Date().toISOString()};
-  // Firebase 저장
-  fbSet('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName),albaWorkLog[dateKey][myName])
-    .catch(e=>console.error(e));
+  // 배열로 관리
+  let logs=Array.isArray(albaWorkLog[dateKey][myName])
+    ? albaWorkLog[dateKey][myName]
+    : (albaWorkLog[dateKey][myName]?.출근?[albaWorkLog[dateKey][myName]]:[]);
+  logs.push({출근:start,퇴근:end,승인:false,입력자:myName,입력일:new Date().toISOString()});
+  albaWorkLog[dateKey][myName]=logs;
+  fbSet('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName),logs).catch(e=>console.error(e));
   document.getElementById('calPopup').remove();
   renderMiniCal();
-  // 알바 관리 페이지에도 자동 반영
   syncWorkLogToAlba();
-  alert(`✅ ${dateKey} 근무시간 저장!\n출근: ${start} / 퇴근: ${end}`);
+  alert(`✅ ${dateKey} ${logs.length}회차 저장!\n출근: ${start} / 퇴근: ${end}`);
+}
+
+async function delCalInputSlot(dateKey,slotIdx){
+  if(!confirm('이 회차를 삭제하시겠습니까?'))return;
+  const myName=currentUser?.이름||'';
+  let logs=Array.isArray(albaWorkLog[dateKey]?.[myName])?albaWorkLog[dateKey][myName]:[];
+  logs.splice(slotIdx,1);
+  if(logs.length===0){
+    delete albaWorkLog[dateKey][myName];
+    fbRemove('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName)).catch(e=>console.error(e));
+  } else {
+    albaWorkLog[dateKey][myName]=logs;
+    fbSet('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName),logs).catch(e=>console.error(e));
+  }
+  document.getElementById('calPopup').remove();
+  renderMiniCal();
+  syncWorkLogToAlba();
 }
 
 async function delCalInput(dateKey){
-  if(!confirm('이 날의 근무 입력을 삭제하시겠습니까?'))return;
+  if(!confirm('이 날의 모든 근무 입력을 삭제하시겠습니까?'))return;
   const myName=currentUser?.이름||'';
   if(albaWorkLog[dateKey]) delete albaWorkLog[dateKey][myName];
   fbRemove('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName)).catch(e=>console.error(e));
@@ -1912,27 +1942,25 @@ async function delCalInput(dateKey){
 
 // albaWorkLog → albaData 자동 동기화
 function syncWorkLogToAlba(){
-  // workLog에서 albaData로 변환 (미승인 항목만)
   const syncedIds=new Set();
   Object.keys(albaWorkLog).forEach(dateKey=>{
     Object.keys(albaWorkLog[dateKey]).forEach(nameKey=>{
-      const log=albaWorkLog[dateKey][nameKey];
+      const raw=albaWorkLog[dateKey][nameKey];
       const 이름=fromFbKey(nameKey);
       const 날짜=fromFbKey(dateKey);
-      // 기존 albaData에서 같은 날짜+이름 찾기
-      const existing=albaData.find(r=>r.날짜===날짜&&r.이름===이름&&r.fromLog);
-      if(existing){
-        existing.출근=log.출근;existing.퇴근=log.퇴근;existing.승인=log.승인;
-        syncedIds.add(existing.id);
-      } else {
-        const rec={id:`log_${날짜}_${이름}`,이름,날짜,출근:log.출근,퇴근:log.퇴근,
-          메모:log.승인?'✅승인':'⏳미승인',fromLog:true,승인:log.승인};
-        albaData.push(rec);
-        syncedIds.add(rec.id);
-      }
+      // 배열이면 회차별로, 단일 객체면 배열로 변환
+      const slots=Array.isArray(raw)?raw:(raw?.출근?[raw]:[]);
+      slots.forEach((log,slotIdx)=>{
+        const id=`log_${날짜}_${이름}_${slotIdx}`;
+        const existing=albaData.find(r=>r.id===id);
+        const rec={id,이름,날짜,출근:log.출근,퇴근:log.퇴근,
+          메모:`${slotIdx+1}회차${log.승인?' ✅':''}`,fromLog:true,승인:log.승인||false};
+        if(existing){Object.assign(existing,rec);}
+        else{albaData.push(rec);}
+        syncedIds.add(id);
+      });
     });
   });
-  // 삭제된 항목 제거
   albaData=albaData.filter(r=>!r.fromLog||syncedIds.has(r.id));
   renderAlba();
 }
