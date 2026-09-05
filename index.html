@@ -1439,8 +1439,8 @@ function qc(v,idx,f,ro){
     if(f==='반품'&&v>0) return `<span style="color:#c0392b;font-weight:700">${v}</span>`;
     return v||0;
   }
-  const color=f==='추가'?'#dbeafe':f==='반품'?'#fde8e8':'#fff';
-  const tcolor=f==='추가'?'#1b3a5c':f==='반품'?'#c0392b':'#333';
+  const color=f==='추가'&&v>0?'#dbeafe':f==='반품'&&v>0?'#fde8e8':'#fff';
+  const tcolor=f==='추가'&&v>0?'#1b3a5c':f==='반품'&&v>0?'#c0392b':'#333';
   return `<input class="q" type="number" value="${v||0}" min="0" data-i="${idx}" data-f="${f}"
     onchange="onQ(this)"
     onwheel="event.preventDefault()"
