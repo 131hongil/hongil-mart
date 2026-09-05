@@ -1812,8 +1812,12 @@ function renderStock(){
   const ALL_STOCK=[...BASIC,..._extra.map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}))];
   ALL_STOCK.forEach(item=>{
     // Firebase key 인코딩 처리: 원래 품명과 인코딩된 key 모두 검색
-    const p=mData[item.품명]||mData[toFbKey(item.품명)]||{};
-    const 이월=p['이월']||0;
+    const origKey=item.품명;
+    const encKey=toFbKey(item.품명);
+    // mData에서 원래 key 또는 인코딩된 key로 찾기
+    const p=mData[origKey]||mData[encKey]||{};
+    // 이월량도 같은 방식으로 읽기
+    const 이월=+(p['이월']||p[toFbKey('이월')]||0);
     let outSum=0,dayTds='';
     for(let d=1;d<=days;d++){
       const v=p[d]||0;outSum+=v;
