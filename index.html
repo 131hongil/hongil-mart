@@ -566,7 +566,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
     <div class="mgmt-grid">
       <div class="mgmt-card" onclick="openNewModal()"><div class="icon">📋</div><div class="name">새 정산서 생성</div><div class="desc">인원수·분향실·고인 입력</div></div>
       <div class="mgmt-card" onclick="goTab('진행중',0)"><div class="icon">📁</div><div class="name">정산서 목록</div><div class="desc">진행중/완료 조회</div></div>
-      <div class="mgmt-card" id="mgmt-결산" onclick="goTab('결산',1)"><div class="icon">📊</div><div class="name">결산서</div><div class="desc">전체 정산 내역</div></div>
+      <div class="mgmt-card" id="mgmt-결산" style="display:none" onclick="goTab('결산',1)"><div class="icon">📊</div><div class="name">결산서</div><div class="desc">전체 정산 내역</div></div>
       <div class="mgmt-card" onclick="goTab('재고',2)"><div class="icon">📦</div><div class="name">재고관리장</div><div class="desc">월별 출고 현황</div></div>
       <div class="mgmt-card" onclick="goTab('원가',3)"><div class="icon">💰</div><div class="name">원가DB 관리</div><div class="desc">품목·단가 수정</div></div>
       <div class="mgmt-card" onclick="backupData()"><div class="icon">💾</div><div class="name">데이터 백업</div><div class="desc">JSON 파일로 저장</div></div>
@@ -1034,6 +1034,9 @@ async function onLoginSuccess(){
   // 권한별 탭 표시
   document.getElementById('tab-결산').style.display=isAdmin()?'':'none';
   document.getElementById('tab-알바').style.display=isAdmin()?'':'none';
+  // 마트관리 화면의 결산서 카드도 권한에 따라 표시/숨김
+  const mgmtResult=document.getElementById('mgmt-결산');
+  if(mgmtResult) mgmtResult.style.display=isAdmin()?'':'none';
   // 미니 캘린더 렌더링
   renderMiniCal();
   // 매일 자정에 캘린더 갱신
