@@ -16,7 +16,7 @@
 body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;color:#222}
 .layout{display:flex;min-height:100vh}
 .sidebar{width:130px;min-width:130px;background:#1b3a5c;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;z-index:100;box-shadow:2px 0 8px rgba(0,0,0,.2)}
-.sidebar-inner{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.sidebar-inner{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
 .sidebar-logo{color:#fff;padding:12px 8px 10px;font-size:12px;font-weight:700;text-align:center;border-bottom:1px solid #2d5580;line-height:1.3}
 .sidebar-logo span{font-size:22px;display:block;margin-bottom:3px}
 .ntab{color:#9bbcd4;padding:11px 6px;cursor:pointer;border:none;background:none;font-size:11px;font-family:inherit;text-align:center;width:100%;border-left:3px solid transparent;line-height:1.4;transition:.15s}
@@ -284,13 +284,13 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
     <button class="ntab" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
     <button class="ntab" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
   </div>
-  <!-- 하단 고정: 캘린더 + 알바 버튼 -->
-  <div style="padding:6px 4px;border-top:1px solid #2d5580;flex-shrink:0">
-    <div id="miniCal" style="background:#0f2540;border-radius:6px;padding:5px;font-size:9.5px;color:#9bbcd4;margin-bottom:4px"></div>
+  <!-- 캘린더 + 시간계산 버튼 -->
+  <div style="padding:5px 4px;border-top:1px solid #2d5580;flex-shrink:0">
+    <div id="miniCal" style="background:#0f2540;border-radius:6px;padding:4px;font-size:9px;color:#9bbcd4;margin-bottom:3px"></div>
     <button id="tab-알바" style="display:none;width:100%;background:#e8821a;color:#fff;
-      border:none;border-radius:5px;padding:6px 4px;cursor:pointer;font-size:11px;font-weight:700;
+      border:none;border-radius:5px;padding:5px 4px;cursor:pointer;font-size:10px;font-weight:700;
       font-family:inherit;line-height:1.3" onclick="showPage('알바',this)">
-      🗓️ 알바<br>급여관리
+      ⏱️ 시간계산
     </button>
   </div>
 </div>
@@ -433,7 +433,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
       <table class="dtbl">
         <thead><tr>
           <th>NO</th><th>이름</th><th>날짜</th><th>출근</th><th>퇴근</th>
-          <th>근무시간</th><th>총급여</th><th>4대보험</th><th>실수령액</th><th>메모</th><th>삭제</th>
+          <th>근무시간</th><th>총급여</th><th>4대보험</th><th>실수령액</th><th>상태</th><th>삭제</th>
         </tr></thead>
         <tbody id="albaBody"></tbody>
         <tfoot><tr id="albaTotals" style="background:#f0f5ff;font-weight:700"></tr></tfoot>
@@ -1056,18 +1056,19 @@ async function loadAllData(){
   try{
     if(!DB) await initFirebase();
     document.getElementById('ubSync').style.color='#f39c12';
-    const [jData,rData,sData,pData,aData]=await Promise.all([
-      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData')
+    const [jData,rData,sData,pData,aData,wData]=await Promise.all([
+      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog')
     ]);
     jungs    =jData?Object.values(jData).map(normalizeJung):[];
     results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
     stockData=sData?decodeStockData(sData):{};
     priceDB  =pData?Object.values(pData):DEF_PRICE;
     albaData =aData?Object.values(aData):[];
+    albaWorkLog=wData?wData:{};
     document.getElementById('ubSync').style.color='#52be80';
     renderJungList();renderResults();renderStock();renderPrice();
     if(typeof buildCharts==='function')buildCharts();
-    // 실시간 동기화 시작 (다른 사람 변경사항 즉시 반영)
+    setTimeout(syncWorkLogToAlba,100); // workLog → albaData 동기화
     startRealtimeSync();
   }catch(e){
     document.getElementById('ubSync').style.color='#e74c3c';
@@ -1781,22 +1782,25 @@ async function 정산취소(){
 
 // ══ 알바 관리 ══
 let albaData=[];
+let albaWorkLog={}; // {날짜: {이름: {출근,퇴근,승인:false}}}
 
 // ── 미니 캘린더 ──
 function renderMiniCal(){
   const el=document.getElementById('miniCal');if(!el)return;
   const now=new Date();
   const y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
-  const first=new Date(y,m,1).getDay(); // 0=일
+  const first=new Date(y,m,1).getDay();
   const days=new Date(y,m+1,0).getDate();
   const months=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-  let html=`<div style="text-align:center;font-weight:700;color:#fff;margin-bottom:4px;font-size:11px">
-    ${y}년 ${months[m]}</div>`;
+  // 이번 달 내 입력한 날짜 목록 (로그인한 사람 기준)
+  const myName=currentUser?.이름||'';
+  const yStr=String(y);const mStr=String(m+1).padStart(2,'0');
+  let html=`<div style="text-align:center;font-weight:700;color:#fff;margin-bottom:3px;font-size:10px">${y}년 ${months[m]}</div>`;
   html+='<table style="width:100%;border-collapse:collapse;font-size:9px">';
   html+='<tr>';
   ['일','월','화','수','목','금','토'].forEach((w,i)=>{
     const c=i===0?'#e74c3c':i===6?'#4da6ff':'#9bbcd4';
-    html+=`<td style="text-align:center;color:${c};padding:1px">${w}</td>`;
+    html+=`<td style="text-align:center;color:${c};padding:1px 0">${w}</td>`;
   });
   html+='</tr><tr>';
   for(let i=0;i<first;i++) html+='<td></td>';
@@ -1804,16 +1808,133 @@ function renderMiniCal(){
   for(let dt=1;dt<=days;dt++){
     const dow=(first+dt-1)%7;
     const isToday=dt===d;
+    const dateKey=`${yStr}-${mStr}-${String(dt).padStart(2,'0')}`;
+    const log=albaWorkLog[dateKey]?.[myName];
+    const hasLog=!!log;
+    const isApproved=log?.승인;
     const c=dow===0?'#e74c3c':dow===6?'#4da6ff':'#ccc';
-    const bg=isToday?'#e8821a':'transparent';
-    const fw=isToday?'700':'400';
-    html+=`<td style="text-align:center;padding:1px 0;color:${isToday?'#fff':c};
-      background:${bg};border-radius:3px;font-weight:${fw}">${dt}</td>`;
+    let bg=isToday?'#e8821a':'transparent';
+    if(hasLog&&!isApproved) bg='#217a3c';
+    if(isApproved) bg='#2a5298';
+    const tip=hasLog?`title="${log.출근}~${log.퇴근}${isApproved?' ✅승인됨':' (미승인)'}"` :'';
+    const clickable=!isApproved; // 승인된 날은 클릭 불가
+    const cursor=clickable?'cursor:pointer':'';
+    html+=`<td ${tip} style="text-align:center;padding:1px 0;color:${(isToday||hasLog)?'#fff':c};
+      background:${bg};border-radius:3px;${cursor};position:relative"
+      ${clickable?`onclick="openCalInput('${dateKey}',this)"`:''}>
+      ${dt}${hasLog&&!isApproved?'<span style="position:absolute;top:0;right:0;font-size:6px;color:#7dffb3">●</span>':''}
+    </td>`;
     col++;
     if(col%7===0&&dt<days) html+='</tr><tr>';
   }
   html+='</tr></table>';
+  html+=`<div style="margin-top:3px;font-size:8px;color:#9bbcd4;text-align:center">
+    <span style="color:#217a3c">●</span>입력 <span style="color:#2a5298">●</span>승인 <span style="color:#e8821a">●</span>오늘
+  </div>`;
   el.innerHTML=html;
+}
+
+// 캘린더 날짜 클릭 → 출퇴근 입력 팝업
+function openCalInput(dateKey,td){
+  const myName=currentUser?.이름||'';
+  const log=albaWorkLog[dateKey]?.[myName]||{};
+  const [y,m,d]=dateKey.split('-');
+  const title=`${m}월 ${d}일 근무 시간 입력`;
+
+  // 기존 팝업 제거
+  const old=document.getElementById('calPopup');if(old)old.remove();
+
+  const pop=document.createElement('div');
+  pop.id='calPopup';
+  pop.style.cssText=`position:fixed;z-index:9999;background:#fff;border-radius:10px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4);padding:16px;width:240px;
+    top:50%;left:50%;transform:translate(-50%,-50%)`;
+  pop.innerHTML=`
+    <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:10px">📅 ${title}</div>
+    <div style="font-size:12px;color:#555;margin-bottom:4px">이름: <b>${myName}</b></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <div style="flex:1">
+        <label style="font-size:11px;color:#555">출근</label>
+        <input type="time" id="calStart" value="${log.출근||'09:00'}"
+          style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px">
+      </div>
+      <div style="flex:1">
+        <label style="font-size:11px;color:#555">퇴근</label>
+        <input type="time" id="calEnd" value="${log.퇴근||'18:00'}"
+          style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px">
+      </div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button onclick="saveCalInput('${dateKey}')"
+        style="flex:1;background:#217a3c;color:#fff;border:none;border-radius:5px;padding:7px;cursor:pointer;font-weight:700;font-family:inherit;font-size:12px">
+        ✅ 저장
+      </button>
+      ${log.출근?`<button onclick="delCalInput('${dateKey}')"
+        style="background:#c0392b;color:#fff;border:none;border-radius:5px;padding:7px;cursor:pointer;font-family:inherit;font-size:12px">
+        🗑️
+      </button>`:''}
+      <button onclick="document.getElementById('calPopup').remove()"
+        style="background:#eee;color:#333;border:none;border-radius:5px;padding:7px;cursor:pointer;font-family:inherit;font-size:12px">
+        취소
+      </button>
+    </div>`;
+  document.body.appendChild(pop);
+  document.getElementById('calStart').focus();
+}
+
+async function saveCalInput(dateKey){
+  const start=document.getElementById('calStart').value;
+  const end=document.getElementById('calEnd').value;
+  if(!start||!end){alert('출퇴근 시간을 입력하세요.');return;}
+  if(start>=end){alert('퇴근 시간이 출근 시간보다 늦어야 합니다.');return;}
+  const myName=currentUser?.이름||'';
+  if(!albaWorkLog[dateKey])albaWorkLog[dateKey]={};
+  albaWorkLog[dateKey][myName]={출근:start,퇴근:end,승인:false,입력자:myName,입력일:new Date().toISOString()};
+  // Firebase 저장
+  fbSet('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName),albaWorkLog[dateKey][myName])
+    .catch(e=>console.error(e));
+  document.getElementById('calPopup').remove();
+  renderMiniCal();
+  // 알바 관리 페이지에도 자동 반영
+  syncWorkLogToAlba();
+  alert(`✅ ${dateKey} 근무시간 저장!\n출근: ${start} / 퇴근: ${end}`);
+}
+
+async function delCalInput(dateKey){
+  if(!confirm('이 날의 근무 입력을 삭제하시겠습니까?'))return;
+  const myName=currentUser?.이름||'';
+  if(albaWorkLog[dateKey]) delete albaWorkLog[dateKey][myName];
+  fbRemove('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName)).catch(e=>console.error(e));
+  document.getElementById('calPopup').remove();
+  renderMiniCal();
+  syncWorkLogToAlba();
+}
+
+// albaWorkLog → albaData 자동 동기화
+function syncWorkLogToAlba(){
+  // workLog에서 albaData로 변환 (미승인 항목만)
+  const syncedIds=new Set();
+  Object.keys(albaWorkLog).forEach(dateKey=>{
+    Object.keys(albaWorkLog[dateKey]).forEach(nameKey=>{
+      const log=albaWorkLog[dateKey][nameKey];
+      const 이름=fromFbKey(nameKey);
+      const 날짜=fromFbKey(dateKey);
+      // 기존 albaData에서 같은 날짜+이름 찾기
+      const existing=albaData.find(r=>r.날짜===날짜&&r.이름===이름&&r.fromLog);
+      if(existing){
+        existing.출근=log.출근;existing.퇴근=log.퇴근;existing.승인=log.승인;
+        syncedIds.add(existing.id);
+      } else {
+        const rec={id:`log_${날짜}_${이름}`,이름,날짜,출근:log.출근,퇴근:log.퇴근,
+          메모:log.승인?'✅승인':'⏳미승인',fromLog:true,승인:log.승인};
+        albaData.push(rec);
+        syncedIds.add(rec.id);
+      }
+    });
+  });
+  // 삭제된 항목 제거
+  albaData=albaData.filter(r=>!r.fromLog||syncedIds.has(r.id));
+  renderAlba();
 }
 
 function initAlbaMonth(){
@@ -1883,8 +2004,18 @@ function renderAlba(){
     if(!nameMap[r.이름])nameMap[r.이름]={hours:0,pay:0,ins:0,net:0};
     nameMap[r.이름].hours+=hrs;nameMap[r.이름].pay+=pay;
     nameMap[r.이름].ins+=ins.total;nameMap[r.이름].net+=net;
+    const isFromLog=r.fromLog;
+    const isApproved=r.승인;
+    const statusCell=isFromLog
+      ?(isApproved
+        ?'<td><span style="background:#2a5298;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">✅승인</span></td>'
+        :(currentUser?.역할==='admin'
+          ?`<td><button class="btn btn-sm" style="background:#e8821a;color:#fff;font-size:10px" onclick="approveAlba('${r.id}','${r.날짜}','${r.이름}')">승인</button></td>`
+          :'<td><span style="background:#888;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">⏳대기</span></td>'))
+      :'<td style="color:#aaa;font-size:11px">-</td>';
     const tr=document.createElement('tr');
-    tr.title=`국민연금:${fmt(ins.pension)}원 / 건강보험:${fmt(ins.health)}원 / 장기요양:${fmt(ins.care)}원 / 고용보험:${fmt(ins.employ)}원`;
+    tr.style.background=isApproved?'#f0f5ff':isFromLog?'#fffdf0':'';
+    tr.title=isFromLog&&!isApproved?'미승인 - 관리자 승인 필요':'';
     tr.innerHTML=`<td>${i+1}</td>
       <td style="font-weight:700">${r.이름}</td>
       <td>${r.날짜}</td>
@@ -1893,8 +2024,8 @@ function renderAlba(){
       <td style="color:#217a3c;font-weight:700">${fmt(pay)}원</td>
       <td style="color:#c0392b;font-size:11px">-${fmt(ins.total)}원</td>
       <td style="color:#1b3a5c;font-weight:700;background:#f0fff4">${fmt(net)}원</td>
-      <td style="color:#888;font-size:11px">${r.메모||''}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="delAlba('${r.id}')">삭제</button></td>`;
+      ${statusCell}
+      <td>${!isApproved?`<button class="btn btn-danger btn-sm" onclick="delAlba('${r.id}','${r.날짜}','${r.이름}')">삭제</button>`:'−'}</td>`;
     body.appendChild(tr);
   });
   const totRow=document.getElementById('albaTotals');
@@ -1917,10 +2048,27 @@ function renderAlba(){
     </div>`).join('');
 }
 
-function delAlba(id){
+async function approveAlba(id,dateKey,이름){
+  if(!confirm(`${이름}의 ${dateKey} 근무를 승인하시겠습니까?\n승인 후에는 수정/삭제가 불가합니다.`))return;
+  // Firebase 업데이트
+  const nameKey=toFbKey(이름);
+  const dk=toFbKey(dateKey);
+  if(albaWorkLog[dateKey]&&albaWorkLog[dateKey][이름]){
+    albaWorkLog[dateKey][이름].승인=true;
+  }
+  fbSet('albaWorkLog/'+dk+'/'+nameKey+'/승인',true).catch(e=>console.error(e));
+  syncWorkLogToAlba();
+  renderMiniCal();
+}
+function delAlba(id,dateKey,이름){
   if(!confirm('삭제하시겠습니까?'))return;
+  // fromLog 항목이면 workLog에서도 삭제
+  if(dateKey&&이름){
+    if(albaWorkLog[dateKey]) delete albaWorkLog[dateKey][이름];
+    fbRemove('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(이름)).catch(e=>console.error(e));
+  }
   albaData=albaData.filter(r=>r.id!==id);
-  renderAlba();
+  renderAlba();renderMiniCal();
 }
 async function saveAlba(){
   showSaving(true);
