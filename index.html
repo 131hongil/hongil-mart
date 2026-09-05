@@ -1311,6 +1311,8 @@ function renderJungList(){
       <span class="ji-name">${j.파일명}</span>
       <span class="ji-sub">발인 ${j.날짜}</span>
       <span class="ji-sub">생성 ${j.생성일.slice(0,10)}</span>
+      ${j.생성자?`<span class="ji-sub" style="color:#e8821a">👤 ${j.생성자}</span>`:''}
+      ${j.수정자&&j.수정자!==j.생성자?`<span class="ji-sub" style="color:#888">수정:${j.수정자}</span>`:''}
       <span style="margin-left:auto;font-weight:700;color:#1b3a5c;white-space:nowrap">${fmt(total)}원</span>
       ${done?`<span class="badge badge-done">✅ 완료</span><span class="badge badge-${j.결제==='카드결제'?'card':j.결제==='현금결제'?'cash':'rcpt'}">${j.결제}</span>`:`<span class="badge badge-ing">진행중</span>`}
       <div class="btn-group" onclick="event.stopPropagation()">
@@ -2138,7 +2140,7 @@ function renderResults(){
       <td style="text-align:right">${fmt(r.금액||0)}</td>
       <td><span class="badge badge-${r.결제==='카드결제'?'card':r.결제==='현금결제'?'cash':'rcpt'}">${r.결제||''}</span></td>
       <td>${r.인원수||''}명</td><td>${r.비고||''}</td>
-      <td>${currentUser?.역할==='admin'?`<button class="btn btn-danger btn-sm" onclick="delResult(${idx})">삭제</button>`:'-'}</td>`;
+      <td>${(currentUser?.역할==='admin'||currentUser?.id==='song')?`<button class="btn btn-danger btn-sm" onclick="delResult(${idx})">삭제</button>`:'-'}</td>`;
     body.appendChild(tr);
   });
 }
