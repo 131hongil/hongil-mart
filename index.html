@@ -1390,8 +1390,18 @@ function buildTable(j,readOnly){
   const items=j.items||[];
   const opts=priceDB.map(p=>`<option value="${esc(p.품명)}" data-u="${esc(p.단위)}" data-p="${p.가격}">${p.품명}</option>`).join('');
   let bNo=1,aNo=BASIC.length+1;
+  const isDone=j.상태==='완료';
   items.forEach((item,idx)=>{
     const isA=item.isAdd||false;
+    // ★ 진행중 정산서: priceDB에서 최신 단가 실시간 적용
+    // ★ 완료 정산서: 저장된 단가 그대로 유지
+    if(!isDone&&!isA){
+      const dbItem=priceDB.find(p=>p.품명===item.품명);
+      if(dbItem){
+        item.단가=dbItem.가격;
+        item.단위=dbItem.단위;
+      }
+    }
     const f=(item.주문량||0)+(item.추가||0)-(item.반품||0);
     const g=f*(item.단가||0);
     if(isA&&!item.품명&&readOnly) return;
@@ -2536,7 +2546,31 @@ async function savePrice(){
   showSaving(true);
   try{const obj={};priceDB.forEach((p,i)=>obj[i]=p);await fbSet('priceDB',obj);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
-  alert(`✅ 원가DB 저장 완료!\n\n총 ${priceDB.length}개 품목\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+
+  // 진행중 정산서의 단가를 priceDB 최신값으로 자동 업데이트
+  let updated=0;
+  jungs.filter(j=>j.상태==='진행중').forEach(j=>{
+    j.items.forEach(it=>{
+      if(!it.isAdd){
+        const dbItem=priceDB.find(p=>p.품명===it.품명);
+        if(dbItem&&(it.단가!==dbItem.가격||it.단위!==dbItem.단위)){
+          it.단가=dbItem.가격;
+          it.단위=dbItem.단위;
+          updated++;
+        }
+      }
+    });
+    // 변경된 정산서 Firebase에 저장
+    fbSet('jungs/'+j.id,j).catch(e=>console.error(e));
+  });
+
+  // 현재 편집 중인 정산서가 진행중이면 화면 갱신
+  if(editingId){
+    const j=jungs.find(x=>x.id===editingId);
+    if(j&&j.상태==='진행중') buildTable(j,false);
+  }
+
+  alert(`✅ 원가DB 저장 완료!\n\n총 ${priceDB.length}개 품목${updated>0?`\n진행중 정산서 ${updated}개 품목 단가 자동 업데이트`:''}\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
 }
 
 // ══ 마트관리 ══
