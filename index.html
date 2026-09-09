@@ -2683,13 +2683,16 @@ function restoreData(input){
       }
       // Firebase에 저장
       if(data.jungs){
-        jungs=data.jungs;
-        const obj={};data.jungs.forEach(j=>obj[j.id]=j);
+        // 배열 또는 객체 모두 처리
+        const jArr=Array.isArray(data.jungs)?data.jungs:Object.values(data.jungs);
+        jungs=jArr.map(normalizeJung);
+        const obj={};jungs.forEach(j=>obj[j.id]=j);
         await fbSet('jungs',obj);
       }
       if(data.results){
-        results=data.results;
-        const obj={};data.results.forEach(r=>obj[r.id||Date.now()]=r);
+        const rArr=Array.isArray(data.results)?data.results:Object.values(data.results);
+        results=rArr.map(r=>({...r,id:String(r.id||Date.now()),날짜:normalizeDate(r.날짜),금액:+r.금액||0}));
+        const obj={};results.forEach(r=>obj[r.id]=r);
         await fbSet('results',obj);
       }
       if(data.stockData){
