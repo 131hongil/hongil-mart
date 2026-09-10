@@ -1314,7 +1314,18 @@ function renderJungList(){
   el.innerHTML='';
   list.forEach(j=>{
     const done=j.상태==='완료';
-    const total=calcTotal(j.items);
+    // 진행중: priceDB 최신 단가로 계산 / 완료: 저장된 단가 그대로
+    let total=0;
+    if(done){
+      total=calcTotal(j.items);
+    } else {
+      total=(j.items||[]).reduce((s,it)=>{
+        const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
+        // 기본물품은 priceDB 최신 단가 적용
+        const 단가=it.isAdd?it.단가:(priceDB.find(p=>p.품명===it.품명)?.가격||it.단가||0);
+        return s+f*단가;
+      },0);
+    }
     const div=document.createElement('div');
     div.className='jung-item'+(done?' done':'');
     div.innerHTML=`
