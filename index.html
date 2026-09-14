@@ -2505,6 +2505,7 @@ async function saveStockEdit(){
   alert(`${m}월 ${d}일 재고 ${changed}건 수정 완료!`);
 }
 // Firebase key 안전 변환 (특수문자 → 유니코드 이스케이프)
+function safeKey(s){return(s||'').replace(/[^a-zA-Z0-9가-힣]/g,'_');}
 function toFbKey(str){
   return str.replace(/\./g,'·').replace(/#/g,'＃').replace(/\$/g,'＄')
     .replace(/\//g,'／').replace(/\[/g,'［').replace(/\]/g,'］');
