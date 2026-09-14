@@ -58,6 +58,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .badge-rcpt{background:#d1ecf1;color:#0c5460}
 .badge-ing{background:#fdebd0;color:#784212}
 .badge-done{background:#d5f5e3;color:#1e8449}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
 
 /* ── 정산서 목록 ── */
 .filter-btns{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
@@ -604,7 +605,9 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
         <div class="fg">
           <label>고인 성함 <span style="color:#e74c3c">*</span></label>
           <input type="text" id="nw-고인" placeholder="한글 성함"
-            onkeyup="updateNFN()" onblur="filterHangul(this);updateNFN()">
+            inputmode="text" lang="ko"
+            onfocus="setKorean(this)"
+            onblur="filterHangul(this);updateNFN();clearKoreanStyle(this)">
         </div>
         <div class="fg">
           <label>발인일 MMDD <span style="color:#e74c3c">*</span></label>
@@ -616,7 +619,9 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
         <div class="fg">
           <label>상주 성함</label>
           <input type="text" id="nw-상주" placeholder="한글 성함"
-            onblur="filterHangul(this)">
+            inputmode="text" lang="ko"
+            onfocus="setKorean(this)"
+            onblur="filterHangul(this);clearKoreanStyle(this)">
         </div>
         <div class="fg">
           <label>연락처 (8자리)</label>
@@ -1335,7 +1340,16 @@ function renderJungList(){
       <span class="ji-sub">생성 ${j.생성일.slice(0,10)}</span>
       ${(j.수정자||j.생성자)?`<span class="ji-sub" style="color:#e8821a">👤 ${j.수정자||j.생성자}</span>`:''}
       <span style="margin-left:auto;font-weight:700;color:#1b3a5c;white-space:nowrap">${fmt(total)}원</span>
-      ${done?`<span class="badge badge-done">✅ 완료</span><span class="badge badge-${j.결제==='카드결제'?'card':j.결제==='현금결제'?'cash':'rcpt'}">${j.결제}</span>`:`<span class="badge badge-ing">진행중</span>`}
+      ${done?`
+        ${(()=>{
+          const today=new Date().toISOString().slice(0,10);
+          const isToday=j.완료일&&j.완료일.slice(0,10)===today;
+          return isToday
+            ?'<span class="badge" style="background:#e74c3c;color:#fff;font-weight:700;animation:pulse 1.5s infinite">🔴 금일완료</span>'
+            :'<span class="badge badge-done">✅ 완료</span>';
+        })()}
+        <span class="badge badge-${j.결제==='카드결제'?'card':j.결제==='현금결제'?'cash':'rcpt'}">${j.결제}</span>`
+        :`<span class="badge badge-ing">진행중</span>`}
       <div class="btn-group" onclick="event.stopPropagation()">
         ${j.메모?`<span class="badge" style="background:#f39c12;color:#fff;cursor:pointer" onclick="openMemo('${j.id}')">📝 메모있음</span>`:''}
         <button class="btn btn-sm" style="background:#6c757d;color:#fff" onclick="openMemo('${j.id}')">📋 메모</button>
@@ -2347,7 +2361,25 @@ function renderStock(){
     body.appendChild(tr);
   });
 }
-function safeKey(s){return(s||'').replace(/[^a-zA-Z0-9]/g,'_');}
+// 영문 → 한글 자동 변환 (두벌식 기준)
+const ENG_TO_KOR={
+  'r':'ㄱ','R':'ㄲ','s':'ㄴ','e':'ㄷ','E':'ㄸ','f':'ㄹ','a':'ㅁ','q':'ㅂ','Q':'ㅃ',
+  't':'ㅅ','T':'ㅆ','d':'ㅇ','w':'ㅈ','W':'ㅉ','c':'ㅊ','z':'ㅋ','x':'ㅌ','v':'ㅍ','g':'ㅎ',
+  'k':'ㅏ','o':'ㅐ','i':'ㅑ','O':'ㅒ','j':'ㅓ','p':'ㅔ','u':'ㅕ','P':'ㅖ','h':'ㅗ',
+  'y':'ㅛ','n':'ㅜ','b':'ㅠ','m':'ㅡ','l':'ㅣ','H':'ㅘ','hk':'ㅘ','ho':'ㅙ','hl':'ㅚ',
+  'nj':'ㅝ','np':'ㅞ','nl':'ㅟ','ml':'ㅢ'
+};
+function setKorean(el){
+  // 포커스 시 한글 안내 표시
+  el.style.background='#fffde7';
+  el.style.border='1.5px solid #f39c12';
+  el.placeholder='한글로 입력하세요';
+}
+function clearKoreanStyle(el){
+  el.style.background='';
+  el.style.border='';
+  el.placeholder='한글 성함';
+}
 
 // 포장단위 표시 함수
 // 양수: 3박스 15병 / 음수: ▼2박스 (부족)
