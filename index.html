@@ -77,7 +77,8 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 
 /* ── 정산서 테이블 ── */
 .jtbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
-.jtbl th{background:#1b3a5c;color:#fff;padding:6px 3px;text-align:center}
+.jtbl tfoot td{position:sticky;bottom:0;z-index:10;background:#1b3a5c;color:#fff;font-weight:700}
+.jtbl th{background:#1b3a5c;color:#fff;padding:6px 3px;text-align:center;position:sticky;top:0;z-index:10}
 .jtbl td{padding:3px 3px;border-bottom:1px solid #f0f0f0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jtbl tr.br td{background:#fafbfc}.jtbl tr.br:hover td{background:#f0f5ff}
 .jtbl tr.ar td{background:#fffde7}.jtbl tr.ar:hover td{background:#fff8c0}
@@ -91,7 +92,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 
 /* ── 결산서 ── */
 .dtbl{width:100%;border-collapse:collapse;font-size:12px}
-.dtbl th{background:#1b3a5c;color:#fff;padding:6px;text-align:center}
+.dtbl th{background:#1b3a5c;color:#fff;padding:6px;text-align:center;position:sticky;top:0;z-index:10}
 .dtbl td{padding:5px 6px;border-bottom:1px solid #f0f0f0;text-align:center}
 .dtbl tr:hover td{background:#f5f8ff}
 .dtbl td.left{text-align:left}
@@ -108,7 +109,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 
 /* ── 재고 ── */
 .stbl{border-collapse:collapse;font-size:13px;white-space:nowrap}
-.stbl th{background:#1b3a5c;color:#fff;padding:5px 4px;text-align:center;position:sticky;top:0;z-index:1}
+.stbl th{background:#1b3a5c;color:#fff;padding:5px 4px;text-align:center;position:sticky;top:0;z-index:10}
 .stbl td{padding:3px 4px;border-bottom:1px solid #eee;text-align:center}
 .stbl tr:nth-child(even) td{background:#f9fafb}
 .stbl input.sv{width:52px;padding:2px 3px;border:1px solid #ddd;border-radius:2px;text-align:center;font-size:12px}
@@ -352,7 +353,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
     </div>
 
     <!-- 화면 테이블 -->
-    <div class="card" style="overflow-x:auto" id="editTableWrap">
+    <div class="card" style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 230px)" id="editTableWrap">
       <table class="jtbl">
         <colgroup>
           <col style="width:32px"><col style="width:200px"><col style="width:68px">
