@@ -314,7 +314,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 </div>
 
 <!-- ══ 정산서 편집 오버레이 (탭 없음, 목록 위에 뜨는 방식) ══ -->
-<div id="editOverlay" style="display:none;position:fixed;top:34px;left:130px;right:0;bottom:0;background:#eef2f7;overflow:hidden;z-index:50;padding:10px 14px;display:flex;flex-direction:column">
+<div id="editOverlay" style="display:none;position:fixed;top:34px;left:130px;right:0;bottom:0;background:#eef2f7;overflow:hidden;z-index:50;padding:10px 14px;flex-direction:column">
 
     <div class="card" style="flex-shrink:0">
       <div class="card-title">
@@ -1369,13 +1369,13 @@ function openEdit(id){
   const j=jungs.find(x=>x.id===id);if(!j)return;
   if(j.상태==='완료'){openView(id);return;}
   editingId=id;
-  document.getElementById('editOverlay').style.display='block';
+  document.getElementById('editOverlay').style.display='flex';
   loadForm(j,false);
 }
 function openView(id){
   const j=jungs.find(x=>x.id===id);if(!j)return;
   editingId=id;
-  document.getElementById('editOverlay').style.display='block';
+  document.getElementById('editOverlay').style.display='flex';
   loadForm(j,true);
 }
 function enableEdit(){
