@@ -59,6 +59,18 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .badge-ing{background:#fdebd0;color:#784212}
 .badge-done{background:#d5f5e3;color:#1e8449}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+/* 분향실 드롭다운 */
+.room-wrap{position:relative;display:inline-flex;align-items:stretch}
+.room-wrap input{border-radius:4px 0 0 4px!important;border-right:none!important}
+.room-arrow{width:20px;border:1px solid #c3d2e3;border-left:none;background:#eef2f7;
+  cursor:pointer;font-size:9px;color:#1b3a5c;border-radius:0 4px 4px 0;padding:0;line-height:1}
+.room-arrow:hover{background:#dbe5f0}
+.room-pop{position:fixed;z-index:3000;background:#fff;
+  border:1px solid #1b3a5c;border-radius:5px;box-shadow:0 4px 12px rgba(0,0,0,.25);
+  padding:3px;display:grid;grid-template-columns:1fr 1fr;gap:1px}
+.room-pop div{padding:2px 8px;font-size:12px;line-height:1.35;cursor:pointer;
+  border-radius:3px;text-align:center;color:#1b3a5c;white-space:nowrap}
+.room-pop div:hover{background:#1b3a5c;color:#fff}
 
 /* ── 정산서 목록 ── */
 .filter-btns{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
@@ -304,10 +316,18 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
     <div class="card-title">📁 정산서 관리
       <button class="btn btn-success" onclick="openNewModal()" style="margin-left:auto">+ 새 정산서 생성</button>
     </div>
-    <div class="filter-btns">
+    <div class="filter-btns" style="align-items:center;flex-wrap:wrap">
       <button class="fbtn on-ing" id="f-진행중" onclick="setFilter('진행중',this)">진행중</button>
       <button class="fbtn" id="f-완료" onclick="setFilter('완료',this)">완료</button>
       <button class="fbtn" id="f-all" onclick="setFilter('all',this)">전체</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
+        <span style="font-size:12px;color:#666">🔍</span>
+        <input type="text" id="jungSearch" placeholder="발인일(0903)·고인·상주 검색"
+          lang="ko" oninput="renderJungList()"
+          style="width:230px;padding:6px 9px;border:1px solid #c3d2e3;border-radius:5px;font-family:inherit;font-size:13px">
+        <button class="btn btn-gray btn-sm" onclick="clearJungSearch()">✕ 초기화</button>
+        <span id="searchCount" style="font-size:12px;color:#1b3a5c;font-weight:700;min-width:54px"></span>
+      </div>
     </div>
     <div class="jung-list" id="jungList"></div>
   </div>
@@ -324,9 +344,17 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
       </div>
       <div class="frow" style="align-items:flex-end">
         <div class="fg"><label>발인일</label><input type="date" id="e-날짜" oninput="updateEditFileName()"></div>
-        <div class="fg"><label>분향실</label><input type="text" id="e-분향실" style="width:68px" oninput="updateEditFileName()"></div>
-        <div class="fg"><label>고인</label><input type="text" id="e-고인" style="width:90px" oninput="updateEditFileName()"></div>
-        <div class="fg"><label>상주</label><input type="text" id="e-상주" style="width:90px"></div>
+        <div class="fg"><label>분향실</label>
+          <div class="room-wrap">
+            <input type="text" id="e-분향실" style="width:62px"
+              oninput="this.value=this.value.replace(/[^0-9]/g,'');updateEditFileName()">
+            <button type="button" class="room-arrow" onclick="toggleRoomList('e-분향실',this)">▼</button>
+          </div>
+        </div>
+        <div class="fg"><label>고인</label><input type="text" id="e-고인" style="width:90px" lang="ko"
+          onfocus="setKorean(this)" onblur="filterHangul(this);updateEditFileName();clearKoreanStyle(this)"></div>
+        <div class="fg"><label>상주</label><input type="text" id="e-상주" style="width:90px" lang="ko"
+          onfocus="setKorean(this)" onblur="filterHangul(this);clearKoreanStyle(this)"></div>
         <div class="fg"><label>연락처</label><input type="text" id="e-연락처" style="width:120px"></div>
         <div class="fg"><label>인원수</label>
           <select id="e-인원수" onchange="onCapChange()">
@@ -599,8 +627,11 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
       <div class="frow" style="margin:0;gap:10px">
         <div class="fg">
           <label>분향실 번호 <span style="color:#e74c3c">*</span></label>
-          <input type="text" id="nw-분향실" placeholder="숫자만 (예: 302)" style="width:110px"
-            oninput="this.value=this.value.replace(/[^0-9]/g,'');updateNFN()">
+          <div class="room-wrap">
+            <input type="text" id="nw-분향실" placeholder="번호" style="width:76px"
+              oninput="this.value=this.value.replace(/[^0-9]/g,'');updateNFN()">
+            <button type="button" class="room-arrow" onclick="toggleRoomList('nw-분향실',this)">▼</button>
+          </div>
         </div>
         <div class="fg">
           <label>고인 성함 <span style="color:#e74c3c">*</span></label>
@@ -1182,6 +1213,7 @@ async function init(){
   document.getElementById('filterMonth').value=now.toISOString().slice(0,7);
   document.getElementById('nw-날짜').value=('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2);
   updateNFN();
+  initKoreanInputs();   // 고인·상주 입력란 한글 변환기 연결
   // 세션 복원: token 기반 (12시간 유효)
   // Firebase: token 불필요
   const savedUser=localStorage.getItem('hm_user');
@@ -1309,13 +1341,39 @@ function setFilter(f,btn){
   else btn.className='fbtn on-all';
   renderJungList();
 }
+function clearJungSearch(){
+  const s=document.getElementById('jungSearch');
+  if(s) s.value='';
+  renderJungList();
+}
 function renderJungList(){
   const el=document.getElementById('jungList');
   let list=jungs;
   if(listFilter==='진행중') list=jungs.filter(j=>j.상태==='진행중');
   if(listFilter==='완료')   list=jungs.filter(j=>j.상태==='완료');
   list=[...list].reverse();
-  if(!list.length){el.innerHTML='<div class="empty-msg">정산서가 없습니다.</div>';return;}
+
+  // 검색: 발인일 / 고인 / 상주 / 분향실
+  const q=(document.getElementById('jungSearch')?.value||'').trim();
+  const cntEl=document.getElementById('searchCount');
+  if(q){
+    const qh=/[a-zA-Z]/.test(q)?engToHangul(q):q;   // 영문으로 쳐도 검색됩니다
+    const keys=[q,qh].filter((v,i,a)=>v&&a.indexOf(v)===i);
+    list=list.filter(j=>{
+      const ymd=(j.날짜||'').replace(/-/g,'');        // 20260903
+      const mmdd=ymd.slice(4);                        // 0903
+      return keys.some(k=>
+        (j.고인||'').includes(k) || (j.상주||'').includes(k) ||
+        (j.분향실||'').includes(k) || (j.날짜||'').includes(k) ||
+        ymd.includes(k) || mmdd.includes(k));
+    });
+    if(cntEl) cntEl.textContent=list.length+'건';
+  } else if(cntEl) cntEl.textContent='';
+
+  if(!list.length){
+    el.innerHTML='<div class="empty-msg">'+(q?'검색 결과가 없습니다.':'정산서가 없습니다.')+'</div>';
+    return;
+  }
   el.innerHTML='';
   list.forEach(j=>{
     const done=j.상태==='완료';
@@ -2361,19 +2419,155 @@ function renderStock(){
     body.appendChild(tr);
   });
 }
-// 영문 → 한글 자동 변환 (두벌식 기준)
-const ENG_TO_KOR={
+// ══ 한글 입력 변환기 (두벌식) ══
+// 한/영 키가 영문 상태여도 입력 즉시 한글로 변환합니다.
+const HG_CHO=['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const HG_JUNG=['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+const HG_JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const KEY2JAMO={
   'r':'ㄱ','R':'ㄲ','s':'ㄴ','e':'ㄷ','E':'ㄸ','f':'ㄹ','a':'ㅁ','q':'ㅂ','Q':'ㅃ',
   't':'ㅅ','T':'ㅆ','d':'ㅇ','w':'ㅈ','W':'ㅉ','c':'ㅊ','z':'ㅋ','x':'ㅌ','v':'ㅍ','g':'ㅎ',
-  'k':'ㅏ','o':'ㅐ','i':'ㅑ','O':'ㅒ','j':'ㅓ','p':'ㅔ','u':'ㅕ','P':'ㅖ','h':'ㅗ',
-  'y':'ㅛ','n':'ㅜ','b':'ㅠ','m':'ㅡ','l':'ㅣ','H':'ㅘ','hk':'ㅘ','ho':'ㅙ','hl':'ㅚ',
-  'nj':'ㅝ','np':'ㅞ','nl':'ㅟ','ml':'ㅢ'
+  'k':'ㅏ','o':'ㅐ','i':'ㅑ','O':'ㅒ','j':'ㅓ','p':'ㅔ','u':'ㅕ','P':'ㅖ',
+  'h':'ㅗ','y':'ㅛ','n':'ㅜ','b':'ㅠ','m':'ㅡ','l':'ㅣ'
 };
+const VOW_COMB={'ㅗㅏ':'ㅘ','ㅗㅐ':'ㅙ','ㅗㅣ':'ㅚ','ㅜㅓ':'ㅝ','ㅜㅔ':'ㅞ','ㅜㅣ':'ㅟ','ㅡㅣ':'ㅢ'};
+const JONG_COMB={'ㄱㅅ':'ㄳ','ㄴㅈ':'ㄵ','ㄴㅎ':'ㄶ','ㄹㄱ':'ㄺ','ㄹㅁ':'ㄻ','ㄹㅂ':'ㄼ','ㄹㅅ':'ㄽ','ㄹㅌ':'ㄾ','ㄹㅍ':'ㄿ','ㄹㅎ':'ㅀ','ㅂㅅ':'ㅄ'};
+const JONG_SPLIT={'ㄳ':['ㄱ','ㅅ'],'ㄵ':['ㄴ','ㅈ'],'ㄶ':['ㄴ','ㅎ'],'ㄺ':['ㄹ','ㄱ'],'ㄻ':['ㄹ','ㅁ'],'ㄼ':['ㄹ','ㅂ'],'ㄽ':['ㄹ','ㅅ'],'ㄾ':['ㄹ','ㅌ'],'ㄿ':['ㄹ','ㅍ'],'ㅀ':['ㄹ','ㅎ'],'ㅄ':['ㅂ','ㅅ']};
+
+// 완성형 한글 → 자모 분해
+function decomposeHangul(s){
+  const out=[];
+  for(const ch of s){
+    const code=ch.charCodeAt(0);
+    if(code>=0xAC00&&code<=0xD7A3){
+      const idx=code-0xAC00;
+      out.push(HG_CHO[Math.floor(idx/588)]);
+      out.push(HG_JUNG[Math.floor((idx%588)/28)]);
+      const j=idx%28; if(j>0) out.push(HG_JONG[j]);
+    } else out.push(ch);
+  }
+  return out;
+}
+// 자모 배열 → 완성형 한글 조합
+function composeJamo(jamos){
+  let out='',cho=-1,jung=-1,jong=0;
+  const flush=()=>{
+    if(cho>=0&&jung>=0) out+=String.fromCharCode(0xAC00+(cho*21+jung)*28+jong);
+    else if(cho>=0) out+=HG_CHO[cho];
+    else if(jung>=0) out+=HG_JUNG[jung];
+    cho=-1;jung=-1;jong=0;
+  };
+  for(const ch of jamos){
+    const vi=HG_JUNG.indexOf(ch), ci=HG_CHO.indexOf(ch);
+    if(vi<0&&ci<0&&HG_JONG.indexOf(ch)<1){ flush(); out+=ch; continue; }
+    if(vi>=0){                                   // 모음
+      if(cho<0){
+        if(jung>=0){ const c=VOW_COMB[HG_JUNG[jung]+ch]; if(c){jung=HG_JUNG.indexOf(c);continue;} }
+        flush(); jung=vi; continue;
+      }
+      if(jung<0){ jung=vi; continue; }
+      if(jong>0){                                // 받침을 다음 글자 초성으로 이동
+        const jn=HG_JONG[jong], sp=JONG_SPLIT[jn];
+        if(sp){ jong=HG_JONG.indexOf(sp[0]); flush(); cho=HG_CHO.indexOf(sp[1]); jung=vi; }
+        else { jong=0; flush(); cho=HG_CHO.indexOf(jn); jung=vi; }
+        continue;
+      }
+      const c=VOW_COMB[HG_JUNG[jung]+ch];
+      if(c){ jung=HG_JUNG.indexOf(c); continue; }
+      flush(); jung=vi; continue;
+    }
+    // 자음
+    if(cho<0&&jung<0){ cho=ci; continue; }
+    if(cho>=0&&jung<0){ flush(); cho=ci; continue; }
+    if(jong===0){
+      const ji=HG_JONG.indexOf(ch);
+      if(ji>0){ jong=ji; continue; }
+      flush(); cho=ci; continue;
+    }
+    const cb=JONG_COMB[HG_JONG[jong]+ch];
+    if(cb){ jong=HG_JONG.indexOf(cb); continue; }
+    flush(); cho=ci; continue;
+  }
+  flush();
+  return out;
+}
+// 영문 섞인 문자열 → 한글
+function engToHangul(str){
+  return composeJamo(decomposeHangul(str).map(ch=>KEY2JAMO[ch]||ch));
+}
+// 입력란에 한글 변환기를 연결합니다
+function attachKoreanIME(el,afterFn){
+  if(!el||el._kime) return;
+  el._kime=true; el._composing=false;
+  el.addEventListener('compositionstart',()=>{el._composing=true;});
+  el.addEventListener('compositionend',()=>{el._composing=false;});
+  el.addEventListener('input',()=>{
+    if(el._composing) return;                 // 한글 IME 조합 중에는 건드리지 않습니다
+    if(!/[a-zA-Z]/.test(el.value)) { if(afterFn) afterFn(); return; }
+    const conv=engToHangul(el.value);
+    if(conv!==el.value){
+      el.value=conv;
+      el.setSelectionRange(conv.length,conv.length);
+    }
+    if(afterFn) afterFn();
+  });
+}
+function initKoreanInputs(){
+  attachKoreanIME(document.getElementById('nw-고인'),updateNFN);
+  attachKoreanIME(document.getElementById('nw-상주'),null);
+  attachKoreanIME(document.getElementById('e-고인'),updateEditFileName);
+  attachKoreanIME(document.getElementById('e-상주'),null);
+}
+// ══ 분향실 드롭다운 ══
+const ROOM_LIST=['201','202','301','302','401','402','403','404'];
+function toggleRoomList(inputId,btn){
+  const exist=document.querySelector('.room-pop');
+  const sameBtn=exist&&exist._owner===btn;
+  closeRoomPop();                           // 열려 있던 목록과 리스너를 정리합니다
+  if(sameBtn) return;                       // 같은 버튼을 다시 누르면 닫기만 합니다
+  const inp=document.getElementById(inputId);
+  const pop=document.createElement('div');
+  pop.className='room-pop';
+  pop._owner=btn;
+  ROOM_LIST.forEach(r=>{
+    const d=document.createElement('div');
+    d.textContent=r;
+    if(inp.value===r){ d.style.background='#e8821a'; d.style.color='#fff'; }
+    d.onclick=e=>{
+      e.stopPropagation();
+      inp.value=r;
+      closeRoomPop();
+      if(inputId==='nw-분향실') updateNFN(); else updateEditFileName();
+    };
+    pop.appendChild(d);
+  });
+  document.body.appendChild(pop);           // 모달 밖에 띄워 스크롤이 생기지 않게 합니다
+  const r=btn.getBoundingClientRect();
+  const w=pop.offsetWidth, h=pop.offsetHeight;
+  let left=r.right-w;                       // 버튼 오른쪽에 맞춥니다
+  if(left<4) left=4;
+  if(left+w>innerWidth-4) left=innerWidth-w-4;
+  let top=r.bottom+2;
+  if(top+h>innerHeight-6) top=r.top-h-2;    // 아래 공간이 부족하면 위로 폅니다
+  if(top<4) top=4;
+  pop.style.left=left+'px';
+  pop.style.top=top+'px';
+  setTimeout(()=>{
+    document.addEventListener('click',closeRoomPop);
+    window.addEventListener('scroll',closeRoomPop,true);
+  },0);
+}
+function closeRoomPop(){
+  document.removeEventListener('click',closeRoomPop);
+  window.removeEventListener('scroll',closeRoomPop,true);
+  const p=document.querySelector('.room-pop');
+  if(p) p.remove();
+}
+
 function setKorean(el){
-  // 포커스 시 한글 안내 표시
   el.style.background='#fffde7';
   el.style.border='1.5px solid #f39c12';
-  el.placeholder='한글로 입력하세요';
+  el.placeholder='영문으로 쳐도 한글로 바뀝니다';
 }
 function clearKoreanStyle(el){
   el.style.background='';
