@@ -428,6 +428,11 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
       <div class="fg"><label>월 선택</label>
         <input type="month" id="albaMonth" onchange="renderAlba()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
       </div>
+      <div class="fg"><label>알바 선택</label>
+        <select id="albaPerson" onchange="renderAlba()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;min-width:110px">
+          <option value="">전체</option>
+        </select>
+      </div>
       <div class="fg"><label>기본시급(원)</label>
         <input type="number" id="albaWage" value="10030" style="width:90px;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit" onchange="markAlbaDirty()">
       </div>
@@ -453,30 +458,55 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
         <tbody id="wageBody"></tbody>
       </table>
     </div>
-    <!-- 4대보험 요율 설정 -->
+    <!-- 공제 설정: 4대보험 + 근로소득세 -->
     <div style="background:#f8faff;border:1px solid #d0dff0;border-radius:8px;padding:10px 14px;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:700;color:#1b3a5c;margin-bottom:8px">⚙️ 4대보험 공제율 (근로자 부담분 %)</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
+
+        <!-- 4대보험 -->
+        <div style="font-size:12px;font-weight:700;color:#1b3a5c;align-self:center;white-space:nowrap">⚙️ 4대보험 (%)</div>
         <div><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">국민연금</label>
-          <input type="number" id="ins-pension" value="4.5" step="0.1" style="width:70px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
-          <span style="font-size:11px;color:#888">%</span>
+          <input type="number" id="ins-pension" value="4.5" step="0.1" style="width:66px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
         </div>
         <div><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">건강보험</label>
-          <input type="number" id="ins-health" value="3.545" step="0.001" style="width:70px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
-          <span style="font-size:11px;color:#888">%</span>
+          <input type="number" id="ins-health" value="3.545" step="0.001" style="width:66px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
         </div>
         <div><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">장기요양</label>
-          <input type="number" id="ins-care" value="0.4591" step="0.0001" style="width:70px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
-          <span style="font-size:11px;color:#888">%</span>
+          <input type="number" id="ins-care" value="0.4591" step="0.0001" style="width:66px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
         </div>
         <div><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">고용보험</label>
-          <input type="number" id="ins-employ" value="0.9" step="0.1" style="width:70px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
-          <span style="font-size:11px;color:#888">%</span>
+          <input type="number" id="ins-employ" value="0.9" step="0.1" style="width:66px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
         </div>
-        <div style="font-size:11px;color:#888;align-self:center">
-          총 공제율: <b id="totalInsRate" style="color:#c0392b">-</b>%
+        <div style="font-size:11px;color:#888;align-self:center;white-space:nowrap">
+          합계 <b id="totalInsRate" style="color:#c0392b">-</b>%
+        </div>
+
+        <!-- 구분선 -->
+        <div style="width:1px;align-self:stretch;background:#c0d4e8;margin:0 2px"></div>
+
+        <!-- 근로소득세 -->
+        <div style="font-size:12px;font-weight:700;color:#1b3a5c;align-self:center;white-space:nowrap">🧾 근로소득세</div>
+        <div><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">공제 방식</label>
+          <select id="tax-mode" style="padding:5px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px" onchange="onTaxModeChange()">
+            <option value="none">공제 안 함</option>
+            <option value="daily">일용근로소득 원천징수</option>
+            <option value="rate33">사업소득 3.3%</option>
+            <option value="custom">직접 입력</option>
+          </select>
+        </div>
+        <div id="taxDeductBox"><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">일 공제액</label>
+          <input type="number" id="tax-deduct" value="150000" step="10000" style="width:88px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="markAlbaDirty()">
+        </div>
+        <div id="taxRateBox"><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">세율(%)</label>
+          <input type="number" id="tax-rate" value="6" step="0.1" style="width:62px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
+        </div>
+        <div id="taxCreditBox"><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">세액공제(%)</label>
+          <input type="number" id="tax-credit" value="55" step="1" style="width:62px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markAlbaDirty()">
+        </div>
+        <div id="taxMinBox"><label style="font-size:11px;color:#555;display:block;margin-bottom:2px">소액부징수</label>
+          <input type="number" id="tax-min" value="1000" step="100" style="width:76px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="markAlbaDirty()">
         </div>
       </div>
+      <div id="taxHelp" style="font-size:11px;color:#8a6d3b;margin-top:7px"></div>
     </div>
     <!-- 알바 요약 -->
     <div id="albaSummary" style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap"></div>
@@ -485,7 +515,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
       <table class="dtbl">
         <thead><tr>
           <th>NO</th><th>이름</th><th>업무종류</th><th>날짜</th><th>출근</th><th>퇴근</th>
-          <th>근무시간</th><th>시급</th><th>총급여</th><th>4대보험</th><th>실수령액</th><th>상태</th><th>삭제</th>
+          <th>근무시간</th><th>시급</th><th>총급여</th><th>4대보험</th><th>소득세</th><th>실수령액</th><th>상태</th><th>삭제</th>
         </tr></thead>
         <tbody id="albaBody"></tbody>
         <tfoot><tr id="albaTotals" style="background:#f0f5ff;font-weight:700"></tr></tfoot>
@@ -1131,7 +1161,7 @@ async function loadAllData(){
     stockData=sData?decodeStockData(sData):{};
     priceDB  =pData?Object.values(pData):DEF_PRICE;
     albaData =aData?Object.values(aData):[];
-    albaWorkLog=wData?wData:{};
+    albaWorkLog=wData?normalizeWorkLog(wData):{};
     if(cData) albaConfig=Object.assign(albaConfig,cData);
     applyAlbaConfig();
     document.getElementById('ubSync').style.color='#52be80';
@@ -1948,20 +1978,26 @@ function renderMiniCal(){
     const dow=(first+dt-1)%7;
     const isToday=dt===d;
     const dateKey=`${yStr}-${mStr}-${String(dt).padStart(2,'0')}`;
-    const log=albaWorkLog[dateKey]?.[myName];
-    const hasLog=!!log;
-    const isApproved=log?.승인;
+    const slots=getWorkSlots(dateKey,myName);
+    const hasLog=slots.length>0;
+    const allApproved=hasLog&&slots.every(s=>s.승인);
+    const anyPending=slots.some(s=>!s.승인);
     const c=dow===0?'#e74c3c':dow===6?'#4da6ff':'#ccc';
     let bg=isToday?'#e8821a':'transparent';
-    if(hasLog&&!isApproved) bg='#217a3c';
-    if(isApproved) bg='#2a5298';
-    const tip=hasLog?`title="${log.출근}~${log.퇴근}${isApproved?' ✅승인됨':' (미승인)'}"` :'';
-    const clickable=!isApproved; // 승인된 날은 클릭 불가
-    const cursor=clickable?'cursor:pointer':'';
+    if(hasLog&&anyPending) bg='#217a3c';
+    if(allApproved) bg='#2a5298';
+    const tipTxt=hasLog
+      ? slots.map((s,n)=>`${n+1}회차 ${s.출근}~${s.퇴근}${s.승인?' (승인)':' (미승인)'}`).join(' / ')
+        + (allApproved?' · 승인 완료되어 수정할 수 없습니다':'')
+      : '';
+    const tip=hasLog?`title="${tipTxt.replace(/"/g,'')}"`:'';
+    // 승인되지 않은 회차가 있거나 기록이 없으면 입력할 수 있습니다
+    const clickable=!allApproved;
+    const cursor=clickable?'cursor:pointer':'cursor:not-allowed';
     html+=`<td ${tip} style="text-align:center;padding:1px 0;color:${(isToday||hasLog)?'#fff':c};
       background:${bg};border-radius:3px;${cursor};position:relative"
       ${clickable?`onclick="openCalInput('${dateKey}',this)"`:''}>
-      ${dt}${hasLog&&!isApproved?'<span style="position:absolute;top:0;right:0;font-size:6px;color:#7dffb3">●</span>':''}
+      ${dt}${hasLog&&anyPending?`<span style="position:absolute;top:0;right:0;font-size:6px;color:#7dffb3">${slots.length>1?slots.length:'●'}</span>`:''}
     </td>`;
     col++;
     if(col%7===0&&dt<days) html+='</tr><tr>';
@@ -1977,11 +2013,7 @@ function renderMiniCal(){
 function openCalInput(dateKey,td){
   const myName=currentUser?.이름||'';
   // 회차 배열: albaWorkLog[dateKey][myName] = [{출근,퇴근,승인}, ...]
-  const logs=Array.isArray(albaWorkLog[dateKey]?.[myName])
-    ? albaWorkLog[dateKey][myName]
-    : (albaWorkLog[dateKey]?.[myName]?.출근
-        ? [albaWorkLog[dateKey][myName]] // 구버전 단일 객체 → 배열로
-        : []);
+  const logs=getWorkSlots(dateKey,myName);
   const [y,m,d]=dateKey.split('-');
   const title=`${m}월 ${d}일 근무 입력`;
   const old=document.getElementById('calPopup');if(old)old.remove();
@@ -2050,9 +2082,7 @@ async function saveCalInput(dateKey){
   const myName=currentUser?.이름||'';
   if(!albaWorkLog[dateKey])albaWorkLog[dateKey]={};
   // 배열로 관리
-  let logs=Array.isArray(albaWorkLog[dateKey][myName])
-    ? albaWorkLog[dateKey][myName]
-    : (albaWorkLog[dateKey][myName]?.출근?[albaWorkLog[dateKey][myName]]:[]);
+  let logs=getWorkSlots(dateKey,myName);
   const job=document.getElementById('calJob')?.value||'';
   logs.push({출근:start,퇴근:end,업무:job,승인:false,입력자:myName,입력일:new Date().toISOString()});
   albaWorkLog[dateKey][myName]=logs;
@@ -2147,7 +2177,8 @@ function calcHours(start,end){
 }
 // ══ 알바 설정(기본시급·보험요율·시급표) ══
 // wages: [{이름,업무,시급}] — 이름/업무를 비우면 공통 적용됩니다
-let albaConfig={wage:10030,pension:4.5,health:3.545,care:0.4591,employ:0.9,wages:[]};
+let albaConfig={wage:10030,pension:4.5,health:3.545,care:0.4591,employ:0.9,wages:[],
+  taxMode:'none',taxDeduct:150000,taxRate:6,taxCredit:55,taxMin:1000};
 let albaDirty=false;
 
 function markAlbaDirty(){
@@ -2170,7 +2201,12 @@ function readAlbaConfigFromInputs(){
     health :+g('ins-health')?.value || 0,
     care   :+g('ins-care')?.value   || 0,
     employ :+g('ins-employ')?.value || 0,
-    wages  : readWageTable()
+    wages  : readWageTable(),
+    taxMode   : g('tax-mode')?.value || 'none',
+    taxDeduct :+g('tax-deduct')?.value || 0,
+    taxRate   :+g('tax-rate')?.value   || 0,
+    taxCredit :+g('tax-credit')?.value || 0,
+    taxMin    :+g('tax-min')?.value    || 0
   };
 }
 function applyAlbaConfig(){
@@ -2180,8 +2216,69 @@ function applyAlbaConfig(){
   if(g('ins-health'))  g('ins-health').value  = albaConfig.health;
   if(g('ins-care'))    g('ins-care').value    = albaConfig.care;
   if(g('ins-employ'))  g('ins-employ').value  = albaConfig.employ;
+  if(g('tax-mode'))    g('tax-mode').value    = albaConfig.taxMode||'none';
+  if(g('tax-deduct'))  g('tax-deduct').value  = albaConfig.taxDeduct;
+  if(g('tax-rate'))    g('tax-rate').value    = albaConfig.taxRate;
+  if(g('tax-credit'))  g('tax-credit').value  = albaConfig.taxCredit;
+  if(g('tax-min'))     g('tax-min').value     = albaConfig.taxMin;
+  updateTaxFields();
   renderWageTable();
   clearAlbaDirty();
+}
+
+// ── 근로소득세 ──
+// 공제 방식에 따라 입력란을 보이거나 숨깁니다
+function updateTaxFields(){
+  const mode=document.getElementById('tax-mode')?.value||'none';
+  const show=(id,v)=>{const e=document.getElementById(id); if(e) e.style.display=v?'':'none';};
+  show('taxDeductBox', mode==='daily');
+  show('taxRateBox',   mode!=='none');
+  show('taxCreditBox', mode==='daily');
+  show('taxMinBox',    mode==='daily');
+  const help=document.getElementById('taxHelp');
+  if(help){
+    help.textContent=
+      mode==='daily'  ? '하루 급여에서 일 공제액을 뺀 금액에 세율을 적용한 뒤 세액공제를 차감합니다. 같은 날 여러 회차는 합산해 계산하며, 지방소득세 10%가 자동 가산됩니다.'
+    : mode==='rate33' ? '총급여에 소득세 3%와 지방소득세 0.3%를 적용합니다. 세율 칸에 3을 넣어 두십시오.'
+    : mode==='custom' ? '총급여에 입력한 세율을 그대로 적용하고 지방소득세 10%를 가산합니다.'
+    : '근로소득세를 공제하지 않습니다.';
+  }
+}
+function onTaxModeChange(){
+  const mode=document.getElementById('tax-mode')?.value||'none';
+  const g=id=>document.getElementById(id);
+  // 방식에 맞는 기본값을 넣습니다
+  if(mode==='daily'){  if(g('tax-rate')) g('tax-rate').value=6;  if(g('tax-deduct')) g('tax-deduct').value=150000; if(g('tax-credit')) g('tax-credit').value=55; }
+  if(mode==='rate33'){ if(g('tax-rate')) g('tax-rate').value=3; }
+  updateTaxFields();
+  markAlbaDirty();
+}
+function getTaxCfg(){
+  const g=id=>document.getElementById(id);
+  return {
+    mode  : g('tax-mode')?.value || albaConfig.taxMode || 'none',
+    deduct:+g('tax-deduct')?.value || albaConfig.taxDeduct || 0,
+    rate  :+g('tax-rate')?.value   || albaConfig.taxRate   || 0,
+    credit:+g('tax-credit')?.value || albaConfig.taxCredit || 0,
+    min   :+g('tax-min')?.value    || albaConfig.taxMin    || 0
+  };
+}
+// 하루 급여 기준으로 소득세·지방소득세를 계산합니다
+function calcTax(dailyPay,cfg){
+  const zero={income:0,local:0,total:0};
+  if(!cfg||cfg.mode==='none'||dailyPay<=0) return zero;
+  // 원 단위로 먼저 반올림해 부동소수점 오차를 없앤 뒤 10원 미만을 절사합니다
+  const d10=v=>Math.floor(Math.round(v)/10)*10;
+  let income=0;
+  if(cfg.mode==='daily'){
+    const base=Math.max(0,dailyPay-cfg.deduct);
+    income=d10(base*(cfg.rate/100)*(1-cfg.credit/100));
+    if(cfg.min>0 && income<cfg.min) income=0;   // 소액부징수
+  } else {
+    income=d10(dailyPay*(cfg.rate/100));
+  }
+  const local=d10(income*0.1);
+  return {income,local,total:income+local};
 }
 
 // ── 시급표 ──
@@ -2243,6 +2340,34 @@ function getWageFor(이름,업무){
            || rows.find(w=>!w.이름 && !w.업무);                       // 표의 공통행
   return hit ? (+hit.시급||0) : (+albaConfig.wage||10030);
 }
+// 시급표에 이 사람(또는 업무)에 해당하는 규칙이 있는지 확인합니다
+function hasWageRule(이름,업무){
+  const rows=albaConfig.wages||[];
+  if(!rows.length) return true;               // 표가 비면 기본시급이 정상 동작입니다
+  const nm=(이름||'').trim(), jb=(업무||'').trim();
+  return rows.some(w=>
+    (w.이름===nm && w.업무===jb && nm && jb) ||
+    (w.이름===nm && !w.업무 && nm) ||
+    (!w.이름 && w.업무===jb && jb) ||
+    (!w.이름 && !w.업무));
+}
+// 근무기록·시급표에 등장하는 알바 이름 목록
+function getAlbaNames(){
+  const set=new Set();
+  albaData.forEach(r=>{ if(r.이름) set.add(r.이름); });
+  (albaConfig.wages||[]).forEach(w=>{ if((w.이름||'').trim()) set.add(w.이름.trim()); });
+  return [...set].sort((a,b)=>a.localeCompare(b,'ko'));
+}
+// 알바 선택 목록을 다시 채웁니다
+function refreshAlbaPersonList(){
+  const sel=document.getElementById('albaPerson');
+  if(!sel) return;
+  const cur=sel.value;
+  const names=getAlbaNames();
+  sel.innerHTML='<option value="">전체</option>'+names.map(n=>`<option value="${esc(n)}">${n}</option>`).join('');
+  sel.value=names.includes(cur)?cur:'';
+}
+
 // 등록된 업무종류 목록
 function getJobTypes(){
   const set=new Set();
@@ -2271,23 +2396,53 @@ function renderAlba(){
   const month=document.getElementById('albaMonth')?.value||'';
   albaConfig.wage=+document.getElementById('albaWage')?.value||albaConfig.wage;
   const rates=getInsRates();
-  const filtered=month?albaData.filter(r=>r.날짜.startsWith(month)):[...albaData];
-  filtered.sort((a,b)=>a.날짜.localeCompare(b.날짜));
+  const taxCfg=getTaxCfg();
+  refreshAlbaPersonList();
+  const person=document.getElementById('albaPerson')?.value||'';
+  let filtered=month?albaData.filter(r=>r.날짜.startsWith(month)):[...albaData];
+  if(person) filtered=filtered.filter(r=>r.이름===person);
+  filtered.sort((a,b)=>a.날짜.localeCompare(b.날짜)||(a.출근||'').localeCompare(b.출근||''));
   const body=document.getElementById('albaBody');
   if(!body)return;
   body.innerHTML='';
-  let totalHours=0,totalPay=0,totalIns=0,totalNet=0;
+
+  // 1단계: 건별 급여와 날짜·이름별 일급 합계를 구합니다
+  const rowWage=[],rowPay=[],rowTax=[],dayTotal={},dayRows={};
+  filtered.forEach((r,i)=>{
+    const w=getWageFor(r.이름,r.업무);
+    const p=Math.round(calcHours(r.출근,r.퇴근)*w);
+    rowWage[i]=w; rowPay[i]=p; rowTax[i]=0;
+    const k=r.이름+'|'+r.날짜;
+    dayTotal[k]=(dayTotal[k]||0)+p;
+    (dayRows[k]=dayRows[k]||[]).push(i);
+  });
+  // 2단계: 일급 기준 세액을 계산해 회차별로 안분합니다
+  const dayTaxInfo={};
+  Object.keys(dayRows).forEach(k=>{
+    const tx=calcTax(dayTotal[k],taxCfg);
+    dayTaxInfo[k]=tx;
+    const idxs=dayRows[k]; let acc=0;
+    idxs.forEach((idx,n)=>{
+      const t = (n===idxs.length-1) ? tx.total-acc
+              : Math.round(tx.total*rowPay[idx]/(dayTotal[k]||1));
+      rowTax[idx]=t; acc+=t;
+    });
+  });
+
+  let totalHours=0,totalPay=0,totalIns=0,totalTax=0,totalNet=0;
   const nameMap={};
   filtered.forEach((r,i)=>{
     const hrs=calcHours(r.출근,r.퇴근);
-    const wage=getWageFor(r.이름,r.업무);      // 알바·업무별 시급
-    const pay=Math.round(hrs*wage);
+    const wage=rowWage[i];                    // 알바·업무별 시급
+    const pay=rowPay[i];
     const ins=calcInsurance(pay,rates);
-    const net=pay-ins.total;
-    totalHours+=hrs;totalPay+=pay;totalIns+=ins.total;totalNet+=net;
-    if(!nameMap[r.이름])nameMap[r.이름]={hours:0,pay:0,ins:0,net:0};
+    const tax=rowTax[i];
+    const net=pay-ins.total-tax;
+    totalHours+=hrs;totalPay+=pay;totalIns+=ins.total;totalTax+=tax;totalNet+=net;
+    if(!nameMap[r.이름])nameMap[r.이름]={hours:0,pay:0,ins:0,tax:0,net:0};
     nameMap[r.이름].hours+=hrs;nameMap[r.이름].pay+=pay;
-    nameMap[r.이름].ins+=ins.total;nameMap[r.이름].net+=net;
+    nameMap[r.이름].ins+=ins.total;nameMap[r.이름].tax+=tax;nameMap[r.이름].net+=net;
+    const dk=r.이름+'|'+r.날짜, dti=dayTaxInfo[dk]||{income:0,local:0};
     const isFromLog=r.fromLog;
     const isApproved=r.승인;
     const si=(r.slotIdx!==undefined)?r.slotIdx:-1;
@@ -2317,10 +2472,14 @@ function renderAlba(){
       <td>${r.날짜}</td>
       <td>${r.출근}</td><td>${r.퇴근}</td>
       <td style="color:#1b3a5c;font-weight:700">${hrs.toFixed(1)}h</td>
-      <td style="font-size:11px;color:#555">${fmt(wage)}</td>
+      <td style="font-size:11px;color:${hasWageRule(r.이름,r.업무)?'#555':'#c0392b'}"
+        title="${hasWageRule(r.이름,r.업무)?'':'시급표에 등록되지 않아 기본시급이 적용됩니다'}">
+        ${fmt(wage)}${hasWageRule(r.이름,r.업무)?'':' ⚠'}</td>
       <td style="color:#217a3c;font-weight:700">${fmt(pay)}원</td>
       <td style="color:#c0392b;font-size:11px">-${fmt(ins.total)}원</td>
-      <td style="color:#1b3a5c;font-weight:700;background:#f0fff4">${fmt(net)}원</td>
+      <td style="color:#c0392b;font-size:11px" title="${taxCfg.mode==='none'?'공제 안 함':`일급 ${fmt(dayTotal[dk])}원 기준 · 소득세 ${fmt(dti.income)}원 + 지방소득세 ${fmt(dti.local)}원`}">${tax?'-'+fmt(tax)+'원':'-'}</td>
+      <td style="color:#1b3a5c;font-weight:700;background:#f0fff4"
+        title="총급여 ${fmt(pay)} − 4대보험 ${fmt(ins.total)}${tax?' − 소득세 '+fmt(tax):''} = ${fmt(net)}원">${fmt(net)}원</td>
       ${statusCell}
       <td>${!isApproved?`<button class="btn btn-danger btn-sm" onclick="delAlba(${args})">삭제</button>`:'−'}</td>`;
     body.appendChild(tr);
@@ -2331,6 +2490,7 @@ function renderAlba(){
     <td></td>
     <td style="color:#217a3c">${fmt(totalPay)}원</td>
     <td style="color:#c0392b">-${fmt(totalIns)}원</td>
+    <td style="color:#c0392b">${totalTax?'-'+fmt(totalTax)+'원':'-'}</td>
     <td style="color:#1b3a5c;background:#f0fff4">${fmt(totalNet)}원</td>
     <td colspan="2"></td>`;
   const summaryEl=document.getElementById('albaSummary');
@@ -2340,18 +2500,53 @@ function renderAlba(){
       <div style="font-size:11px;color:#555">근무: <b>${nameMap[name].hours.toFixed(1)}시간</b></div>
       <div style="font-size:12px;color:#217a3c">총급여: <b>${fmt(nameMap[name].pay)}원</b></div>
       <div style="font-size:11px;color:#c0392b">4대보험: -${fmt(nameMap[name].ins)}원</div>
-      <div style="font-size:13px;color:#1b3a5c;font-weight:700;border-top:1px solid #d0dff0;margin-top:5px;padding-top:5px">
+      ${nameMap[name].tax?`<div style="font-size:11px;color:#c0392b">소득세: -${fmt(nameMap[name].tax)}원</div>`:''}
+      <div style="font-size:13px;color:#1b3a5c;font-weight:700;border-top:1px solid #d0dff0;margin-top:5px;padding-top:5px"
+        title="총급여 ${fmt(nameMap[name].pay)} − 4대보험 ${fmt(nameMap[name].ins)}${nameMap[name].tax?' − 소득세 '+fmt(nameMap[name].tax):''}">
         실수령: ${fmt(nameMap[name].net)}원
       </div>
     </div>`).join('');
 }
 
+// 저장된 값을 회차 배열로 정규화합니다
+// 배열 / 구버전 단일객체 / 손상된 {0:{},1:{},승인:true} 형태를 모두 처리합니다
+function normalizeSlots(v){
+  if(!v) return [];
+  if(Array.isArray(v)) return v.filter(s=>s&&s.출근);
+  if(v.출근) return [v];                       // 구버전 단일 객체
+  const parentApproved = v.승인===true;        // 예전 승인 처리로 잘못 붙은 값
+  const slots=[];
+  Object.keys(v).forEach(k=>{
+    if(/^[0-9]+$/.test(k) && v[k] && v[k].출근){
+      const s=Object.assign({},v[k]);
+      if(parentApproved && s.승인===undefined) s.승인=true;
+      slots[+k]=s;
+    }
+  });
+  return slots.filter(Boolean);
+}
+// 불러온 근무기록 전체를 정규화하고, 손상된 항목은 Firebase에도 고쳐 씁니다
+function normalizeWorkLog(raw){
+  const out={};
+  Object.keys(raw||{}).forEach(dk=>{
+    const day=raw[dk];
+    if(!day||typeof day!=='object') return;
+    out[dk]={};
+    Object.keys(day).forEach(nk=>{
+      const slots=normalizeSlots(day[nk]);
+      if(!slots.length) return;
+      out[dk][nk]=slots;
+      if(!Array.isArray(day[nk])){             // 형식이 달랐던 항목만 다시 저장합니다
+        fbSet('albaWorkLog/'+dk+'/'+nk,slots).catch(e=>console.error('근무기록 정리 오류:',e));
+      }
+    });
+    if(!Object.keys(out[dk]).length) delete out[dk];
+  });
+  return out;
+}
 // 해당 날짜·이름의 회차 배열을 가져옵니다
 function getWorkSlots(dateKey,이름){
-  const raw=albaWorkLog[dateKey]?.[이름];
-  if(Array.isArray(raw)) return raw;
-  if(raw&&raw.출근) return [raw];
-  return [];
+  return normalizeSlots(albaWorkLog[dateKey]?.[이름]);
 }
 function writeWorkSlots(dateKey,이름,slots){
   const dk=toFbKey(dateKey), nk=toFbKey(이름);
@@ -2413,23 +2608,42 @@ async function saveAlba(){
     await fbSet('albaConfig',albaConfig);
     clearAlbaDirty();
     renderWageTable();
-    alert(`✅ 저장 완료!\n\n기본시급: ${fmt(albaConfig.wage)}원\n시급표: ${albaConfig.wages.length}건\n총 공제율: ${(albaConfig.pension+albaConfig.health+albaConfig.care+albaConfig.employ).toFixed(3)}%\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+    const taxName={none:'공제 안 함',daily:'일용근로소득',rate33:'사업소득 3.3%',custom:'직접 입력'}[albaConfig.taxMode]||'공제 안 함';
+    alert(`✅ 저장 완료!\n\n기본시급: ${fmt(albaConfig.wage)}원\n시급표: ${albaConfig.wages.length}건\n4대보험 공제율: ${(albaConfig.pension+albaConfig.health+albaConfig.care+albaConfig.employ).toFixed(3)}%\n근로소득세: ${taxName}\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
   }catch(e){alert('저장 실패: '+e.message);}
   finally{showSaving(false);}
 }
 function exportAlba(){
   const month=document.getElementById('albaMonth')?.value||'';
-  const rates=getInsRates();
-  const filtered=month?albaData.filter(r=>r.날짜.startsWith(month)):[...albaData];
-  let csv='\uFEFF이름,업무종류,날짜,출근,퇴근,근무시간(h),시급,총급여,4대보험,실수령액,상태\n';
-  filtered.forEach(r=>{
-    const hrs=calcHours(r.출근,r.퇴근);
-    const w=getWageFor(r.이름,r.업무);
-    const pay=Math.round(hrs*w);
-    const ins=calcInsurance(pay,rates).total;
-    csv+=`${r.이름},${r.업무||''},${r.날짜},${r.출근},${r.퇴근},${hrs.toFixed(1)},${w},${pay},${ins},${pay-ins},${r.승인?'승인':'대기'}\n`;
+  const rates=getInsRates(), taxCfg=getTaxCfg();
+  const person=document.getElementById('albaPerson')?.value||'';
+  let filtered=month?albaData.filter(r=>r.날짜.startsWith(month)):[...albaData];
+  if(person) filtered=filtered.filter(r=>r.이름===person);
+  // 일급 합계로 세액을 구한 뒤 회차별로 안분합니다
+  const pays=[],dayTotal={},dayRows={};
+  filtered.forEach((r,i)=>{
+    const p=Math.round(calcHours(r.출근,r.퇴근)*getWageFor(r.이름,r.업무));
+    pays[i]=p;
+    const k=r.이름+'|'+r.날짜;
+    dayTotal[k]=(dayTotal[k]||0)+p;
+    (dayRows[k]=dayRows[k]||[]).push(i);
   });
-  dl(csv,'알바근무_'+(month||'전체')+'.csv','text/csv');
+  const taxes=[];
+  Object.keys(dayRows).forEach(k=>{
+    const tx=calcTax(dayTotal[k],taxCfg), idxs=dayRows[k]; let acc=0;
+    idxs.forEach((idx,n)=>{
+      const t=(n===idxs.length-1)?tx.total-acc:Math.round(tx.total*pays[idx]/(dayTotal[k]||1));
+      taxes[idx]=t; acc+=t;
+    });
+  });
+  let csv='\uFEFF이름,업무종류,날짜,출근,퇴근,근무시간(h),시급,총급여,4대보험,소득세,실수령액,상태\n';
+  filtered.forEach((r,i)=>{
+    const hrs=calcHours(r.출근,r.퇴근);
+    const w=getWageFor(r.이름,r.업무), pay=pays[i];
+    const ins=calcInsurance(pay,rates).total, tax=taxes[i]||0;
+    csv+=`${r.이름},${r.업무||''},${r.날짜},${r.출근},${r.퇴근},${hrs.toFixed(1)},${w},${pay},${ins},${tax},${pay-ins-tax},${r.승인?'승인':'대기'}\n`;
+  });
+  dl(csv,'알바근무_'+(month||'전체')+(person?'_'+person:'')+'.csv','text/csv');
 }
 
 function renderResults(){
