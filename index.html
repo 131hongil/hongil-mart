@@ -298,12 +298,18 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
   <div class="sidebar-inner">
     <button class="ntab" onclick="showPage('진행중',this)"><span class="ti">📁</span>정산서<br>관리</button>
     <button class="ntab" id="tab-결산" style="display:none" onclick="showPage('결산',this)"><span class="ti">📊</span>결산서</button>
+    <button class="ntab" id="tab-경영" style="display:none" onclick="showPage('경영',this)"><span class="ti">📒</span>연말<br>결산</button>
     <button class="ntab" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
     <button class="ntab" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
     <button class="ntab on" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
     <!-- 캘린더 + 시간계산 버튼 - 마트관리 바로 아래 -->
     <div style="padding:5px 4px;border-top:1px solid #2d5580;margin-top:4px">
       <div id="miniCal" style="background:#0f2540;border-radius:6px;padding:4px;font-size:9px;color:#9bbcd4;margin-bottom:3px"></div>
+      <button id="tab-내근무" style="width:100%;background:#2a7a5c;color:#fff;
+        border:none;border-radius:5px;padding:5px 4px;cursor:pointer;font-size:10px;font-weight:700;
+        font-family:inherit;line-height:1.3;margin-bottom:3px" onclick="openMyWork()">
+        📋 내 근무시간
+      </button>
       <button id="tab-알바" style="display:none;width:100%;background:#e8821a;color:#fff;
         border:none;border-radius:5px;padding:5px 4px;cursor:pointer;font-size:10px;font-weight:700;
         font-family:inherit;line-height:1.3" onclick="showPage('알바',this)">
@@ -523,11 +529,86 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
       <table class="dtbl">
         <thead><tr>
           <th>NO</th><th>이름</th><th>업무종류</th><th>날짜</th><th>출근</th><th>퇴근</th>
-          <th>근무시간</th><th>시급</th><th>총급여</th><th>4대보험</th><th>소득세</th><th>실수령액</th><th>상태</th><th>삭제</th>
+          <th>근무시간</th><th>시급</th><th>총급여</th><th>4대보험</th><th>소득세</th><th>실수령액</th>
+          <th style="white-space:nowrap;min-width:150px">상태
+            <button id="btnBulkApprove" onclick="bulkApproveAlba()"
+              style="display:none;margin-left:5px;background:#e8821a;color:#fff;border:none;
+              border-radius:4px;padding:2px 7px;cursor:pointer;font-size:10px;font-weight:700;
+              font-family:inherit;vertical-align:middle">✅ 일괄승인</button>
+          </th><th>삭제</th>
         </tr></thead>
         <tbody id="albaBody"></tbody>
         <tfoot><tr id="albaTotals" style="background:#f0f5ff;font-weight:700"></tr></tfoot>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 내 근무시간 ══ -->
+<div class="overlay" id="myWorkModal">
+  <div class="modal" style="max-width:640px;width:96%">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <h3 style="margin:0">📋 내 근무시간</h3>
+      <span id="mwWho" style="font-size:12px;color:#1b3a5c;font-weight:700"></span>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+        <label style="font-size:11px;color:#555">월</label>
+        <input type="month" id="mwMonth" onchange="renderMyWork()"
+          style="padding:5px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px">
+      </div>
+    </div>
+    <div id="mwSummary" style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap"></div>
+    <div style="max-height:46vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+      <table class="dtbl" style="width:100%">
+        <thead><tr>
+          <th style="width:96px">날짜</th><th style="width:52px">회차</th>
+          <th style="width:68px">출근</th><th style="width:68px">퇴근</th>
+          <th style="width:80px">근무시간</th>
+          <th style="width:80px">상태</th>
+        </tr></thead>
+        <tbody id="mwBody"></tbody>
+        <tfoot><tr id="mwTotal" style="background:#f0f5ff;font-weight:700"></tr></tfoot>
+      </table>
+    </div>
+    <div style="font-size:11px;color:#8a6d3b;margin-top:7px">
+      ※ 승인 대기 중인 근무는 관리자 확인 후 확정됩니다. 기록이 다르면 관리자에게 알려 주십시오.
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-gray" onclick="closeModal('myWorkModal')">닫기</button>
+      <button class="btn btn-info" onclick="printMyWork()">🖨️ 인쇄</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 월 마감 · 이월 ══ -->
+<div class="overlay" id="stockCloseModal">
+  <div class="modal" style="max-width:900px;width:97%">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <h3 style="margin:0">📦 월 마감 · 다음 달 이월</h3>
+      <span id="scTitle" style="font-size:12px;color:#1b3a5c;font-weight:700"></span>
+      <span style="font-size:11px;color:#888">실사 수량을 넣으면 차이만큼 조정되고, 그 수량이 다음 달 이월량이 됩니다</span>
+    </div>
+    <div id="scAlert" style="font-size:11px;padding:7px 11px;border-radius:6px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <button class="btn btn-gray btn-sm" onclick="fillCloseWithBook()">장부수량으로 채우기</button>
+      <button class="btn btn-gray btn-sm" onclick="clearCloseCount()">실사 입력 비우기</button>
+      <span id="scDiffSum" style="font-size:12px;font-weight:700;align-self:center;margin-left:auto"></span>
+    </div>
+    <div style="max-height:48vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+      <table class="dtbl" style="width:100%">
+        <thead><tr>
+          <th style="min-width:150px">품명</th>
+          <th style="width:92px">장부 재고</th>
+          <th style="width:100px">실사 수량</th>
+          <th style="width:88px">차이</th>
+          <th>차이 사유</th>
+        </tr></thead>
+        <tbody id="scBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-gray" onclick="closeModal('stockCloseModal')">닫기</button>
+      <button class="btn btn-info" onclick="printStockClose()">🖨️ 인쇄</button>
+      <button class="btn btn-success" onclick="confirmStockClose()">✅ 마감하고 다음 달로 이월</button>
     </div>
   </div>
 </div>
@@ -624,6 +705,136 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
   </div>
 </div>
 
+<!-- ══ 연말결산 ══ -->
+<div id="page-경영" class="page">
+  <div class="card">
+    <div class="card-title">📒 연말결산 <span class="meta-by" id="meta-biz"></span>
+      <div class="btn-group" style="margin-left:auto">
+        <button class="btn btn-success btn-sm" onclick="saveBiz()">💾 저장</button>
+        <button class="btn btn-info btn-sm" onclick="exportBiz()">📥 CSV</button>
+        <button class="btn btn-info btn-sm" onclick="printBiz()">🖨️ 인쇄</button>
+      </div>
+    </div>
+
+    <!-- 기간·과세유형 -->
+    <div class="frow" style="margin:0 0 10px;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div class="fg"><label>연도</label>
+        <input type="number" id="bz-연도" style="width:82px;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit" onchange="renderBiz()">
+      </div>
+      <div class="fg"><label>기간</label>
+        <select id="bz-기간" onchange="renderBiz()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+          <option value="year">연간</option>
+          <option value="1H">상반기(1~6월)</option>
+          <option value="2H">하반기(7~12월)</option>
+          <option value="Q1">1분기</option><option value="Q2">2분기</option>
+          <option value="Q3">3분기</option><option value="Q4">4분기</option>
+          <option value="M">월 지정</option>
+        </select>
+      </div>
+      <div class="fg" id="bz월Box" style="display:none"><label>월</label>
+        <select id="bz-월" onchange="renderBiz()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit"></select>
+      </div>
+      <div class="fg"><label>매출 기준</label>
+        <select id="bz-매출기준" onchange="markBizDirty()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+          <option value="pos">POS 실매출 (세무신고 기준)</option>
+          <option value="jung">결산서 합계 (내부관리 기준)</option>
+        </select>
+      </div>
+      <div class="fg"><label>과세유형</label>
+        <select id="bz-과세" onchange="markBizDirty()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+          <option value="일반">일반과세자</option>
+          <option value="간이">간이과세자</option>
+          <option value="면세">면세사업자</option>
+        </select>
+      </div>
+      <span id="bizDirty" style="display:none;font-size:11px;color:#c0392b;font-weight:700;padding-bottom:7px">● 저장되지 않은 변경이 있습니다</span>
+    </div>
+
+    <!-- 요약 카드 -->
+    <div id="bizSummary" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap"></div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+      <!-- 손익계산서 -->
+      <div style="flex:1;min-width:330px">
+        <div style="font-size:12px;font-weight:700;color:#1b3a5c;margin-bottom:6px">📈 손익계산서</div>
+        <table class="dtbl" style="width:100%">
+          <tbody id="bizPL"></tbody>
+        </table>
+        <div id="bizVat" style="margin-top:12px"></div>
+      </div>
+      <!-- 종합소득세 추정 -->
+      <div style="flex:1;min-width:330px">
+        <div style="font-size:12px;font-weight:700;color:#1b3a5c;margin-bottom:6px">🧾 종합소득세 추정</div>
+        <div style="background:#fff8e7;border:1px solid #f0d090;border-radius:8px;padding:9px 12px;margin-bottom:8px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div><label style="font-size:11px;color:#555;display:block">인적공제(명)</label>
+              <input type="number" id="bz-부양" value="1" min="1" style="width:62px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markBizDirty()"></div>
+            <div><label style="font-size:11px;color:#555;display:block">연금보험료</label>
+              <input type="number" id="bz-연금" value="0" step="10000" style="width:98px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="markBizDirty()"></div>
+            <div><label style="font-size:11px;color:#555;display:block">기타 소득공제</label>
+              <input type="number" id="bz-기타공제" value="0" step="10000" style="width:98px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="markBizDirty()"></div>
+            <div><label style="font-size:11px;color:#555;display:block">세액공제</label>
+              <input type="number" id="bz-세액공제" value="0" step="10000" style="width:98px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="markBizDirty()"></div>
+          </div>
+        </div>
+        <table class="dtbl" style="width:100%">
+          <tbody id="bizTax"></tbody>
+        </table>
+        <div style="font-size:11px;color:#8a6d3b;margin-top:7px;line-height:1.5">
+          ※ 이 금액은 <b>추정치</b>입니다. 다른 소득 합산, 감가상각, 각종 세액공제·감면에 따라
+          실제 신고세액과 달라질 수 있으므로 신고 전 세무대리인과 확인하십시오.
+        </div>
+      </div>
+    </div>
+
+    <!-- 매출 대사 -->
+    <div style="margin-top:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <div style="font-size:12px;font-weight:700;color:#1b3a5c">🔍 매출 대사 (결산서 ↔ POS)</div>
+        <span style="font-size:11px;color:#888">POS 월 마감금액을 입력하면 결산서 합계와 자동으로 맞춰 봅니다</span>
+      </div>
+      <div id="bizRecoAlert" style="display:none;font-size:11px;padding:7px 11px;border-radius:6px;margin-bottom:7px"></div>
+      <div style="overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+        <table class="dtbl" style="width:100%">
+          <thead><tr>
+            <th style="width:62px">월</th>
+            <th style="width:112px">결산서 합계</th>
+            <th style="width:112px">POS 카드</th>
+            <th style="width:120px">POS 현금영수증</th>
+            <th style="width:112px">POS 현금</th>
+            <th style="width:112px">POS 합계</th>
+            <th style="width:112px">차액</th>
+            <th>차액 사유·메모</th>
+          </tr></thead>
+          <tbody id="bizRecoBody"></tbody>
+          <tfoot><tr id="bizRecoTotal" style="background:#f0f5ff;font-weight:700"></tr></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- 매입·경비 -->
+    <div style="margin-top:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <div style="font-size:12px;font-weight:700;color:#1b3a5c">🧾 매입·경비 내역</div>
+        <button class="btn btn-primary btn-sm" onclick="addExpense()">+ 행 추가</button>
+        <span style="font-size:11px;color:#888">매출·인건비는 정산서와 알바관리에서 자동으로 집계됩니다</span>
+      </div>
+      <div style="max-height:38vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+        <table class="dtbl" style="width:100%">
+          <thead><tr>
+            <th style="width:112px">날짜</th><th style="width:104px">구분</th>
+            <th>항목·적요</th><th style="width:120px">거래처</th>
+            <th style="width:108px">공급가액</th><th style="width:100px">부가세</th>
+            <th style="width:96px">증빙</th><th style="width:56px">삭제</th>
+          </tr></thead>
+          <tbody id="bizExpBody"></tbody>
+          <tfoot><tr id="bizExpTotal" style="background:#f0f5ff;font-weight:700"></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ 결산서 ══ -->
 <div id="page-결산" class="page">
   <div class="card">
@@ -667,9 +878,10 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
       </div>
       <div class="fg"><label>연도</label><input type="number" id="stockYear" style="width:75px" value="" onchange="renderStock()"></div>
       <button class="btn btn-purple btn-sm" onclick="openStockEditModal()">📝 재고량 수정</button>
+      <button class="btn btn-sm" style="background:#8e6f2a;color:#fff" onclick="openStockClose()">📦 월 마감·이월</button>
       <button class="btn btn-success btn-sm" onclick="saveStock()">💾 저장</button>
       <button class="btn btn-info btn-sm" onclick="exportStock()">📥 CSV</button>
-      <span style="font-size:11px;color:#888;align-self:center">📌 이월량 직접 입력 후 저장</span>
+      <span id="stockCloseInfo" style="font-size:11px;color:#888;align-self:center">📌 이월량 직접 입력 후 저장</span>
     </div>
     <div class="tbl-wrap">
       <table class="stbl"><thead id="stockHead"></thead><tbody id="stockBody"></tbody></table>
@@ -717,6 +929,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
       <div class="mgmt-card" onclick="openNewModal()"><div class="icon">📋</div><div class="name">새 정산서 생성</div><div class="desc">인원수·분향실·고인 입력</div></div>
       <div class="mgmt-card" onclick="goTab('진행중',0)"><div class="icon">📁</div><div class="name">정산서 목록</div><div class="desc">진행중/완료 조회</div></div>
       <div class="mgmt-card" id="mgmt-결산" style="display:none" onclick="goTab('결산',1)"><div class="icon">📊</div><div class="name">결산서</div><div class="desc">전체 정산 내역</div></div>
+      <div class="mgmt-card" id="mgmt-경영" style="display:none" onclick="showPage('경영',document.getElementById('tab-경영'))"><div class="icon">📒</div><div class="name">연말결산</div><div class="desc">손익·부가세·종합소득세</div></div>
       <div class="mgmt-card" onclick="goTab('재고',2)"><div class="icon">📦</div><div class="name">재고관리장</div><div class="desc">월별 출고 현황</div></div>
       <div class="mgmt-card" onclick="goTab('원가',3)"><div class="icon">💰</div><div class="name">원가DB 관리</div><div class="desc">품목·단가 수정</div></div>
       <div class="mgmt-card" onclick="backupData()"><div class="icon">💾</div><div class="name">데이터 백업</div><div class="desc">JSON 파일로 저장</div></div>
@@ -1190,10 +1403,13 @@ async function onLoginSuccess(){
   document.getElementById('ubUser').textContent=currentUser.이름+'('+currentUser.id+')';
   // 권한별 탭 표시
   document.getElementById('tab-결산').style.display=isAdmin()?'':'none';
+  document.getElementById('tab-경영').style.display=isAdmin()?'':'none';
   document.getElementById('tab-알바').style.display=isAdmin()?'':'none';
   // 마트관리 화면의 결산서 카드도 권한에 따라 표시/숨김
   const mgmtResult=document.getElementById('mgmt-결산');
   if(mgmtResult) mgmtResult.style.display=isAdmin()?'':'none';
+  const mgmtBiz=document.getElementById('mgmt-경영');
+  if(mgmtBiz) mgmtBiz.style.display=isAdmin()?'':'none';
   // 미니 캘린더 렌더링
   renderMiniCal();
   // 매일 자정에 캘린더 갱신
@@ -1223,15 +1439,27 @@ async function loadAllData(){
   try{
     if(!DB) await initFirebase();
     document.getElementById('ubSync').style.color='#f39c12';
-    const [jData,rData,sData,pData,aData,wData,cData,mData]=await Promise.all([
-      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta')
+    const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData]=await Promise.all([
+      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta'),fbGet('expenses'),fbGet('bizConfig'),fbGet('posSales'),fbGet('stockClose')
     ]);
     jungs    =jData?Object.values(jData).map(normalizeJung):[];
     results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
-    stockData=sData?decodeStockData(sData):{};
+    if(sData){
+      const mg=migrateStockKeys(decodeStockData(sData));
+      stockData=mg.data;
+      if(mg.moved.length){           // 옮긴 자료를 곧바로 다시 저장합니다
+        fbSet('stockData',encodeStockData(stockData))
+          .then(()=>console.log('재고 월 키 정리 완료:',mg.moved.join(', ')))
+          .catch(e=>console.error('재고 키 정리 오류:',e));
+      }
+    } else stockData={};
     priceDB  =pData?Object.values(pData):DEF_PRICE;
     albaData =aData?Object.values(aData):[];
     albaWorkLog=wData?normalizeWorkLog(wData):{};
+    expenses=eData?Object.values(eData):[];
+    if(bData) bizConfig=Object.assign(bizConfig,bData);
+    posSales=psData||{};
+    stockClose=scData||{};
     formMeta=mData||{};
     renderMetaBadges();
     if(cData) albaConfig=Object.assign(albaConfig,cData);
@@ -1367,6 +1595,7 @@ function showPage(name,btn){
   if(name==='결산'){renderResults();buildCharts();}
   if(name==='원가') renderPrice();
   if(name==='알바'){initAlbaMonth();applyAlbaConfig();renderAlba();}
+  if(name==='경영') initBiz();
   // 알바 버튼 색상 (ntab 아닌 별도 버튼)
   const albaBtn=document.getElementById('tab-알바');
   if(albaBtn) albaBtn.style.background=name==='알바'?'#c0392b':'#e8821a';
@@ -1948,7 +2177,7 @@ window.onload=function(){
 // ══ 양식별 최종 수정 이력 ══
 // meta/{양식} = {id, 이름, 시각}
 let formMeta={};
-const META_LABEL={results:'결산서',stock:'재고관리장',price:'원가DB',alba:'알바관리'};
+const META_LABEL={results:'결산서',stock:'재고관리장',price:'원가DB',alba:'알바관리',biz:'연말결산'};
 function touchMeta(key){
   const m={id:currentUser?.id||'',이름:currentUser?.이름||'',시각:new Date().toISOString()};
   formMeta[key]=m;
@@ -1966,6 +2195,724 @@ function renderMetaBadges(){
     const el=document.getElementById('meta-'+k);
     if(el) el.textContent=metaText(formMeta[k]);
   });
+}
+
+// ══ 연말결산 ══
+// expenses: [{id,날짜,구분,항목,거래처,공급가액,부가세,증빙}]
+let expenses=[];
+let bizConfig={과세:'일반',매출기준:'pos',부양:1,연금:0,기타공제:0,세액공제:0};
+let posSales={};   // {'YYYY-MM':{카드,현금영수증,현금,메모}}
+let bizDirty=false;
+const EXP_TYPES=['매입(상품)','임차료','공과금','통신비','보험료','소모품비','차량유지비','지급수수료','접대비','광고선전비','수수료·이자','기타경비'];
+const PROOF_TYPES=['세금계산서','계산서','카드','현금영수증','간이영수증','없음'];
+// 종합소득세 누진세율 (과세표준 기준)
+const TAX_BRACKETS=[
+  {limit:14000000,  rate:0.06, deduct:0},
+  {limit:50000000,  rate:0.15, deduct:1260000},
+  {limit:88000000,  rate:0.24, deduct:5760000},
+  {limit:150000000, rate:0.35, deduct:15440000},
+  {limit:300000000, rate:0.38, deduct:19940000},
+  {limit:500000000, rate:0.40, deduct:25940000},
+  {limit:1000000000,rate:0.42, deduct:35940000},
+  {limit:Infinity,  rate:0.45, deduct:65940000}
+];
+
+function markBizDirty(){
+  bizDirty=true;
+  const d=document.getElementById('bizDirty'); if(d) d.style.display='';
+  renderBiz();
+}
+function clearBizDirty(){
+  bizDirty=false;
+  const d=document.getElementById('bizDirty'); if(d) d.style.display='none';
+}
+function initBiz(){
+  const y=new Date().getFullYear();
+  const ye=document.getElementById('bz-연도'); if(ye&&!ye.value) ye.value=y;
+  const me=document.getElementById('bz-월');
+  if(me&&!me.options.length)
+    me.innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}">${i+1}월</option>`).join('');
+  applyBizConfig();
+  renderBiz();
+}
+function applyBizConfig(){
+  const g=id=>document.getElementById(id);
+  if(g('bz-과세'))     g('bz-과세').value     = bizConfig.과세||'일반';
+  if(g('bz-매출기준')) g('bz-매출기준').value = bizConfig.매출기준||'pos';
+  if(g('bz-부양'))     g('bz-부양').value     = bizConfig.부양||1;
+  if(g('bz-연금'))     g('bz-연금').value     = bizConfig.연금||0;
+  if(g('bz-기타공제')) g('bz-기타공제').value = bizConfig.기타공제||0;
+  if(g('bz-세액공제')) g('bz-세액공제').value = bizConfig.세액공제||0;
+  clearBizDirty();
+}
+function readBizConfig(){
+  const g=id=>document.getElementById(id);
+  return {과세:g('bz-과세')?.value||'일반', 매출기준:g('bz-매출기준')?.value||'pos', 부양:+g('bz-부양')?.value||1,
+          연금:+g('bz-연금')?.value||0, 기타공제:+g('bz-기타공제')?.value||0,
+          세액공제:+g('bz-세액공제')?.value||0};
+}
+// 선택한 기간의 [시작,끝] 월을 돌려줍니다
+function bizPeriod(){
+  const y=+document.getElementById('bz-연도')?.value||new Date().getFullYear();
+  const p=document.getElementById('bz-기간')?.value||'year';
+  const box=document.getElementById('bz월Box');
+  if(box) box.style.display = p==='M' ? '' : 'none';
+  const map={year:[1,12],'1H':[1,6],'2H':[7,12],Q1:[1,3],Q2:[4,6],Q3:[7,9],Q4:[10,12]};
+  if(p==='M'){ const m=+document.getElementById('bz-월')?.value||1; return {y,from:m,to:m,label:`${y}년 ${m}월`}; }
+  const [f,t]=map[p]||[1,12];
+  const names={year:'연간','1H':'상반기','2H':'하반기',Q1:'1분기',Q2:'2분기',Q3:'3분기',Q4:'4분기'};
+  return {y,from:f,to:t,label:`${y}년 ${names[p]||''}`};
+}
+function inPeriod(dateStr,pr){
+  if(!dateStr) return false;
+  const y=+dateStr.slice(0,4), m=+dateStr.slice(5,7);
+  return y===pr.y && m>=pr.from && m<=pr.to;
+}
+// 기간에 속한 'YYYY-MM' 목록
+function bizMonths(pr){
+  const out=[];
+  for(let m=pr.from;m<=pr.to;m++) out.push(`${pr.y}-${String(m).padStart(2,'0')}`);
+  return out;
+}
+function posOf(ym){
+  const p=posSales[ym]||{};
+  return {카드:+p.카드||0, 현금영수증:+p.현금영수증||0, 현금:+p.현금||0, 메모:p.메모||'',
+          합계:(+p.카드||0)+(+p.현금영수증||0)+(+p.현금||0)};
+}
+// 기간 내 POS 실매출 합계
+function bizPosTotal(pr){
+  return bizMonths(pr).reduce((s,ym)=>s+posOf(ym).합계,0);
+}
+// 월별 결산서 합계
+function jungOfMonth(ym){
+  return results.filter(r=>(r.날짜||'').slice(0,7)===ym).reduce((s,r)=>s+(+r.금액||0),0);
+}
+// 기간 내 매출 총액(부가세 포함 판매가 기준)
+function bizSales(pr){
+  return results.filter(r=>inPeriod(r.날짜,pr)).reduce((s,r)=>s+(+r.금액||0),0);
+}
+// 기간 내 인건비(승인된 근무 기준 총급여)
+function bizLabor(pr){
+  return albaData.filter(r=>r.승인&&inPeriod(r.날짜,pr))
+    .reduce((s,r)=>s+Math.round(calcHours(r.출근,r.퇴근)*getWageFor(r.이름,r.업무)),0);
+}
+function bizExpenses(pr){
+  return expenses.filter(e=>inPeriod(e.날짜,pr));
+}
+// 손익·세액을 한 번에 계산합니다
+function bizCalc(){
+  const pr=bizPeriod();
+  const cfg=readBizConfig();
+  const 결산서합계=bizSales(pr);
+  const POS합계=bizPosTotal(pr);
+  const 대사차액 = POS합계 - 결산서합계;
+  // 세무신고는 POS가 기준입니다.
+  // 다만 POS를 입력하지 않은 달은 매출이 0으로 잡혀 손익이 왜곡되므로
+  // 그 달만 결산서 금액으로 대체하고, 어느 달이 비었는지 따로 알려 줍니다.
+  const posMode = cfg.매출기준!=='jung';
+  const 미입력월=[];
+  let 매출총액=0;
+  bizMonths(pr).forEach(ym=>{
+    const j=jungOfMonth(ym), p=posOf(ym).합계;
+    if(!posMode){ 매출총액+=j; return; }
+    if(p>0) 매출총액+=p;
+    else { 매출총액+=j; if(j>0) 미입력월.push(+ym.slice(5,7)); }
+  });
+  const usePos = posMode && POS합계>0;
+  // 일반과세자는 판매가에 부가세가 포함돼 있으므로 공급가액으로 환산합니다
+  const 매출공급가 = cfg.과세==='일반' ? Math.round(매출총액/1.1) : 매출총액;
+  const 매출세액   = 매출총액-매출공급가;
+  const exp=bizExpenses(pr);
+  const 매입공급가=exp.filter(e=>e.구분==='매입(상품)').reduce((s,e)=>s+(+e.공급가액||0),0);
+  const 매입세액  =exp.reduce((s,e)=>s+(+e.부가세||0),0);
+  const 경비공급가=exp.filter(e=>e.구분!=='매입(상품)').reduce((s,e)=>s+(+e.공급가액||0),0);
+  const 인건비=bizLabor(pr);
+  const 영업이익=매출공급가-매입공급가-인건비-경비공급가;
+  // 종합소득세
+  const 소득공제=(cfg.부양*1500000)+cfg.연금+cfg.기타공제;
+  const 과세표준=Math.max(0,영업이익-소득공제);
+  const br=TAX_BRACKETS.find(b=>과세표준<=b.limit)||TAX_BRACKETS[TAX_BRACKETS.length-1];
+  const 산출세액=Math.max(0,Math.floor(과세표준*br.rate-br.deduct));
+  const 결정세액=Math.max(0,산출세액-cfg.세액공제);
+  const 지방세=Math.floor(결정세액*0.1);
+  return {pr,cfg,결산서합계,POS합계,usePos,대사차액,미입력월,매출총액,매출공급가,매출세액,매입공급가,매입세액,경비공급가,인건비,
+          영업이익,소득공제,과세표준,세율:br.rate,산출세액,결정세액,지방세,
+          총부담세액:결정세액+지방세,
+          납부부가세:Math.max(0,매출세액-매입세액)};
+}
+function renderBiz(){
+  if(!document.getElementById('bizPL')) return;
+  const d=bizCalc();
+  const card=(t,v,c,sub)=>`<div style="background:#eef2ff;border-radius:8px;padding:9px 14px;min-width:132px">
+      <div style="font-size:11px;color:#555">${t}</div>
+      <div style="font-size:15px;font-weight:700;color:${c}">${fmt(v)}원</div>
+      ${sub?`<div style="font-size:10px;color:#888;margin-top:2px">${sub}</div>`:''}</div>`;
+  const 이익률=d.매출공급가?((d.영업이익/d.매출공급가)*100).toFixed(1):'0.0';
+  document.getElementById('bizSummary').innerHTML=
+      card('매출액 (공급가액)',d.매출공급가,'#217a3c',
+           d.pr.label+' · '+(d.usePos?'POS 기준':'결산서 기준'))
+    + card('매입액',d.매입공급가,'#c0392b')
+    + card('인건비',d.인건비,'#c0392b','승인된 근무 기준')
+    + card('경비',d.경비공급가,'#c0392b')
+    + card('순이익',d.영업이익,d.영업이익>=0?'#1b3a5c':'#c0392b','이익률 '+이익률+'%')
+    + card('예상 세금',d.총부담세액,'#8e44ad','소득세+지방소득세');
+
+  const row=(l,v,opt={})=>`<tr${opt.bg?` style="background:${opt.bg}"`:''}>
+      <td style="text-align:left;padding-left:10px;${opt.b?'font-weight:700':''}">${l}</td>
+      <td style="text-align:right;padding-right:10px;${opt.b?'font-weight:700;':''}${opt.c?'color:'+opt.c:''}">${fmt(v)}원</td></tr>`;
+  document.getElementById('bizPL').innerHTML=
+      row('결산서 합계 (참고)',d.결산서합계,{c:'#888'})
+    + row('POS 실매출 (참고)',d.POS합계,{c:'#888'})
+    + row(`매출액 (공급가액) · ${d.usePos?'POS':'결산서'} 기준`,d.매출공급가,{b:1,c:'#217a3c'})
+    + row('(−) 매출원가 · 상품매입',d.매입공급가,{c:'#c0392b'})
+    + row('(−) 인건비',d.인건비,{c:'#c0392b'})
+    + row('(−) 판매관리비 · 경비',d.경비공급가,{c:'#c0392b'})
+    + row('순이익 (사업소득금액)',d.영업이익,{b:1,bg:'#f0fff4',c:d.영업이익>=0?'#1b3a5c':'#c0392b'});
+
+  const vat=document.getElementById('bizVat');
+  vat.innerHTML = d.cfg.과세==='일반'
+    ? `<div style="font-size:12px;font-weight:700;color:#1b3a5c;margin-bottom:6px">💳 부가가치세</div>
+       <table class="dtbl" style="width:100%"><tbody>
+       ${row('매출세액',d.매출세액)}${row('(−) 매입세액',d.매입세액,{c:'#217a3c'})}
+       ${row('납부할 부가세',d.납부부가세,{b:1,bg:'#fff8e7',c:'#8e44ad'})}
+       </tbody></table>
+       <div style="font-size:11px;color:#888;margin-top:5px">판매가에 부가세가 포함된 것으로 보고 매출액을 1.1로 나눠 환산했습니다.</div>`
+    : `<div style="font-size:11px;color:#888;margin-top:10px">${d.cfg.과세}사업자로 설정되어 매출액을 그대로 공급가액으로 봅니다.</div>`;
+
+  document.getElementById('bizTax').innerHTML=
+      row('사업소득금액',d.영업이익)
+    + row('(−) 종합소득공제',d.소득공제,{c:'#217a3c'})
+    + row('과세표준',d.과세표준,{b:1})
+    + row(`산출세액 (세율 ${(d.세율*100).toFixed(0)}%)`,d.산출세액)
+    + row('(−) 세액공제',d.cfg.세액공제,{c:'#217a3c'})
+    + row('결정세액',d.결정세액,{b:1})
+    + row('지방소득세 (10%)',d.지방세)
+    + row('총 부담세액',d.총부담세액,{b:1,bg:'#fff8e7',c:'#8e44ad'});
+
+  renderReco(d);
+  renderExpenses(d.pr);
+}
+
+// ── 매출 대사 ──
+function updPos(ym,f,v){
+  if(!posSales[ym]) posSales[ym]={};
+  posSales[ym][f] = (f==='메모') ? v : (+v||0);
+  markBizDirty();
+}
+function renderReco(d){
+  const body=document.getElementById('bizRecoBody');
+  if(!body) return;
+  const inp='padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px;text-align:right';
+  let tJ=0,tC=0,tR=0,tH=0;
+  body.innerHTML=bizMonths(d.pr).map(ym=>{
+    const j=jungOfMonth(ym), p=posOf(ym), gap=p.합계-j;
+    tJ+=j; tC+=p.카드; tR+=p.현금영수증; tH+=p.현금;
+    const gapColor = gap===0 ? '#888' : (Math.abs(gap)<10000 ? '#e8821a' : '#c0392b');
+    return `<tr>
+      <td style="font-weight:700">${+ym.slice(5,7)}월</td>
+      <td style="text-align:right;padding-right:8px;color:#1b3a5c">${fmt(j)}</td>
+      <td><input type="number" value="${p.카드||0}" style="${inp};width:100px" onchange="updPos('${ym}','카드',this.value)"></td>
+      <td><input type="number" value="${p.현금영수증||0}" style="${inp};width:108px" onchange="updPos('${ym}','현금영수증',this.value)"></td>
+      <td><input type="number" value="${p.현금||0}" style="${inp};width:100px" onchange="updPos('${ym}','현금',this.value)"></td>
+      <td style="text-align:right;padding-right:8px;font-weight:700;color:#217a3c">${fmt(p.합계)}</td>
+      <td style="text-align:right;padding-right:8px;font-weight:700;color:${gapColor}">${p.합계?(gap>0?'+':'')+fmt(gap):(j>0?'<span style="color:#e8821a;font-size:11px">POS 미입력</span>':'-')}</td>
+      <td><input type="text" value="${esc(p.메모||'')}" lang="ko" placeholder="예: 조문객 개별구매, 외상 미수"
+        style="${inp};text-align:left;width:96%" onchange="updPos('${ym}','메모',this.value)"></td>
+    </tr>`;
+  }).join('');
+  const tP=tC+tR+tH, gap=tP-tJ;
+  document.getElementById('bizRecoTotal').innerHTML=
+    `<td>합계</td>
+     <td style="text-align:right;padding-right:8px">${fmt(tJ)}</td>
+     <td style="text-align:right;padding-right:8px">${fmt(tC)}</td>
+     <td style="text-align:right;padding-right:8px">${fmt(tR)}</td>
+     <td style="text-align:right;padding-right:8px">${fmt(tH)}</td>
+     <td style="text-align:right;padding-right:8px;color:#217a3c">${fmt(tP)}</td>
+     <td style="text-align:right;padding-right:8px;color:${gap===0?'#888':'#c0392b'}">${tP?(gap>0?'+':'')+fmt(gap):'-'}</td>
+     <td></td>`;
+
+  // 안내 문구
+  const al=document.getElementById('bizRecoAlert');
+  if(!al) return;
+  if(d.미입력월&&d.미입력월.length && tP){
+    al.style.display='';
+    al.style.background='#fff8e7'; al.style.border='1px solid #f0d090'; al.style.color='#8a6d3b';
+    al.innerHTML=`⚠️ <b>${d.미입력월.join('·')}월</b>은 POS 매출이 비어 있어 그 달만 <b>결산서 금액으로 대체</b>했습니다. `
+      +'해당 월의 POS 마감금액을 넣어야 손익과 세액이 정확해집니다.';
+  } else if(!tP){
+    al.style.display='';
+    al.style.background='#fff8e7'; al.style.border='1px solid #f0d090'; al.style.color='#8a6d3b';
+    al.innerHTML='POS 매출이 입력되지 않아 <b>결산서 합계</b>로 계산하고 있습니다. '
+      +'세무신고 기준을 맞추려면 월별 POS 마감금액을 입력하십시오.';
+  } else if(gap===0){
+    al.style.display='';
+    al.style.background='#f0fff4'; al.style.border='1px solid #52be80'; al.style.color='#1e8449';
+    al.innerHTML='✅ 결산서 합계와 POS 실매출이 일치합니다.';
+  } else {
+    const r=tJ?Math.abs(gap/tJ*100).toFixed(1):'0';
+    al.style.display='';
+    al.style.background='#fdecea'; al.style.border='1px solid #e8a9a2'; al.style.color='#943126';
+    al.innerHTML=`⚠️ 차액 <b>${(gap>0?'+':'')+fmt(gap)}원</b> (결산서 대비 ${r}%)이 있습니다. `
+      +(gap>0?'POS가 많다면 정산서 없이 판매된 개별 매출일 수 있습니다.'
+             :'결산서가 많다면 외상·미수금이거나 결제월이 다음 달로 넘어간 건일 수 있습니다.')
+      +' 사유를 메모에 남겨 두면 신고 때 근거가 됩니다.';
+  }
+}
+// ── 매입·경비 입력 ──
+function renderExpenses(pr){
+  const body=document.getElementById('bizExpBody');
+  if(!body) return;
+  const list=expenses.map((e,i)=>({e,i})).filter(({e})=>inPeriod(e.날짜,pr))
+              .sort((a,b)=>(a.e.날짜||'').localeCompare(b.e.날짜||''));
+  const inp='padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px';
+  body.innerHTML=list.length?list.map(({e,i})=>`<tr>
+      <td><input type="date" value="${e.날짜||''}" style="${inp};width:104px" onchange="updExpense(${i},'날짜',this.value)"></td>
+      <td><select style="${inp};width:96px" onchange="updExpense(${i},'구분',this.value)">
+        ${EXP_TYPES.map(t=>`<option value="${t}"${e.구분===t?' selected':''}>${t}</option>`).join('')}</select></td>
+      <td><input type="text" value="${esc(e.항목||'')}" lang="ko" style="${inp};width:96%" onchange="updExpense(${i},'항목',this.value)"></td>
+      <td><input type="text" value="${esc(e.거래처||'')}" lang="ko" style="${inp};width:110px" onchange="updExpense(${i},'거래처',this.value)"></td>
+      <td><input type="number" value="${e.공급가액||0}" style="${inp};width:100px;text-align:right" onchange="updExpense(${i},'공급가액',this.value)"></td>
+      <td><input type="number" value="${e.부가세||0}" style="${inp};width:92px;text-align:right" onchange="updExpense(${i},'부가세',this.value)"></td>
+      <td><select style="${inp};width:88px" onchange="updExpense(${i},'증빙',this.value)">
+        ${PROOF_TYPES.map(t=>`<option value="${t}"${e.증빙===t?' selected':''}>${t}</option>`).join('')}</select></td>
+      <td><button class="btn btn-danger btn-sm" onclick="delExpense(${i})">삭제</button></td>
+    </tr>`).join('')
+    : '<tr><td colspan="8" style="padding:10px;color:#888;font-size:12px">이 기간에 입력된 매입·경비가 없습니다. [+ 행 추가]로 등록하십시오.</td></tr>';
+  const s=list.reduce((a,{e})=>a+(+e.공급가액||0),0);
+  const v=list.reduce((a,{e})=>a+(+e.부가세||0),0);
+  document.getElementById('bizExpTotal').innerHTML=
+    `<td colspan="4" style="text-align:right;padding-right:10px">합계 ${list.length}건</td>
+     <td style="text-align:right;padding-right:10px">${fmt(s)}원</td>
+     <td style="text-align:right;padding-right:10px">${fmt(v)}원</td><td colspan="2"></td>`;
+}
+function addExpense(){
+  const pr=bizPeriod();
+  const mm=String(pr.from).padStart(2,'0');
+  expenses.push({id:Date.now().toString(),날짜:`${pr.y}-${mm}-01`,구분:'매입(상품)',
+                 항목:'',거래처:'',공급가액:0,부가세:0,증빙:'세금계산서'});
+  markBizDirty();
+}
+function updExpense(i,f,v){
+  if(!expenses[i]) return;
+  expenses[i][f] = (f==='공급가액'||f==='부가세') ? (+v||0) : v;
+  markBizDirty();
+}
+function delExpense(i){
+  if(!confirm('이 항목을 삭제하시겠습니까?')) return;
+  expenses.splice(i,1);
+  markBizDirty();
+}
+async function saveBiz(){
+  showSaving(true);
+  try{
+    bizConfig=readBizConfig();
+    const obj={}; expenses.forEach(e=>obj[e.id]=e);
+    await fbSet('expenses',obj);
+    await fbSet('bizConfig',bizConfig);
+    await fbSet('posSales',posSales);
+    touchMeta('biz');
+    clearBizDirty();
+    const d=bizCalc();
+    alert(`✅ 연말결산 저장 완료!\n\n${d.pr.label}\n매출 ${fmt(d.매출공급가)}원 · 순이익 ${fmt(d.영업이익)}원\n매입·경비 ${expenses.length}건\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+  }catch(e){alert('저장 실패: '+e.message);}
+  finally{showSaving(false);}
+}
+function exportBiz(){
+  const d=bizCalc();
+  let csv='\uFEFF구분,항목,금액\n';
+  csv+=`요약,기간,${d.pr.label}\n`;
+  [['매출기준',d.usePos?'POS 실매출':'결산서 합계'],['결산서 합계',d.결산서합계],
+   ['POS 실매출',d.POS합계],['대사 차액',d.대사차액],
+   ['매출액(공급가액)',d.매출공급가],['매출세액',d.매출세액],['상품매입',d.매입공급가],
+   ['인건비',d.인건비],['경비',d.경비공급가],['순이익',d.영업이익],
+   ['과세표준',d.과세표준],['결정세액',d.결정세액],['지방소득세',d.지방세],
+   ['총부담세액',d.총부담세액],['납부할부가세',d.납부부가세]]
+   .forEach(([k,v])=>{csv+=`요약,${k},${v}\n`;});
+  csv+='\n월,결산서합계,POS카드,POS현금영수증,POS현금,POS합계,차액,메모\n';
+  bizMonths(d.pr).forEach(ym=>{
+    const j=jungOfMonth(ym), p=posOf(ym);
+    csv+=`${ym},${j},${p.카드},${p.현금영수증},${p.현금},${p.합계},${p.합계-j},${(p.메모||'').replace(/,/g,' ')}\n`;
+  });
+  csv+='\n날짜,구분,항목,거래처,공급가액,부가세,증빙\n';
+  bizExpenses(d.pr).forEach(e=>{
+    csv+=`${e.날짜},${e.구분},${e.항목||''},${e.거래처||''},${e.공급가액||0},${e.부가세||0},${e.증빙||''}\n`;
+  });
+  dl(csv,`연말결산_${d.pr.label.replace(/[^0-9가-힣]/g,'')}.csv`,'text/csv');
+}
+
+function printBiz(){
+  const d=bizCalc();
+  const r=(l,v,b)=>`<tr><td class="l"${b?' style="font-weight:700"':''}>${l}</td>
+    <td class="r"${b?' style="font-weight:700"':''}>${fmt(v)}</td></tr>`;
+  const exp=bizExpenses(d.pr).sort((a,b)=>(a.날짜||'').localeCompare(b.날짜||''));
+  const expRows=exp.map((e,i)=>`<tr><td>${i+1}</td><td>${e.날짜||''}</td><td>${e.구분||''}</td>
+    <td class="l">${e.항목||''}</td><td class="l">${e.거래처||''}</td>
+    <td class="r">${fmt(e.공급가액||0)}</td><td class="r">${fmt(e.부가세||0)}</td>
+    <td>${e.증빙||''}</td></tr>`).join('');
+  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>연말결산</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Malgun Gothic',sans-serif;padding:8mm;font-size:10.5pt}
+h1{font-size:17pt;text-align:center;letter-spacing:4px;padding:2px 0}
+.sub{text-align:center;font-size:11pt;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;margin-bottom:10px}
+th,td{border:1px solid #333;padding:3px 6px;text-align:center;line-height:1.35}
+td.l{text-align:left}td.r{text-align:right}
+th{background:#f0f0f0;font-size:10pt}
+h2{font-size:11.5pt;margin:8px 0 4px;color:#1b3a5c}
+.note{font-size:8.5pt;color:#555;margin-top:6px;line-height:1.5}
+.two{display:flex;gap:10px}.two>div{flex:1}
+@media print{@page{margin:8mm;size:A4 portrait}}
+<\/style></head><body>
+<h1>연 말 결 산 서</h1>
+<div class="sub">${d.pr.label} &nbsp;·&nbsp; 혼길마트 &nbsp;·&nbsp; ${d.cfg.과세}사업자 &nbsp;·&nbsp; 매출 ${d.usePos?'POS 실매출':'결산서 합계'} 기준</div>
+<div class="two">
+  <div>
+    <h2>손익계산서</h2>
+    <table>
+      ${r('매출액 (공급가액)',d.매출공급가,1)}
+      ${r('(−) 상품매입',d.매입공급가)}
+      ${r('(−) 인건비',d.인건비)}
+      ${r('(−) 판매관리비·경비',d.경비공급가)}
+      ${r('순이익 (사업소득금액)',d.영업이익,1)}
+    </table>
+    ${d.cfg.과세==='일반'?`<h2>부가가치세</h2><table>
+      ${r('매출세액',d.매출세액)}${r('(−) 매입세액',d.매입세액)}
+      ${r('납부할 부가세',d.납부부가세,1)}</table>`:''}
+  </div>
+  <div>
+    <h2>종합소득세 추정</h2>
+    <table>
+      ${r('사업소득금액',d.영업이익)}
+      ${r('(−) 종합소득공제',d.소득공제)}
+      ${r('과세표준',d.과세표준,1)}
+      ${r('산출세액 (세율 '+(d.세율*100).toFixed(0)+'%)',d.산출세액)}
+      ${r('(−) 세액공제',d.cfg.세액공제)}
+      ${r('결정세액',d.결정세액,1)}
+      ${r('지방소득세 (10%)',d.지방세)}
+      ${r('총 부담세액',d.총부담세액,1)}
+    </table>
+  </div>
+</div>
+<h2>매출 대사 (결산서 ↔ POS)</h2>
+<table>
+  <thead><tr><th style="width:46px">월</th><th style="width:88px">결산서</th>
+  <th style="width:82px">POS 카드</th><th style="width:92px">POS 현금영수증</th>
+  <th style="width:82px">POS 현금</th><th style="width:88px">POS 합계</th>
+  <th style="width:82px">차액</th><th>메모</th></tr></thead>
+  <tbody>${bizMonths(d.pr).map(ym=>{
+    const j=jungOfMonth(ym), p=posOf(ym), g=p.합계-j;
+    return `<tr><td>${+ym.slice(5,7)}월</td><td class="r">${fmt(j)}</td>
+      <td class="r">${fmt(p.카드)}</td><td class="r">${fmt(p.현금영수증)}</td>
+      <td class="r">${fmt(p.현금)}</td><td class="r">${fmt(p.합계)}</td>
+      <td class="r">${p.합계?(g>0?'+':'')+fmt(g):'-'}</td><td class="l">${p.메모||''}</td></tr>`;
+  }).join('')}<\/tbody>
+  <tfoot><tr><td style="font-weight:700">합계</td>
+    <td class="r" style="font-weight:700">${fmt(d.결산서합계)}</td>
+    <td colspan="3"><\/td>
+    <td class="r" style="font-weight:700">${fmt(d.POS합계)}</td>
+    <td class="r" style="font-weight:700">${d.POS합계?(d.대사차액>0?'+':'')+fmt(d.대사차액):'-'}</td>
+    <td><\/td></tr></tfoot>
+</table>
+<h2>매입·경비 내역 (${exp.length}건)</h2>
+<table>
+  <thead><tr><th style="width:26px">NO</th><th style="width:70px">날짜</th><th style="width:78px">구분</th>
+  <th>항목·적요</th><th style="width:92px">거래처</th><th style="width:74px">공급가액</th>
+  <th style="width:64px">부가세</th><th style="width:70px">증빙</th></tr></thead>
+  <tbody>${expRows||'<tr><td colspan="8">내역 없음<\/td><\/tr>'}<\/tbody>
+  <tfoot><tr><td colspan="5" class="r" style="font-weight:700">합계</td>
+  <td class="r" style="font-weight:700">${fmt(exp.reduce((s,e)=>s+(+e.공급가액||0),0))}</td>
+  <td class="r" style="font-weight:700">${fmt(exp.reduce((s,e)=>s+(+e.부가세||0),0))}</td><td><\/td></tr></tfoot>
+</table>
+<div class="note">※ 매출은 ${d.usePos?'POS 실매출':'완료된 정산서'}, 인건비는 승인된 알바 근무를 기준으로 집계했습니다.<br>
+※ 세무신고 매출은 POS(카드·현금영수증) 집계가 기준이므로 대사 차액의 사유를 반드시 확인하십시오.<br>
+※ 종합소득세는 <b>추정치</b>이며 다른 소득 합산·감가상각·세액감면에 따라 달라집니다. 신고 전 세무대리인과 확인하십시오.<br>
+※ 출력 ${new Date().toLocaleString('ko-KR')} · 출력자 ${currentUser?.id||''}</div>
+<script>
+window.onload=function(){
+  var A4=1054,h=document.body.scrollHeight;
+  if(h>A4){var t=A4/h; if(t<0.55)t=0.55; document.body.style.zoom=Math.floor(t*100)+'%';}
+  setTimeout(function(){window.print();setTimeout(function(){window.close();},1500);},400);
+};
+<\/script></body></html>`;
+  const w=window.open('','_blank','width=880,height=1000,scrollbars=yes');
+  if(!w){alert('팝업이 차단됐습니다.\n주소창 오른쪽 팝업 차단 아이콘에서 이 사이트의 팝업을 허용해 주십시오.');return;}
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+// ══ 내 근무시간 (알바 본인 조회) ══
+function myWorkRows(month){
+  const me=currentUser?.이름||'';
+  const out=[];
+  Object.keys(albaWorkLog).forEach(dk=>{
+    const 날짜=fromFbKey(dk);
+    if(month && !날짜.startsWith(month)) return;
+    Object.keys(albaWorkLog[dk]).forEach(nk=>{
+      if(fromFbKey(nk)!==me) return;
+      getWorkSlots(날짜,me).forEach((s,i)=>{
+        out.push({날짜, 회차:i+1, 출근:s.출근, 퇴근:s.퇴근, 업무:s.업무||'', 승인:!!s.승인});
+      });
+    });
+  });
+  return out.sort((a,b)=>a.날짜.localeCompare(b.날짜)||a.회차-b.회차);
+}
+function openMyWork(){
+  const me=currentUser?.이름||'';
+  document.getElementById('mwWho').textContent=me?`${me} 님`:'';
+  const el=document.getElementById('mwMonth');
+  if(el&&!el.value){
+    const n=new Date();
+    el.value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
+  }
+  renderMyWork();
+  document.getElementById('myWorkModal').classList.add('show');
+}
+function renderMyWork(){
+  const month=document.getElementById('mwMonth')?.value||'';
+  const me=currentUser?.이름||'';
+  const rows=myWorkRows(month);
+  let hrs=0,apprH=0;
+  document.getElementById('mwBody').innerHTML = rows.length ? rows.map(r=>{
+    const h=calcHours(r.출근,r.퇴근);
+    hrs+=h;
+    if(r.승인) apprH+=h;
+    return `<tr${r.승인?'':' style="background:#fffdf0"'}>
+      <td>${r.날짜}</td>
+      <td>${r.회차}회차${r.업무?`<br><span style="font-size:10px;color:#8a6d3b">${r.업무}</span>`:''}</td>
+      <td>${r.출근}</td><td>${r.퇴근}</td>
+      <td style="font-weight:700;color:#1b3a5c">${h.toFixed(1)}h</td>
+      <td>${r.승인
+        ?'<span style="background:#2a5298;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">승인</span>'
+        :'<span style="background:#888;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">대기</span>'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" style="padding:14px;color:#888">해당 월에 등록된 근무가 없습니다.</td></tr>';
+
+  document.getElementById('mwTotal').innerHTML=
+    `<td colspan="4" style="text-align:right;padding-right:8px">합계 ${rows.length}건</td>
+     <td>${hrs.toFixed(1)}h</td><td></td>`;
+
+  const card=(t,v,c)=>`<div style="background:#eef2ff;border-radius:8px;padding:9px 14px;min-width:120px">
+      <div style="font-size:11px;color:#555">${t}</div>
+      <div style="font-size:15px;font-weight:700;color:${c}">${v}</div></div>`;
+  document.getElementById('mwSummary').innerHTML=
+      card('총 근무시간',hrs.toFixed(1)+'시간','#1b3a5c')
+    + card('승인 완료',apprH.toFixed(1)+'시간','#2a5298')
+    + card('승인 대기',(hrs-apprH).toFixed(1)+'시간','#e8821a');
+}
+function printMyWork(){
+  const month=document.getElementById('mwMonth')?.value||'';
+  const me=currentUser?.이름||'';
+  const rows=myWorkRows(month);
+  let hrs=0;
+  const body=rows.map((r,i)=>{
+    const h=calcHours(r.출근,r.퇴근);
+    hrs+=h;
+    return `<tr><td>${i+1}</td><td>${r.날짜}</td><td>${r.회차}</td>
+      <td class="l">${r.업무||''}</td><td>${r.출근}</td><td>${r.퇴근}</td>
+      <td class="r">${h.toFixed(1)}</td>
+      <td>${r.승인?'승인':'대기'}</td></tr>`;
+  }).join('');
+  const w2=window.open('','_blank','width=800,height=1000,scrollbars=yes');
+  if(!w2){alert('팝업이 차단됐습니다.\n주소창 오른쪽 팝업 차단 아이콘에서 이 사이트의 팝업을 허용해 주십시오.');return;}
+  w2.document.open();
+  w2.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>근무시간 확인서</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Malgun Gothic',sans-serif;padding:8mm;font-size:10.5pt}
+h1{font-size:17pt;text-align:center;letter-spacing:4px;padding:2px 0}
+.sub{text-align:center;font-size:11pt;margin-bottom:9px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #333;padding:3px 6px;text-align:center;line-height:1.35}
+td.l{text-align:left}td.r{text-align:right}
+th{background:#f0f0f0}
+.note{font-size:8.5pt;color:#555;margin-top:7px}
+@media print{@page{margin:8mm;size:A4 portrait}}
+<\/style></head><body>
+<h1>근 무 시 간 확 인 서</h1>
+<div class="sub">${me} 님 &nbsp;·&nbsp; ${month||'전체 기간'} &nbsp;·&nbsp; 혼길마트</div>
+<table><thead><tr><th style="width:28px">NO</th><th style="width:86px">날짜</th>
+<th style="width:42px">회차</th><th style="width:90px">업무</th>
+<th style="width:60px">출근</th><th style="width:60px">퇴근</th>
+<th style="width:66px">시간</th>
+<th style="width:56px">상태</th></tr></thead>
+<tbody>${body||'<tr><td colspan="8">근무 기록 없음<\/td><\/tr>'}<\/tbody>
+<tfoot><tr><td colspan="6" class="r" style="font-weight:700">합계</td>
+<td class="r" style="font-weight:700">${hrs.toFixed(1)}</td><td><\/td></tr></tfoot></table>
+<div class="note">※ 승인 대기 중인 근무는 관리자 확인 후 확정됩니다.<br>
+※ 출력 ${new Date().toLocaleString('ko-KR')}</div>
+<script>window.onload=function(){var A=1054,h=document.body.scrollHeight;
+if(h>A){var t=A/h;if(t<0.55)t=0.55;document.body.style.zoom=Math.floor(t*100)+'%';}
+setTimeout(function(){window.print();setTimeout(function(){window.close();},1500);},400);};<\/script>
+</body></html>`);
+  w2.document.close();
+}
+
+// ══ 월 마감 · 이월 ══
+// stockClose['2026-09'] = {확정자,확정일,항목:{품명:{장부,실사,차이,사유}}}
+let stockClose={};
+let scCount={};   // 마감 화면에서 입력 중인 실사 수량 {품명:수량}
+let scReason={};  // {품명:사유}
+
+// 해당 월의 품목별 장부 재고
+function bookStock(ym){
+  const mData=stockData[ym]||{};
+  const _extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
+  const ALL=[...BASIC,..._extra];
+  return ALL.map(it=>{
+    const p=mData[it.품명]||mData[toFbKey(it.품명)]||{};
+    const 이월=+(p['이월']||0), 조정=+(p['조정']||0);
+    let out=0; Object.keys(p).forEach(k=>{ if(!isNaN(k)) out+=+p[k]||0; });
+    return {품명:it.품명, 이월, 조정, 출고:out, 장부:이월-out+조정};
+  });
+}
+function openStockClose(){
+  const ym=stockYM();
+  const done=stockClose[ym];
+  scCount={}; scReason={};
+  if(done&&done.항목){                       // 이미 마감한 달이면 그때 값을 보여 줍니다
+    Object.keys(done.항목).forEach(k=>{
+      const n=fromFbKey(k);
+      scCount[n]=done.항목[k].실사;
+      scReason[n]=done.항목[k].사유||'';
+    });
+  }
+  document.getElementById('scTitle').textContent=`${ymLabel(ym)} → ${ymLabel(nextYM(ym))} 이월`;
+  renderStockClose();
+  document.getElementById('stockCloseModal').classList.add('show');
+}
+function renderStockClose(){
+  const ym=stockYM();
+  const rows=bookStock(ym);
+  const done=stockClose[ym];
+  const inp='padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px';
+  let diffCnt=0, diffSum=0;
+  document.getElementById('scBody').innerHTML=rows.map(r=>{
+    const has=scCount[r.품명]!==undefined && scCount[r.품명]!=='';
+    const 실사=has?+scCount[r.품명]:null;
+    const diff=has?실사-r.장부:0;
+    if(has&&diff!==0){ diffCnt++; diffSum+=diff; }
+    const c=diff>0?'#217a3c':diff<0?'#c0392b':'#888';
+    return `<tr${has&&diff!==0?' style="background:#fffaf0"':''}>
+      <td class="nm" style="text-align:left;padding-left:8px">${r.품명}</td>
+      <td style="text-align:right;padding-right:8px;font-weight:700;color:${r.장부<0?'#c0392b':'#1b3a5c'}">${r.장부}</td>
+      <td><input type="number" value="${has?실사:''}" placeholder="—"
+        style="${inp};width:86px;text-align:center" onchange="updClose('${esc(r.품명)}',this.value)"></td>
+      <td style="text-align:right;padding-right:8px;font-weight:700;color:${c}">${has?(diff>0?'+':'')+diff:'-'}</td>
+      <td><input type="text" value="${esc(scReason[r.품명]||'')}" lang="ko"
+        placeholder="${has&&diff!==0?'예: 파손, 시식, 계수 착오':''}"
+        style="${inp};width:96%;text-align:left" onchange="updCloseReason('${esc(r.품명)}',this.value)"></td>
+    </tr>`;
+  }).join('');
+  const ds=document.getElementById('scDiffSum');
+  ds.textContent = diffCnt ? `차이 ${diffCnt}개 품목 · 순차이 ${diffSum>0?'+':''}${diffSum}` : '';
+  ds.style.color = diffCnt ? '#c0392b' : '#888';
+
+  const al=document.getElementById('scAlert');
+  if(done){
+    al.style.background='#f0fff4'; al.style.border='1px solid #52be80'; al.style.color='#1e8449';
+    al.innerHTML=`✅ 이미 마감된 달입니다. 확정 ${done.확정자||''} · ${(done.확정일||'').slice(0,16).replace('T',' ')}<br>`
+      +`다시 마감하면 ${ymLabel(nextYM(ym))} 이월량을 덮어씁니다.`;
+  } else {
+    al.style.background='#fff8e7'; al.style.border='1px solid #f0d090'; al.style.color='#8a6d3b';
+    al.innerHTML='실사 수량을 비워 두면 그 품목은 <b>장부 재고</b>가 그대로 이월됩니다. '
+      +'값을 넣으면 차이만큼 이번 달에 조정으로 기록되고 실사 수량이 이월됩니다.';
+  }
+}
+function updClose(품명,v){ scCount[품명]=v; renderStockClose(); }
+function updCloseReason(품명,v){ scReason[품명]=v; }
+function fillCloseWithBook(){
+  bookStock(stockYM()).forEach(r=>{ scCount[r.품명]=r.장부; });
+  renderStockClose();
+}
+function clearCloseCount(){
+  if(!confirm('입력한 실사 수량을 모두 비우시겠습니까?')) return;
+  scCount={}; scReason={};
+  renderStockClose();
+}
+async function confirmStockClose(){
+  const ym=stockYM(), nxt=nextYM(ym);
+  const rows=bookStock(ym);
+  const diffs=rows.filter(r=>scCount[r.품명]!==undefined&&scCount[r.품명]!==''&&(+scCount[r.품명]-r.장부)!==0);
+  const noReason=diffs.filter(r=>!(scReason[r.품명]||'').trim());
+  if(noReason.length && !confirm(`차이가 있는데 사유가 비어 있는 품목이 ${noReason.length}개 있습니다.\n그대로 마감하시겠습니까?`)) return;
+  if(!confirm(`${ymLabel(ym)}을 마감하고 ${ymLabel(nxt)}로 이월합니다.\n\n`
+    +`차이 ${diffs.length}개 품목\n`
+    +`${ymLabel(nxt)}의 이월량이 새로 설정됩니다. 계속하시겠습니까?`)) return;
+
+  if(!stockData[ym]) stockData[ym]={};
+  if(!stockData[nxt]) stockData[nxt]={};
+  const 항목={};
+  rows.forEach(r=>{
+    const has=scCount[r.품명]!==undefined&&scCount[r.품명]!=='';
+    const 실사=has?+scCount[r.품명]:r.장부;
+    const diff=실사-r.장부;
+    const k=toFbKey(r.품명);
+    // 차이가 있으면 이번 달에 조정으로 남겨 장부와 실사를 맞춥니다
+    if(diff!==0){
+      if(!stockData[ym][k]) stockData[ym][k]=stockData[ym][r.품명]||{};
+      const cur=+(stockData[ym][k]['조정']||0);
+      stockData[ym][k]['조정']=cur+diff;
+      delete stockData[ym][r.품명];
+      stockData[ym][k]=stockData[ym][k];
+    }
+    // 다음 달 이월량 = 실사(없으면 장부)
+    if(!stockData[nxt][k]) stockData[nxt][k]={};
+    stockData[nxt][k]['이월']=실사;
+    항목[k]={장부:r.장부, 실사, 차이:diff, 사유:(scReason[r.품명]||'')};
+  });
+  const rec={확정자:currentUser?.id||'', 확정일:new Date().toISOString(), 항목};
+  stockClose[ym]=rec;
+
+  showSaving(true);
+  try{
+    await fbSet('stockData',encodeStockData(stockData));
+    await fbSet('stockClose/'+ym,rec);
+    touchMeta('stock');
+    closeModal('stockCloseModal');
+    renderStock();
+    alert(`✅ ${ymLabel(ym)} 마감 완료!\n\n`
+      +`차이 조정 ${diffs.length}개 품목\n`
+      +`${ymLabel(nxt)} 이월량이 설정됐습니다.`);
+  }catch(e){ alert('마감 저장 실패: '+e.message); }
+  finally{ showSaving(false); }
+}
+function printStockClose(){
+  const ym=stockYM();
+  const rows=bookStock(ym);
+  const body=rows.map((r,i)=>{
+    const has=scCount[r.품명]!==undefined&&scCount[r.품명]!=='';
+    const 실사=has?+scCount[r.품명]:r.장부, diff=실사-r.장부;
+    return `<tr><td>${i+1}</td><td class="l">${r.품명}</td>
+      <td class="r">${r.장부}</td><td class="r">${실사}</td>
+      <td class="r">${diff>0?'+':''}${diff||''}</td>
+      <td class="l">${scReason[r.품명]||''}</td></tr>`;
+  }).join('');
+  const w=window.open('','_blank','width=820,height=1000,scrollbars=yes');
+  if(!w){alert('팝업이 차단됐습니다.\n주소창 오른쪽 팝업 차단 아이콘에서 이 사이트의 팝업을 허용해 주십시오.');return;}
+  w.document.open();
+  w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>월 재고 마감</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Malgun Gothic',sans-serif;padding:8mm;font-size:10.5pt}
+h1{font-size:17pt;text-align:center;letter-spacing:4px;padding:2px 0}
+.sub{text-align:center;font-size:11pt;margin-bottom:8px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #333;padding:3px 6px;text-align:center;line-height:1.35}
+td.l{text-align:left}td.r{text-align:right}
+th{background:#f0f0f0}
+.sign{margin-top:14px;font-size:10.5pt;text-align:right}
+@media print{@page{margin:8mm;size:A4 portrait}}
+<\/style></head><body>
+<h1>월 재 고 마 감</h1>
+<div class="sub">${ymLabel(ym)} &nbsp;·&nbsp; 혼길마트 &nbsp;·&nbsp; 다음 달 이월: ${ymLabel(nextYM(ym))}</div>
+<table><thead><tr><th style="width:28px">NO</th><th>품명</th>
+<th style="width:72px">장부</th><th style="width:72px">실사</th>
+<th style="width:62px">차이</th><th style="width:190px">사유</th></tr></thead>
+<tbody>${body}<\/tbody></table>
+<div class="sign">확인자 : ______________ (서명) &nbsp;&nbsp; 출력 ${new Date().toLocaleString('ko-KR')}</div>
+<script>window.onload=function(){var A=1054,h=document.body.scrollHeight;
+if(h>A){var t=A/h;if(t<0.55)t=0.55;document.body.style.zoom=Math.floor(t*100)+'%';}
+setTimeout(function(){window.print();setTimeout(function(){window.close();},1500);},400);};<\/script>
+</body></html>`);
+  w.document.close();
 }
 
 // ══ 기본물품장 ══
@@ -2181,13 +3128,13 @@ async function confirmPay(){
   const total=calcTotal(j.items);
   const newResult={id:Date.now().toString(),분향실:j.분향실,고인:j.고인,날짜:j.날짜,금액:total,결제:pay,인원수:j.인원수,상주:j.상주||'',연락처:j.연락처||'',비고:'',time:new Date().toISOString()};
   results.push(newResult);
-  const m=new Date(j.날짜).getMonth()+1,d=new Date(j.날짜).getDate();
-  if(!stockData[m])stockData[m]={};
+  const ym=ymOfDate(j.날짜), d=+(j.날짜||'').slice(8,10);
+  if(!stockData[ym])stockData[ym]={};
   j.items.forEach(it=>{
     const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
     if(it.품명&&f>0){
-      if(!stockData[m][it.품명])stockData[m][it.품명]={};
-      stockData[m][it.품명][d]=(stockData[m][it.품명][d]||0)+f;
+      if(!stockData[ym][it.품명])stockData[ym][it.품명]={};
+      stockData[ym][it.품명][d]=(stockData[ym][it.품명][d]||0)+f;
     }
   });
 
@@ -2222,13 +3169,13 @@ async function 정산취소(){
   const removed=before-results.length;
 
   // 2. 재고관리장 수량 원복
-  const m=new Date(j.날짜).getMonth()+1;
-  const d=new Date(j.날짜).getDate();
-  if(stockData[m]){
+  const ym=ymOfDate(j.날짜);
+  const d=+(j.날짜||'').slice(8,10);
+  if(stockData[ym]){
     j.items.forEach(it=>{
       const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
-      if(it.품명&&f>0&&stockData[m][it.품명]){
-        stockData[m][it.품명][d]=Math.max(0,(stockData[m][it.품명][d]||0)-f);
+      if(it.품명&&f>0&&stockData[ym][it.품명]){
+        stockData[ym][it.품명][d]=Math.max(0,(stockData[ym][it.품명][d]||0)-f);
       }
     });
   }
@@ -2691,16 +3638,71 @@ function calcInsurance(pay,rates){
   const employ=Math.round(pay*rates.employ/100);
   return{pension,health,care,employ,total:pension+health+care+employ};
 }
+// 화면에 보이는(월·이름으로 걸러진) 근무 목록
+function currentAlbaRows(){
+  const month=document.getElementById('albaMonth')?.value||'';
+  const person=document.getElementById('albaPerson')?.value||'';
+  let list=month?albaData.filter(r=>(r.날짜||'').startsWith(month)):[...albaData];
+  if(person) list=list.filter(r=>r.이름===person);
+  return list.sort((a,b)=>(a.날짜||'').localeCompare(b.날짜||'')||(a.출근||'').localeCompare(b.출근||''));
+}
+// 목록의 미승인 건을 한 번에 승인합니다
+async function bulkApproveAlba(){
+  if(!isAdmin()){alert('승인 권한이 없습니다.');return;}
+  const pending=currentAlbaRows().filter(r=>r.fromLog&&!r.승인);
+  if(!pending.length){alert('승인할 미승인 근무가 없습니다.');return;}
+  const rates=getInsRates();
+  let hours=0,pay=0;
+  const names=new Set();
+  pending.forEach(r=>{
+    const h=calcHours(r.출근,r.퇴근);
+    hours+=h; pay+=Math.round(h*getWageFor(r.이름,r.업무)); names.add(r.이름);
+  });
+  const month=document.getElementById('albaMonth')?.value||'전체';
+  if(!confirm(`${month} 미승인 근무를 일괄 승인합니다.\n\n`
+    +`대상: ${pending.length}건 · ${[...names].join(', ')}\n`
+    +`근무시간: ${hours.toFixed(1)}시간\n`
+    +`총급여: ${fmt(pay)}원\n\n`
+    +`승인하면 알바 본인은 수정·삭제할 수 없습니다. 계속하시겠습니까?`)) return;
+
+  // 같은 날짜·이름끼리 묶어 한 번에 저장합니다
+  const groups={};
+  pending.forEach(r=>{
+    const k=r.날짜+'|'+r.이름;
+    (groups[k]=groups[k]||[]).push(r.slotIdx);
+  });
+  const now=new Date().toISOString(), who=currentUser?.이름||'';
+  showSaving(true);
+  let done=0,failed=0;
+  try{
+    for(const k of Object.keys(groups)){
+      const [dateKey,이름]=k.split('|');
+      const slots=getWorkSlots(dateKey,이름);
+      let touched=false;
+      groups[k].forEach(si=>{
+        if(slots[si]&&!slots[si].승인){
+          slots[si].승인=true; slots[si].승인자=who; slots[si].승인일=now;
+          touched=true; done++;
+        } else failed++;
+      });
+      if(touched){
+        try{ await writeWorkSlots(dateKey,이름,slots); }
+        catch(e){ console.error('일괄승인 저장 오류:',k,e); failed+=groups[k].length; done-=groups[k].length; }
+      }
+    }
+    syncWorkLogToAlba();
+    renderMiniCal();
+    alert(`✅ 일괄 승인 완료!\n\n승인 ${done}건${failed?`\n실패 ${failed}건 (화면을 새로고침한 뒤 다시 시도하십시오)`:''}`);
+  } finally { showSaving(false); }
+}
+
 function renderAlba(){
   const month=document.getElementById('albaMonth')?.value||'';
   albaConfig.wage=+document.getElementById('albaWage')?.value||albaConfig.wage;
   const rates=getInsRates();
   const taxCfg=getTaxCfg();
   refreshAlbaPersonList();
-  const person=document.getElementById('albaPerson')?.value||'';
-  let filtered=month?albaData.filter(r=>r.날짜.startsWith(month)):[...albaData];
-  if(person) filtered=filtered.filter(r=>r.이름===person);
-  filtered.sort((a,b)=>a.날짜.localeCompare(b.날짜)||(a.출근||'').localeCompare(b.출근||''));
+  const filtered=currentAlbaRows();
   const body=document.getElementById('albaBody');
   if(!body)return;
   body.innerHTML='';
@@ -2793,9 +3795,16 @@ function renderAlba(){
     <td style="color:#1b3a5c;background:#f0fff4">${fmt(totalNet)}원</td>
     <td colspan="2"></td>`;
   const summaryEl=document.getElementById('albaSummary');
-  if(summaryEl)summaryEl.innerHTML=Object.keys(nameMap).map(name=>`
-    <div style="background:#eef2ff;border-radius:8px;padding:10px 16px;min-width:200px">
-      <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:4px">${name}</div>
+  // 등록된 알바는 근무 기록이 없어도 카드를 함께 보여 줍니다
+  const person=document.getElementById('albaPerson')?.value||'';
+  const shownNames = person ? [person]
+    : [...new Set([...getAlbaNames(), ...Object.keys(nameMap)])]
+        .sort((a,b)=>a.localeCompare(b,'ko'));
+  shownNames.forEach(n=>{ if(!nameMap[n]) nameMap[n]={hours:0,pay:0,ins:0,tax:0,net:0}; });
+  if(summaryEl)summaryEl.innerHTML=shownNames.map(name=>`
+    <div style="background:${nameMap[name].hours?'#eef2ff':'#f4f6f8'};border-radius:8px;padding:10px 16px;min-width:200px;${nameMap[name].hours?'':'opacity:.65'}">
+      <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:4px">${name}
+        ${nameMap[name].hours?'':'<span style="font-size:10px;font-weight:400;color:#888">· 근무 없음</span>'}</div>
       <div style="font-size:11px;color:#555">근무: <b>${nameMap[name].hours.toFixed(1)}시간</b></div>
       <div style="font-size:12px;color:#217a3c">총급여: <b>${fmt(nameMap[name].pay)}원</b></div>
       <div style="font-size:11px;color:#c0392b">4대보험: -${fmt(nameMap[name].ins)}원</div>
@@ -2805,6 +3814,14 @@ function renderAlba(){
         실수령: ${fmt(nameMap[name].net)}원
       </div>
     </div>`).join('');
+
+  // 일괄 승인 버튼: 관리자에게만, 미승인 건이 있을 때만 보입니다
+  const bb=document.getElementById('btnBulkApprove');
+  if(bb){
+    const pend=filtered.filter(r=>r.fromLog&&!r.승인).length;
+    bb.style.display=(isAdmin()&&pend)?'':'none';
+    bb.textContent=`✅ 일괄승인 ${pend}건`;
+  }
 }
 
 // 저장된 값을 회차 배열로 정규화합니다
@@ -3086,13 +4103,28 @@ function renderStock(){
   const m=+document.getElementById('stockMonth').value;
   const yr=+document.getElementById('stockYear').value||new Date().getFullYear();
   const days=new Date(yr,m,0).getDate();
-  const mData=stockData[m]||{};
+  const mKey=stockKey(yr,m);
+  const mData=stockData[mKey]||{};
 
   let th='<tr><th>구분</th><th style="min-width:120px">품명</th><th>이월량</th><th>현재재고</th><th style="background:#2a5298;color:#fff;font-size:11px;min-width:80px;white-space:nowrap">포장단위</th>';
   for(let d=1;d<=days;d++) th+=`<th>${d}</th>`;
   th+='<th>출고합계</th></tr>';
   document.getElementById('stockHead').innerHTML=th;
 
+  // 마감 상태 안내
+  const ci=document.getElementById('stockCloseInfo');
+  if(ci){
+    const cl=stockClose[mKey];
+    if(cl){
+      ci.innerHTML=`✅ <b>${ymLabel(mKey)} 마감 완료</b> · ${cl.확정자||''} · ${(cl.확정일||'').slice(0,10)}`;
+      ci.style.color='#1e8449';
+    } else {
+      const pv=stockClose[prevYM(mKey)];
+      ci.innerHTML=pv?`📌 ${ymLabel(prevYM(mKey))} 마감분이 이월되어 있습니다`
+                     :'📌 이월량 직접 입력 후 저장 · 월말에는 [월 마감·이월]을 이용하십시오';
+      ci.style.color=pv?'#2a5298':'#888';
+    }
+  }
   const body=document.getElementById('stockBody');body.innerHTML='';
   const _extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
   const ALL_STOCK=[...BASIC,..._extra.map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}))];
@@ -3104,12 +4136,13 @@ function renderStock(){
     const p=mData[origKey]||mData[encKey]||{};
     // 이월량도 같은 방식으로 읽기
     const 이월=+(p['이월']||p[toFbKey('이월')]||0);
+    const 조정=+(p['조정']||0);              // 월 마감 실사로 보정한 값
     let outSum=0,dayTds='';
     for(let d=1;d<=days;d++){
       const v=p[d]||0;outSum+=v;
       dayTds+=`<td style="font-size:11px;color:${v>0?'#c0392b':v<0?'#217a3c':'#aaa'}">${v!==0?v:''}</td>`;
     }
-    const 현재재고=이월-outSum;
+    const 현재재고=이월-outSum+조정;
         const pk=PACK_UNIT[item.품명];
     let packTd='<td style="color:#ccc;font-size:11px;min-width:80px">-</td>';
     if(pk){
@@ -3119,11 +4152,11 @@ function renderStock(){
     tr.innerHTML=`
       <td class="scat">기본</td>
       <td class="snm">${item.품명}</td>
-      <td><input class="sv" type="number" value="${이월||''}" data-p="${esc(item.품명)}" data-m="${m}" data-d="이월"
+      <td><input class="sv" type="number" value="${이월||''}" data-p="${esc(item.품명)}" data-m="${mKey}" data-d="이월"
         onchange="updStock(this);calcStockRow(this)"
         onwheel="event.preventDefault()"
         onfocus="this.select()"></td>
-      <td id="cr-${safeKey(item.품명)}" style="font-weight:700;color:${현재재고<0?'#c0392b':'#1b3a5c'}">${현재재고}</td>
+      <td id="cr-${safeKey(item.품명)}" style="font-weight:700;color:${현재재고<0?'#c0392b':'#1b3a5c'}">${현재재고}${조정?`<span style="font-size:10px;color:#8e44ad;font-weight:400"> (조정 ${조정>0?'+':''}${조정})</span>`:''}</td>
       ${packTd}
       ${dayTds}
       <td style="font-weight:700;color:#c0392b">${outSum||''}</td>`;
@@ -3301,21 +4334,24 @@ function fmtPack(qty, pk){
 }
 function updStock(inp){
   const{p:품명,m,d}=inp.dataset;
-  if(!stockData[m])stockData[m]={};
+  const ym=/^[0-9]{4}-[0-9]{2}$/.test(m)?m:stockYM();   // 연도-월 키
+  if(!stockData[ym])stockData[ym]={};
   // 기존에 인코딩된 key로 저장된 경우 그 key 유지, 없으면 원래 품명 사용
-  const key=stockData[m][품명]!==undefined?품명:
-    (stockData[m][toFbKey(품명)]!==undefined?toFbKey(품명):품명);
-  if(!stockData[m][key])stockData[m][key]={};
-  stockData[m][key][d]=+inp.value||0;
+  const key=stockData[ym][품명]!==undefined?품명:
+    (stockData[ym][toFbKey(품명)]!==undefined?toFbKey(품명):품명);
+  if(!stockData[ym][key])stockData[ym][key]={};
+  stockData[ym][key][d]=+inp.value||0;
   // 현재재고 셀도 갱신
-  const 이월=stockData[m][key]['이월']||0;
-  let out=0;Object.keys(stockData[m][key]).forEach(k=>{if(!isNaN(k))out+=stockData[m][key][k]||0;});
+  const 이월=stockData[ym][key]['이월']||0;
+  const 조정=+(stockData[ym][key]['조정']||0);
+  let out=0;Object.keys(stockData[ym][key]).forEach(k=>{if(!isNaN(k))out+=stockData[ym][key][k]||0;});
   const el=document.getElementById('cr-'+safeKey(품명));
-  if(el){el.textContent=이월-out;el.style.color=(이월-out)<0?'#c0392b':'#1b3a5c';}
+  if(el){const cur=이월-out+조정;el.textContent=cur;el.style.color=cur<0?'#c0392b':'#1b3a5c';}
 }
 function calcStockRow(inp){
   const{p:품명,m}=inp.dataset;
-  const mData=stockData[m]||{};
+  const mKey=stockKey(yr,m);
+  const mData=stockData[mKey]||{};
   const p=mData[품명]||mData[toFbKey(품명)]||{};
   const 이월=+inp.value||0;
   let out=0;
@@ -3374,11 +4410,10 @@ function addSeRow(){
 async function saveStockEdit(){
   const 날짜str=document.getElementById('se-날짜').value;
   if(!날짜str){alert('수정 일자를 입력해 주세요.');return;}
-  const 날짜obj=new Date(날짜str);
-  const m=날짜obj.getMonth()+1;
-  const d=날짜obj.getDate();
+  const ym=ymOfDate(날짜str);          // 입력한 일자의 연도-월
+  const d=+날짜str.slice(8,10);
 
-  if(!stockData[m])stockData[m]={};
+  if(!stockData[ym])stockData[ym]={};
   let changed=0;
   document.querySelectorAll('.se-row').forEach(row=>{
     const sels=row.querySelectorAll('select');
@@ -3387,17 +4422,17 @@ async function saveStockEdit(){
     const qty=+numInp?.value||0;
     const mode=sels[1]?.value||'in';
     if(!품명||qty===0) return;
-    if(!stockData[m][품명])stockData[m][품명]={};
-    const cur=stockData[m][품명][d]||0;
+    if(!stockData[ym][품명])stockData[ym][품명]={};
+    const cur=stockData[ym][품명][d]||0;
     if(mode==='in'){
       // 입고: 재고 증가 → 표에 음수(-값)로 기록 (출고 반대)
-      stockData[m][품명][d]=cur - qty;
+      stockData[ym][품명][d]=cur - qty;
     } else if(mode==='out'){
       // 출고: 재고 감소 → 표에 양수(+값)로 기록
-      stockData[m][품명][d]=cur + qty;
+      stockData[ym][품명][d]=cur + qty;
     } else {
       // 설정: 해당 칸을 직접 지정
-      stockData[m][품명][d]=qty;
+      stockData[ym][품명][d]=qty;
     }
     changed++;
   });
@@ -3409,6 +4444,28 @@ async function saveStockEdit(){
   if(m===+document.getElementById('stockMonth').value) renderStock();
   alert(`${m}월 ${d}일 재고 ${changed}건 수정 완료!`);
 }
+// ══ 재고 월 키 ══
+// 재고는 '2026-09'처럼 연도까지 넣어 보관합니다.
+// 예전에는 월 번호(9)만 썼기 때문에 해가 바뀌면 작년 자료를 덮어쓰는 문제가 있었습니다.
+function stockKey(y,m){ return `${y}-${String(+m).padStart(2,'0')}`; }
+// 예전 월 번호 키를 연도-월 키로 옮깁니다 (최초 1회)
+function migrateStockKeys(raw){
+  if(!raw) return {data:{},moved:[]};
+  const out={}, moved=[];
+  const y=new Date().getFullYear();
+  Object.keys(raw).forEach(k=>{
+    if(/^[0-9]{4}-[0-9]{2}$/.test(k)){ out[k]=Object.assign(out[k]||{},raw[k]); return; }
+    if(/^[0-9]{1,2}$/.test(k) && +k>=1 && +k<=12){
+      const nk=stockKey(y,+k);
+      out[nk]=Object.assign(out[nk]||{},raw[k]);
+      moved.push(nk);
+      return;
+    }
+    out[k]=raw[k];
+  });
+  return {data:out,moved};
+}
+
 // Firebase key 안전 변환 (특수문자 → 유니코드 이스케이프)
 function safeKey(s){return(s||'').replace(/[^a-zA-Z0-9가-힣]/g,'_');}
 function toFbKey(str){
@@ -3419,6 +4476,17 @@ function fromFbKey(str){
   return str.replace(/·/g,'.').replace(/＃/g,'#').replace(/＄/g,'$')
     .replace(/／/g,'/').replace(/［/g,'[').replace(/］/g,']');
 }
+// ── 재고 월 키 보조 함수 ──
+function stockYM(){
+  const m=+document.getElementById('stockMonth')?.value||new Date().getMonth()+1;
+  const y=+document.getElementById('stockYear')?.value||new Date().getFullYear();
+  return stockKey(y,m);
+}
+function ymOfDate(d){ return (d||'').slice(0,7); }
+function prevYM(ym){ let [y,m]=ym.split('-').map(Number); m--; if(m<1){m=12;y--;} return stockKey(y,m); }
+function nextYM(ym){ let [y,m]=ym.split('-').map(Number); m++; if(m>12){m=1;y++;} return stockKey(y,m); }
+function ymLabel(ym){ return `${ym.slice(0,4)}년 ${+ym.slice(5,7)}월`; }
+
 // stockData를 Firebase 안전 형태로 변환
 function encodeStockData(data){
   const result={};
@@ -3451,23 +4519,26 @@ async function saveStock(){
     touchMeta('stock');
   }catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
-  const m=+document.getElementById('stockMonth').value;
-  alert(`✅ 재고 저장 완료!\n\n${m}월 재고관리장\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+  alert(`✅ 재고 저장 완료!\n\n${ymLabel(stockYM())} 재고관리장\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
 }
 function exportStock(){
   const m=+document.getElementById('stockMonth').value;
-  const days=new Date(new Date().getFullYear(),m,0).getDate();
-  const mData=stockData[m]||{};
-  let csv='품명,이월량,현재재고';
+  const yr=+document.getElementById('stockYear').value||new Date().getFullYear();
+  const days=new Date(yr,m,0).getDate();
+  const ym=stockKey(yr,m);
+  const mData=stockData[ym]||{};
+  const _extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
+  const ALL=[...BASIC,..._extra];
+  let csv='품명,이월량,조정,현재재고';
   for(let d=1;d<=days;d++)csv+=`,${d}일`;csv+=',출고합계\n';
-  BASIC.forEach(it=>{
-    const p=mData[it.품명]||{};
-    const 이월=p['이월']||0;
-    let out=0,row=it.품명+','+이월;
-    for(let d=1;d<=days;d++){const v=p[d]||0;out+=v;row+=','+v;}
-    csv+=row+','+(이월-out)+','+out+'\n';
+  ALL.forEach(it=>{
+    const p=mData[it.품명]||mData[toFbKey(it.품명)]||{};
+    const 이월=+(p['이월']||0), 조정=+(p['조정']||0);
+    let out=0,day='';
+    for(let d=1;d<=days;d++){const v=+p[d]||0;out+=v;day+=','+v;}
+    csv+=`${it.품명},${이월},${조정},${이월-out+조정}${day},${out}\n`;
   });
-  dl('\uFEFF'+csv,`재고_${m}월.csv`,'text/csv');
+  dl('\uFEFF'+csv,`재고_${ym}.csv`,'text/csv');
 }
 
 // ══ 원가DB ══
