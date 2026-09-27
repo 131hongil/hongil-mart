@@ -59,6 +59,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .badge-ing{background:#fdebd0;color:#784212}
 .badge-done{background:#d5f5e3;color:#1e8449}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.meta-by{font-size:11px;font-weight:400;color:#7a8ea3;margin-left:8px}
 /* 분향실 드롭다운 */
 .room-wrap{position:relative;display:inline-flex;align-items:stretch}
 .room-wrap input{border-radius:4px 0 0 4px!important;border-right:none!important}
@@ -80,8 +81,12 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .fbtn.on-done{border-color:#217a3c;background:#217a3c;color:#fff}
 .fbtn.on-all{border-color:#1b3a5c;background:#1b3a5c;color:#fff}
 .jung-list{display:flex;flex-direction:column;gap:8px}
-.jung-item{background:#f8faff;border:1px solid #d0dff0;border-radius:7px;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.jung-item{background:#f8faff;border:1px solid #d0dff0;border-radius:7px;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;transition:all .12s}
+.jung-item:hover{background:#e3edfb;border-color:#2a5298;box-shadow:0 2px 8px rgba(27,58,92,.18);transform:translateY(-1px)}
+.jung-item:active{transform:translateY(0);box-shadow:0 1px 3px rgba(27,58,92,.18)}
 .jung-item.done{background:#f0fff4;border-color:#52be80}
+.jung-item.done:hover{background:#d8f5e3;border-color:#217a3c;box-shadow:0 2px 8px rgba(33,122,60,.2)}
+.jung-item .btn-group{cursor:default}
 .ji-name{font-weight:700;color:#1b3a5c;font-size:13px;flex:1;min-width:160px}
 .ji-sub{color:#888;font-size:11px;white-space:nowrap}
 .ji-cap{background:#1b3a5c;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
@@ -90,7 +95,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 /* ── 정산서 테이블 ── */
 .jtbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
 .jtbl tfoot td{position:sticky;bottom:0;z-index:11;background:#ffe9b3;color:#000;font-weight:700;font-size:14px;border-top:2px solid #1b3a5c}
-.jtbl th{background:#1b3a5c;color:#fff;padding:6px 3px;text-align:center;position:sticky;top:-1px;z-index:12;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.jtbl th{background:#1b3a5c;color:#fff;padding:5px 3px;text-align:center;position:sticky;top:-1px;z-index:12;box-shadow:0 2px 4px rgba(0,0,0,.2);line-height:1.25;white-space:nowrap}
 .jtbl td{padding:3px 3px;border-bottom:1px solid #f0f0f0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jtbl tr.br td{background:#fafbfc}.jtbl tr.br:hover td{background:#f0f5ff}
 .jtbl tr.ar td{background:#fffde7}.jtbl tr.ar:hover td{background:#fff8c0}
@@ -314,7 +319,8 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 <div id="page-진행중" class="page">
   <div class="card">
     <div class="card-title">📁 정산서 관리
-      <button class="btn btn-success" onclick="openNewModal()" style="margin-left:auto">+ 새 정산서 생성</button>
+      <button class="btn btn-success btn-sm" onclick="openNewModal()" style="margin-left:10px">+ 새 정산서 생성</button>
+      <button class="btn btn-sm" style="background:#8e6f2a;color:#fff;margin-left:6px" onclick="openBasicSheet()">📋 기본물품장</button>
     </div>
     <div class="filter-btns" style="align-items:center;flex-wrap:wrap">
       <button class="fbtn on-ing" id="f-진행중" onclick="setFilter('진행중',this)">진행중</button>
@@ -363,20 +369,22 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
             <option value="1000">1000명</option>
           </select>
         </div>
-        <!-- 편집 버튼: 목록,저장,정산완료,인쇄 순 -->
-        <div class="btn-group" id="editBtnGroup" style="margin-left:auto">
+      </div>
+      <!-- 버튼: 입력란 아래 줄 -->
+      <div style="display:flex;align-items:center;gap:10px;margin-top:9px;padding-top:9px;border-top:1px solid #e3eaf2;flex-wrap:wrap">
+        <div class="btn-group" id="editBtnGroup">
           <button class="btn btn-gray" onclick="closeEditOverlay()">← 목록</button>
           <button class="btn btn-info" onclick="saveEditing()">💾 저장</button>
           <button class="btn btn-success" id="btnDone" onclick="정산완료()">✅ 정산완료</button>
           <button class="btn btn-info" onclick="doPrint()">🖨️ 인쇄</button>
         </div>
-        <!-- 보기 버튼: 목록,수정,정산취소,인쇄 순 -->
-        <div class="btn-group" id="viewBtnGroup" style="margin-left:auto;display:none">
+        <div class="btn-group" id="viewBtnGroup" style="display:none">
           <button class="btn btn-gray" onclick="closeEditOverlay()">← 목록</button>
           <button class="btn btn-purple" onclick="enableEdit()">✏️ 수정</button>
           <button class="btn btn-danger" onclick="정산취소()" id="btnCancel">🔄 정산취소</button>
           <button class="btn btn-info" onclick="doPrint()">🖨️ 인쇄</button>
         </div>
+        <span id="editWriter" style="margin-left:auto;font-size:11px;color:#666"></span>
       </div>
     </div>
 
@@ -384,16 +392,16 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
     <div class="card" style="overflow:auto;flex:1;min-height:0;margin-bottom:0" id="editTableWrap">
       <table class="jtbl">
         <colgroup>
-          <col style="width:32px"><col style="width:200px"><col style="width:68px">
-          <col style="width:65px"><col style="width:55px"><col style="width:55px">
-          <col style="width:55px"><col style="width:55px"><col style="width:75px">
+          <col style="width:32px"><col style="width:150px"><col style="width:66px">
+          <col style="width:64px"><col style="width:68px"><col style="width:68px">
+          <col style="width:68px"><col style="width:68px"><col style="width:78px">
         </colgroup>
         <thead><tr>
           <th>NO</th><th>품  목</th><th>단위</th><th>단가</th>
           <th>주문량</th>
-        <th style="color:#2a5298;background:#dbeafe">추가</th>
-        <th style="color:#c0392b;background:#fde8e8">반품</th>
-        <th>최종</th><th>가격</th>
+        <th style="color:#2a5298;background:#dbeafe">추가<br>주문량</th>
+        <th style="color:#c0392b;background:#fde8e8">반품량</th>
+        <th>최종<br>주문량</th><th>가격</th>
         </tr></thead>
         <tbody id="editBody"></tbody>
         <tfoot><tr class="tr">
@@ -416,7 +424,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 <!-- ══ 알바 관리 ══ -->
 <div id="page-알바" class="page">
   <div class="card">
-    <div class="card-title">🗓️ 아르바이트 근무 관리
+    <div class="card-title">🗓️ 아르바이트 근무 관리 <span class="meta-by" id="meta-alba"></span>
       <div class="btn-group" style="margin-left:auto">
         <button class="btn btn-primary btn-sm" onclick="openAlbaModal()">+ 근무 추가</button>
         <button class="btn btn-success btn-sm" onclick="saveAlba()">💾 저장</button>
@@ -524,6 +532,68 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
   </div>
 </div>
 
+<!-- ══ 기본물품장 ══ -->
+<div class="overlay" id="basicModal">
+  <div class="modal" style="max-width:860px;width:97%">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <h3 style="margin:0">📋 기본 매점 거래장</h3>
+      <span style="font-size:11px;color:#888">정산서 작성 전 확인용 · 단가는 원가DB와 연동됩니다 · 주문량은 수정할 수 있습니다</span><button class="btn btn-gray btn-sm" style="margin-left:auto" onclick="resetBasicQty()">↺ 기본수량 복원</button>
+    </div>
+
+    <div class="frow" style="margin:0 0 10px;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div class="fg"><label>인원수</label>
+        <select id="bs-인원수" onchange="bsQty={};renderBasicSheet()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+          <option value="50">50명</option><option value="150" selected>150명</option>
+          <option value="300">300명</option><option value="500">500명</option>
+          <option value="1000">1000명</option>
+        </select>
+      </div>
+      <div class="fg"><label>발인일</label>
+        <input type="date" id="bs-날짜" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+      </div>
+      <div class="fg"><label>분향실</label>
+        <div class="room-wrap">
+          <input type="text" id="bs-분향실" style="width:62px" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <button type="button" class="room-arrow" onclick="toggleRoomList('bs-분향실',this)">▼</button>
+        </div>
+      </div>
+      <div class="fg"><label>고인</label>
+        <input type="text" id="bs-고인" style="width:90px" lang="ko" onblur="filterHangul(this)">
+      </div>
+      <div class="fg"><label>상주</label>
+        <input type="text" id="bs-상주" style="width:90px" lang="ko" onblur="filterHangul(this)">
+      </div>
+      <div class="fg"><label>연락처</label>
+        <input type="text" id="bs-연락처" style="width:120px">
+      </div>
+    </div>
+
+    <div style="max-height:44vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+      <table class="jtbl" id="bsTable" style="width:100%">
+        <thead><tr>
+          <th style="width:34px">NO</th><th style="width:170px">품 목</th>
+          <th style="width:68px">단위</th><th style="width:66px">단가</th>
+          <th style="width:76px">주문량</th><th style="width:88px">금액</th>
+        </tr></thead>
+        <tbody id="bsBody"></tbody>
+        <tfoot><tr class="tr">
+          <td colspan="5" style="text-align:right;padding-right:10px">합&nbsp;&nbsp;&nbsp;계</td>
+          <td id="bsTotal">0 원</td>
+        </tr></tfoot>
+      </table>
+    </div>
+    <div style="font-size:11px;color:#666;margin-top:6px">
+      ※ 묶음포장 개봉시 반품이 안됩니다.&nbsp;&nbsp;<b>계좌번호 32-02-014675 제주은행</b> 예금주: 송미봉
+    </div>
+
+    <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-gray" onclick="closeModal('basicModal')">닫기</button>
+      <button class="btn btn-info" onclick="printBasicSheet()">🖨️ 인쇄</button>
+      <button class="btn btn-success" onclick="createJungFromBasic()">+ 이 내용으로 정산서 생성</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ 알바 근무 추가 모달 ══ -->
 <div class="overlay" id="albaModal">
   <div class="modal" style="max-width:420px;width:96%">
@@ -557,7 +627,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 <!-- ══ 결산서 ══ -->
 <div id="page-결산" class="page">
   <div class="card">
-    <div class="card-title">📊 결산서</div>
+    <div class="card-title">📊 결산서 <span class="meta-by" id="meta-results"></span></div>
     <div class="sum-grid" id="sumGrid"></div>
     <div class="chart-box">
       <h4>📊 월별 정산 현황
@@ -585,7 +655,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 <!-- ══ 재고관리 ══ -->
 <div id="page-재고" class="page">
   <div class="card">
-    <div class="card-title">📦 재고관리장</div>
+    <div class="card-title">📦 재고관리장 <span class="meta-by" id="meta-stock"></span></div>
     <div class="frow" style="margin-bottom:10px;align-items:flex-end">
       <div class="fg"><label>월 선택</label>
         <select id="stockMonth" onchange="renderStock()">
@@ -610,7 +680,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 <!-- ══ 원가DB ══ -->
 <div id="page-원가" class="page">
   <div class="card">
-    <div class="card-title">💰 원가 DB</div>
+    <div class="card-title">💰 원가 DB <span class="meta-by" id="meta-price"></span></div>
     <div class="frow" style="margin-bottom:10px">
       <div class="fg"><label>검색</label><input type="text" id="priceSearch" placeholder="품목명..." onkeyup="renderPrice()" style="width:140px"></div>
       <div class="fg"><label>구분</label>
@@ -781,9 +851,9 @@ const BASIC=[
   {품명:"물티슈/72매",단위:"개",단가:2500,qty:{50:3,150:3,300:5,500:7,1000:15}},
   {품명:"메밀차/100T",단위:"개",단가:8200,qty:{50:1,150:1,300:1,500:2,1000:2}},
   {품명:"호두율무차/50T",단위:"팩",단가:15300,qty:{50:1,150:1,300:1,500:2,1000:2}},
-  {품명:"맥심병커피/175g",단위:"병",단가:15900,qty:{50:1,150:1,300:1,500:1,1000:2}},
+  {품명:"맥심병커피/175g",단위:"병",단가:17900,qty:{50:1,150:1,300:1,500:1,1000:2}},
   {품명:"맥심커피믹스/50T",단위:"개",단가:13000,qty:{50:1,150:0,300:0,500:0,1000:0},only50:true},
-  {품명:"맥심커피믹스/210T",단위:"개",단가:38500,qty:{50:0,150:1,300:1,500:2,1000:3},only150plus:true},
+  {품명:"맥심커피믹스/210T",단위:"개",단가:39500,qty:{50:0,150:1,300:1,500:2,1000:3},only150plus:true},
   {품명:"백설탕/1kg",단위:"포",단가:2900,qty:{50:1,150:1,300:1,500:1,1000:1}},
   {품명:"커피쟁반",단위:"개",단가:4000,qty:{50:1,150:2,300:3,500:4,1000:5}},
   {품명:"가위",단위:"개",단가:5000,qty:{50:1,150:1,300:1,500:1,1000:1}},
@@ -817,8 +887,8 @@ const DEF_PRICE=[
   {구분:"기본물품",품명:"메밀차/100T",단위:"개",가격:8200,원가:0},
   {구분:"기본물품",품명:"호두율무차/50T",단위:"팩",가격:15300,원가:0},
   {구분:"기본물품",품명:"생강차/50T",단위:"개",가격:15300,원가:0},
-  {구분:"기본물품",품명:"맥심병커피/175g",단위:"병",가격:15900,원가:0},
-  {구분:"기본물품",품명:"맥심커피믹스/210T",단위:"개",가격:38500,원가:0},
+  {구분:"기본물품",품명:"맥심병커피/175g",단위:"병",가격:17900,원가:0},
+  {구분:"기본물품",품명:"맥심커피믹스/210T",단위:"개",가격:39500,원가:0},
   {구분:"기본물품",품명:"백설탕/1kg",단위:"포",가격:2900,원가:0},
   {구분:"기본물품",품명:"커피쟁반",단위:"개",가격:4000,원가:0},
   {구분:"기본물품",품명:"가위",단위:"개",가격:5000,원가:0},
@@ -1153,8 +1223,8 @@ async function loadAllData(){
   try{
     if(!DB) await initFirebase();
     document.getElementById('ubSync').style.color='#f39c12';
-    const [jData,rData,sData,pData,aData,wData,cData]=await Promise.all([
-      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig')
+    const [jData,rData,sData,pData,aData,wData,cData,mData]=await Promise.all([
+      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta')
     ]);
     jungs    =jData?Object.values(jData).map(normalizeJung):[];
     results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
@@ -1162,6 +1232,8 @@ async function loadAllData(){
     priceDB  =pData?Object.values(pData):DEF_PRICE;
     albaData =aData?Object.values(aData):[];
     albaWorkLog=wData?normalizeWorkLog(wData):{};
+    formMeta=mData||{};
+    renderMetaBadges();
     if(cData) albaConfig=Object.assign(albaConfig,cData);
     applyAlbaConfig();
     document.getElementById('ubSync').style.color='#52be80';
@@ -1186,7 +1258,8 @@ function normalizeJung(j){
     분향실:String(j.분향실||''),고인:String(j.고인||''),날짜:normalizeDate(j.날짜),
     상주:String(j.상주||''),연락처:String(j.연락처||''),상태:String(j.상태||'진행중'),
     결제:String(j.결제||''),생성일:String(j.생성일||new Date().toISOString()),
-    완료일:String(j.완료일||''),생성자:String(j.생성자||''),수정자:String(j.수정자||''),
+    완료일:String(j.완료일||''),생성자:String(j.생성자||''),생성자id:String(j.생성자id||''),
+    수정자:String(j.수정자||''),수정자id:String(j.수정자id||''),수정일:String(j.수정일||''),
     items:(j.items||[]).map(it=>({...it,품명:String(it.품명||''),단위:String(it.단위||''),
       단가:+it.단가||0,주문량:+it.주문량||0,추가:+it.추가||0,반품:+it.반품||0,isAdd:!!it.isAdd}))};
 }
@@ -1360,12 +1433,19 @@ async function createJungsan(){
       return true;
     })
     .map(b=>({품명:b.품명,단위:b.단위,단가:b.단가,주문량:b.qty[newCap]||0,추가:0,반품:0,isAdd:false}));
+  // 기본물품장에서 주문량을 고쳤다면 반영합니다
+  if(pendingBasicQty && pendingBasicQty.cap===newCap){
+    items.forEach(it=>{
+      if(pendingBasicQty.qty[it.품명]!==undefined) it.주문량=pendingBasicQty.qty[it.품명];
+    });
+  }
+  pendingBasicQty=null;
   for(let k=0;k<15;k++) items.push({품명:'',단위:'',단가:0,주문량:0,추가:0,반품:0,isAdd:true});
 
   const jung={
     id:Date.now().toString(),파일명,인원수:newCap,분향실,고인,
     날짜:날짜full,상주,연락처,상태:'진행중',결제:'',items,
-    생성일:new Date().toISOString(),완료일:'',생성자:currentUser?.이름||''
+    생성일:new Date().toISOString(),완료일:'',생성자:currentUser?.이름||'',생성자id:currentUser?.id||''
   };
 
   // 1. 창 먼저 닫기 + 로컬에 추가 → 진행중 목록에 즉시 표시
@@ -1444,12 +1524,16 @@ function renderJungList(){
     }
     const div=document.createElement('div');
     div.className='jung-item'+(done?' done':'');
+    // 칸을 클릭하면 진행중은 편집, 완료는 보기로 엽니다
+    div.onclick=()=>{ done?openView(j.id):openEdit(j.id); };
+    div.title=done?'클릭하면 정산서를 엽니다':'클릭하면 편집 화면이 열립니다';
     div.innerHTML=`
       <span class="ji-cap">${j.인원수}명</span>
       <span class="ji-name">${j.파일명}</span>
       <span class="ji-sub">발인 ${j.날짜}</span>
       <span class="ji-sub">생성 ${j.생성일.slice(0,10)}</span>
-      ${(j.수정자||j.생성자)?`<span class="ji-sub" style="color:#e8821a">👤 ${j.수정자||j.생성자}</span>`:''}
+      ${j.생성자?`<span class="ji-sub" style="color:#8a6d3b">작성 ${j.생성자id||j.생성자}</span>`:''}
+      ${(j.수정자&&(j.수정자!==j.생성자||j.수정일))?`<span class="ji-sub" style="color:#e8821a">최종수정 ${j.수정자id||j.수정자}</span>`:''}
       <span style="margin-left:auto;font-weight:700;color:#1b3a5c;white-space:nowrap">${fmt(total)}원</span>
       ${done?`
         ${(()=>{
@@ -1496,6 +1580,12 @@ function enableEdit(){
 function loadForm(j,readOnly,forceEdit=false){
   document.getElementById('editTitleText').textContent=`📋 ${j.파일명} `;
   document.getElementById('e-날짜').value=j.날짜;
+  const wEl=document.getElementById('editWriter');
+  if(wEl){
+    const made=j.생성자?`작성 ${j.생성자id||j.생성자}${j.생성일?' · '+j.생성일.slice(0,10):''}`:'';
+    const upd=j.수정자?`최종수정 ${j.수정자id||j.수정자}${j.수정일?' · '+j.수정일.slice(0,16).replace('T',' '):''}`:'';
+    wEl.innerHTML=[made,upd].filter(Boolean).join(' &nbsp;|&nbsp; ');
+  }
   document.getElementById('e-분향실').value=j.분향실;
   document.getElementById('e-고인').value=j.고인;
   document.getElementById('e-상주').value=j.상주||'';
@@ -1702,6 +1792,9 @@ async function saveEditing(){
   j.연락처=document.getElementById('e-연락처').value;
   const mm=(j.날짜||'').slice(5,7),dd=(j.날짜||'').slice(8,10);
   j.파일명=`최종정산서(${j.인원수})-${j.분향실}-${j.고인}-${mm}${dd}`;
+  j.수정자=currentUser?.이름||'';
+  j.수정자id=currentUser?.id||'';
+  j.수정일=new Date().toISOString();
 
   // 화면 즉시 갱신 + 메시지 바로 표시
   renderJungList();
@@ -1775,7 +1868,7 @@ table{width:100%;border-collapse:collapse}
 th,td{border:1px solid #333;padding:3px 5px;text-align:center;line-height:1.4}
 td.pnm{text-align:left;padding-left:6px}
 td.right{text-align:right;padding-right:5px}
-th{padding:4px 5px;font-size:10.5pt}
+th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
 .ph1{font-size:18pt;font-weight:700;text-align:center;padding:3px 0 2px;letter-spacing:4px}
 .ph2{text-align:center;font-size:11pt;margin-bottom:3px}
 .phead{margin-bottom:3px}
@@ -1802,15 +1895,15 @@ th{padding:4px 5px;font-size:10.5pt}
 </table>
 <table>
   <thead><tr>
-    <th style="width:28px">NO</th>
+    <th style="width:26px">NO</th>
     <th>품&nbsp;&nbsp;목</th>
-    <th style="width:68px">단위</th>
-    <th style="width:58px">단가</th>
-    <th style="width:44px">주문량</th>
-    <th style="width:44px">추가<br>주문량</th>
-    <th style="width:44px">반품량</th>
-    <th style="width:44px">최종<br>주문량</th>
-    <th style="width:65px">가격</th>
+    <th style="width:62px">단위</th>
+    <th style="width:56px">단가</th>
+    <th style="width:56px">주문량</th>
+    <th style="width:56px">추가<br>주문량</th>
+    <th style="width:56px">반품량</th>
+    <th style="width:56px">최종<br>주문량</th>
+    <th style="width:66px">가격</th>
   </tr></thead>
   <tbody>${rows}<\/tbody>
   <tfoot><tr class="ptotal">
@@ -1851,6 +1944,211 @@ window.onload=function(){
   w.document.close();
 }
 
+
+// ══ 양식별 최종 수정 이력 ══
+// meta/{양식} = {id, 이름, 시각}
+let formMeta={};
+const META_LABEL={results:'결산서',stock:'재고관리장',price:'원가DB',alba:'알바관리'};
+function touchMeta(key){
+  const m={id:currentUser?.id||'',이름:currentUser?.이름||'',시각:new Date().toISOString()};
+  formMeta[key]=m;
+  renderMetaBadges();
+  fbSet('meta/'+key,m).catch(e=>console.error('수정이력 저장 오류:',e));
+}
+function metaText(m){
+  if(!m||!m.id) return '';
+  const t=new Date(m.시각);
+  const ds=isNaN(t)?'':`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+  return `최종 수정 ${m.id}${m.이름?'('+m.이름+')':''} · ${ds}`;
+}
+function renderMetaBadges(){
+  Object.keys(META_LABEL).forEach(k=>{
+    const el=document.getElementById('meta-'+k);
+    if(el) el.textContent=metaText(formMeta[k]);
+  });
+}
+
+// ══ 기본물품장 ══
+// 정산서 작성 전 유가족 확인용 · 단가는 원가DB(priceDB)에서 실시간으로 가져옵니다
+function basicItemsFor(cap){
+  return BASIC.filter(b=>{
+    if(b.isExtra) return false;
+    if(b.only50 && cap!==50) return false;
+    if(b.only150plus && cap===50) return false;
+    return (b.qty[cap]||0)>0;
+  }).map(b=>{
+    const db=priceDB.find(p=>p.품명===b.품명);   // 원가DB 우선
+    return {품명:b.품명, 단위:db?db.단위:b.단위,
+            단가:db?(+db.가격||0):b.단가, 수량:b.qty[cap]||0};
+  });
+}
+function openBasicSheet(){
+  const now=new Date();
+  document.getElementById('bs-날짜').value=now.toISOString().slice(0,10);
+  ['bs-분향실','bs-고인','bs-상주','bs-연락처'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  bsQty={};
+  renderBasicSheet();
+  document.getElementById('basicModal').classList.add('show');
+}
+// 화면에서 고친 주문량을 담습니다 {품명:수량}
+let bsQty={};
+let pendingBasicQty=null;   // 기본물품장에서 넘어온 주문량
+function resetBasicQty(){
+  if(!confirm('주문량을 인원수 기준 기본값으로 되돌리시겠습니까?'))return;
+  bsQty={};
+  renderBasicSheet();
+}
+// 현재 화면 기준 품목 목록(수정한 주문량 반영)
+function currentBasicItems(){
+  const cap=+document.getElementById('bs-인원수')?.value||150;
+  return basicItemsFor(cap).map(it=>({
+    ...it, 수량:(bsQty[it.품명]!==undefined?bsQty[it.품명]:it.수량)
+  }));
+}
+function onBasicQty(inp){
+  const 품명=inp.dataset.p;
+  const v=Math.max(0,+inp.value||0);
+  inp.value=v;
+  bsQty[품명]=v;
+  // 금액·합계만 갱신합니다
+  const tr=inp.closest('tr');
+  const 단가=+inp.dataset.u||0;
+  tr.cells[5].textContent=fmt(v*단가);
+  let total=0;
+  document.querySelectorAll('#bsBody input.bq').forEach(e=>{
+    total+=(+e.value||0)*(+e.dataset.u||0);
+  });
+  document.getElementById('bsTotal').textContent=fmt(total)+' 원';
+}
+function renderBasicSheet(){
+  const cap=+document.getElementById('bs-인원수')?.value||150;
+  const base={};
+  basicItemsFor(cap).forEach(b=>{base[b.품명]=b.수량;});   // 인원수 기준 기본 수량
+  const items=currentBasicItems();
+  const body=document.getElementById('bsBody');
+  let total=0;
+  body.innerHTML=items.map((it,i)=>{
+    const amt=it.수량*it.단가; total+=amt;
+    const changed=it.수량!==base[it.품명];                 // 고친 항목은 노란 배경
+    return `<tr>
+      <td>${i+1}</td>
+      <td class="nm">${it.품명}</td>
+      <td>${it.단위}</td>
+      <td>${fmt(it.단가)}</td>
+      <td><input class="bq" type="number" min="0" value="${it.수량}"
+        data-p="${esc(it.품명)}" data-u="${it.단가}" onchange="onBasicQty(this)"
+        onfocus="this.select()" onwheel="event.preventDefault()"
+        style="width:62px;padding:3px 5px;border:1px solid #ccc;border-radius:4px;
+        text-align:center;font-family:inherit;font-size:13px;font-weight:700;
+        background:${changed?'#fff3cd':'#fff'}"></td>
+      <td>${fmt(amt)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('bsTotal').textContent=fmt(total)+' 원';
+}
+function basicSheetHeader(){
+  const g=id=>document.getElementById(id)?.value||'';
+  const d=g('bs-날짜');
+  const dStr=d?`${d.slice(0,4)}년 ${d.slice(5,7)}월 ${d.slice(8,10)}일`
+              :new Date().toLocaleDateString('ko-KR');
+  return {cap:+g('bs-인원수')||150, dStr, 분향실:g('bs-분향실'),
+          고인:g('bs-고인'), 상주:g('bs-상주'), 연락처:g('bs-연락처')};
+}
+function printBasicSheet(){
+  const h=basicSheetHeader();
+  const items=currentBasicItems().filter(it=>it.수량>0);   // 수정한 주문량 반영
+  let total=0,rows='';
+  items.forEach((it,i)=>{
+    const amt=it.수량*it.단가; total+=amt;
+    rows+=`<tr><td>${i+1}</td><td class="pnm">${it.품명}</td>
+      <td style="white-space:nowrap">${it.단위}</td>
+      <td class="right">${fmt(it.단가)}</td>
+      <td>${it.수량}</td>
+      <td class="right">${fmt(amt)}</td>
+      <td></td></tr>`;
+  });
+  const printHtml=`<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>기본 매점 거래장</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Malgun Gothic',sans-serif;padding:8mm;font-size:11pt}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #333;padding:3px 5px;text-align:center;line-height:1.4}
+td.pnm{text-align:left;padding-left:6px}
+td.right{text-align:right;padding-right:5px}
+th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
+.ph1{font-size:18pt;font-weight:700;text-align:center;padding:3px 0 2px;letter-spacing:4px}
+.ph2{text-align:center;font-size:11pt;margin-bottom:3px}
+.phead td{padding:4px 8px;font-size:11pt}
+.phead td.lbl{background:#f5f5f5;font-weight:700;text-align:center;white-space:nowrap}
+.ptotal td{font-weight:700;background:#f5f5f5;font-size:11pt}
+.pnote{font-size:9pt;margin-top:4px;text-align:center;color:#444}
+.psign{margin-top:14px;font-size:10.5pt;text-align:right;padding-right:6px}
+@media print{@page{margin:7mm;size:A4 portrait}}
+<\/style></head><body>
+<div class="ph1">기 본 매 점 거 래 장</div>
+<div class="ph2">(${h.cap}명 기준) &nbsp; ${h.dStr}</div>
+<table class="phead" style="margin-bottom:3px">
+  <tr>
+    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${h.분향실}</td>
+    <td class="lbl" style="width:60px">고인</td><td>故 ${h.고인} 님</td>
+    <td style="text-align:right;font-weight:700;width:80px">혼길마트</td>
+  </tr>
+  <tr>
+    <td class="lbl" style="width:60px">상주</td><td>${h.상주?h.상주+' 님':''}</td>
+    <td class="lbl" style="width:60px">연락처</td><td>${h.연락처}</td>
+    <td style="text-align:right;width:80px">742-0077</td>
+  </tr>
+</table>
+<table>
+  <thead><tr>
+    <th style="width:26px">NO</th><th>품&nbsp;&nbsp;목</th>
+    <th style="width:62px">단위</th><th style="width:56px">단가</th>
+    <th style="width:56px">주문량</th><th style="width:76px">금액</th>
+    <th style="width:56px">반품량</th>
+  </tr></thead>
+  <tbody>${rows}<\/tbody>
+  <tfoot><tr class="ptotal">
+    <td colspan="5" style="text-align:right;padding-right:8px">합&nbsp;&nbsp;&nbsp;계</td>
+    <td class="right">${fmt(total)}</td><td></td>
+  </tr></tfoot>
+</table>
+<div class="pnote">※ 묶음포장 개봉시 반품이 안됩니다.&nbsp;&nbsp;&nbsp;<b style="color:#000">계좌번호 32-02-014675 제주은행</b> 예금주: 송미봉</div>
+<div class="psign">위 내용을 확인하였습니다. &nbsp;&nbsp; 상주 : ______________ (서명)</div>
+<script>
+window.onload=function(){
+  var A4px=1054, bodyH=document.body.scrollHeight;
+  if(bodyH>A4px){
+    var ratio=A4px/bodyH; if(ratio<0.55) ratio=0.55;
+    document.body.style.zoom=Math.floor(ratio*100)+'%';
+  }
+  setTimeout(function(){window.print();setTimeout(function(){window.close();},1500);},400);
+};
+<\/script></body></html>`;
+  const w=window.open('','_blank','width=820,height=1000,scrollbars=yes');
+  if(!w){alert('팝업이 차단됐습니다.\n주소창 오른쪽 팝업 차단 아이콘에서 이 사이트의 팝업을 허용해 주십시오.');return;}
+  w.document.open(); w.document.write(printHtml); w.document.close();
+}
+// 기본물품장 내용으로 정산서를 바로 만듭니다
+function createJungFromBasic(){
+  const h=basicSheetHeader();
+  if(!h.분향실||!h.고인){alert('분향실과 고인 성함을 입력하십시오.');return;}
+  document.getElementById('nw-분향실').value=h.분향실;
+  document.getElementById('nw-고인').value=h.고인;
+  document.getElementById('nw-상주').value=h.상주;
+  document.getElementById('nw-연락처').value=h.연락처;
+  const d=document.getElementById('bs-날짜').value;
+  document.getElementById('nw-날짜').value=d?d.slice(5,7)+d.slice(8,10):'';
+  newCap=h.cap;
+  document.querySelectorAll('#newCapBtns .cap-btn').forEach(b=>{
+    b.classList.toggle('on', +b.textContent.replace(/[^0-9]/g,'')===h.cap);
+  });
+  // 기본물품장에서 고친 주문량을 정산서에 그대로 넘깁니다
+  pendingBasicQty = Object.keys(bsQty).length ? {cap:h.cap, qty:{...bsQty}} : null;
+  updateNFN();
+  closeModal('basicModal');
+  document.getElementById('newModal').classList.add('show');
+}
 
 // ══ 정산완료 ══
 async function 정산완료(){
@@ -1902,6 +2200,7 @@ async function confirmPay(){
   // 3. 서버 저장은 백그라운드로 (메시지 확인 후 처리)
   fbSet('jungs/'+j.id,j).catch(e=>console.error('정산완료 jung 저장:',e));
   fbSet('results/'+newResult.id,newResult).catch(e=>console.error('결산서 저장:',e));
+  touchMeta('results');
   fbSet('stockData',encodeStockData(stockData)).catch(e=>console.error('재고 저장:',e));
   addLog(currentUser?.이름||'','정산완료',j.파일명);
 }
@@ -2606,6 +2905,7 @@ async function saveAlba(){
     albaConfig=readAlbaConfigFromInputs();
     await fbSet('albaData',obj);
     await fbSet('albaConfig',albaConfig);
+    touchMeta('alba');
     clearAlbaDirty();
     renderWageTable();
     const taxName={none:'공제 안 함',daily:'일용근로소득',rate33:'사업소득 3.3%',custom:'직접 입력'}[albaConfig.taxMode]||'공제 안 함';
@@ -2677,6 +2977,7 @@ async function delResult(idx){
   results.splice(idx,1);
   renderResults();buildCharts();
   if(id) fbRemove('results/'+id).catch(e=>console.error('결산서 삭제 오류:',e));
+  touchMeta('results');
 }
 function exportCSV(){
   let csv='NO,분향실,고인,발인일,정산액,결제방식,인원수,상주,연락처,비고\n';
@@ -3102,7 +3403,7 @@ async function saveStockEdit(){
   });
   if(changed===0){alert('수정할 물품과 수량을 입력해 주세요.');return;}
   showSaving(true);
-  try{await fbSet('stockData',encodeStockData(stockData));}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  try{await fbSet('stockData',encodeStockData(stockData));touchMeta('stock');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
   closeModal('stockEditModal');
   if(m===+document.getElementById('stockMonth').value) renderStock();
@@ -3147,6 +3448,7 @@ async function saveStock(){
   showSaving(true);
   try{
     await fbSet('stockData',encodeStockData(stockData));
+    touchMeta('stock');
   }catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
   const m=+document.getElementById('stockMonth').value;
@@ -3192,7 +3494,7 @@ function addPriceItem(){priceDB.push({구분:'기본물품',품명:'새 품목',
 function delPrice(idx){if(!confirm('삭제?'))return;priceDB.splice(idx,1);price_save();renderPrice();}
 async function savePrice(){
   showSaving(true);
-  try{const obj={};priceDB.forEach((p,i)=>obj[i]=p);await fbSet('priceDB',obj);}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  try{const obj={};priceDB.forEach((p,i)=>obj[i]=p);await fbSet('priceDB',obj);touchMeta('price');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
 
   // 진행중 정산서의 단가를 priceDB 최신값으로 자동 업데이트
