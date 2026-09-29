@@ -2512,6 +2512,7 @@ async function saveBiz(){
     await fbSet('posSales',posSales);
     touchMeta('biz');
     clearBizDirty();
+    renderBiz();
     const d=bizCalc();
     alert(`✅ 연말결산 저장 완료!\n\n${d.pr.label}\n매출 ${fmt(d.매출공급가)}원 · 순이익 ${fmt(d.영업이익)}원\n매입·경비 ${expenses.length}건\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
   }catch(e){alert('저장 실패: '+e.message);}
@@ -3989,6 +3990,7 @@ async function saveAlba(){
     touchMeta('alba');
     clearAlbaDirty();
     renderWageTable();
+    renderAlba();
     const taxName={none:'공제 안 함',daily:'일용근로소득',rate33:'사업소득 3.3%',custom:'직접 입력'}[albaConfig.taxMode]||'공제 안 함';
     alert(`✅ 저장 완료!\n\n기본시급: ${fmt(albaConfig.wage)}원\n시급표: ${albaConfig.wages.length}건\n4대보험 공제율: ${(albaConfig.pension+albaConfig.health+albaConfig.care+albaConfig.employ).toFixed(3)}%\n근로소득세: ${taxName}\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
   }catch(e){alert('저장 실패: '+e.message);}
@@ -4505,8 +4507,18 @@ async function saveStockEdit(){
   try{await fbSet('stockData',encodeStockData(stockData));touchMeta('stock');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
   closeModal('stockEditModal');
-  if(m===+document.getElementById('stockMonth').value) renderStock();
-  alert(`${m}월 ${d}일 재고 ${changed}건 수정 완료!`);
+  const curYM=stockYM();
+  if(ym===curYM){
+    renderStock();                       // 보고 있는 달이면 즉시 갱신합니다
+    alert(`✅ ${ymLabel(ym)} ${d}일 재고 ${changed}건 수정 완료!`);
+  } else {
+    // 다른 달을 수정한 경우 화면을 그 달로 옮겨 결과를 바로 보여 줍니다
+    document.getElementById('stockYear').value=+ym.slice(0,4);
+    document.getElementById('stockMonth').value=+ym.slice(5,7);
+    renderStock();
+    alert(`✅ ${ymLabel(ym)} ${d}일 재고 ${changed}건 수정 완료!\n\n`
+      +`화면을 ${ymLabel(ym)}로 옮겼습니다.`);
+  }
 }
 // ══ 재고 월 키 ══
 // 재고는 '2026-09'처럼 연도까지 넣어 보관합니다.
@@ -4649,10 +4661,12 @@ async function savePrice(){
     fbSet('jungs/'+j.id,j).catch(e=>console.error(e));
   });
 
-  // 현재 편집 중인 정산서가 진행중이면 화면 갱신
+  // 화면 즉시 갱신
+  renderPrice();
+  renderJungList();          // 진행중 정산서 금액이 바뀌므로 목록도 다시 그립니다
   if(editingId){
     const j=jungs.find(x=>x.id===editingId);
-    if(j&&j.상태==='진행중') buildTable(j,false);
+    if(j&&j.상태==='진행중'){ buildTable(j,false); updTotal(); }
   }
 
   alert(`✅ 원가DB 저장 완료!\n\n총 ${priceDB.length}개 품목${updated>0?`\n진행중 정산서 ${updated}개 품목 단가 자동 업데이트`:''}\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
