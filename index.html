@@ -1387,7 +1387,7 @@ async function doLogin(){
     currentUser={id:user.id,이름:user.이름,역할:user.역할};
     localStorage.setItem('hm_user',JSON.stringify(currentUser));
     localStorage.setItem('hm_expire',Date.now()+12*60*60*1000);
-    fbSet('users/'+id+'/lastLogin',new Date().toISOString()).catch(()=>{});
+    fbSet('users/'+id+'/lastLogin',nowISO()).catch(()=>{});
     onLoginSuccess();
   }catch(e){showLoginErr('로그인 실패: '+e.message);}
   finally{btn.textContent='로그인';btn.disabled=false;}
@@ -1477,15 +1477,16 @@ async function loadAllData(){
 function normalizeDate(v){
   if(!v)return'';
   if(typeof v==='string')return v.slice(0,10);
-  if(v instanceof Date)return v.toISOString().slice(0,10);
-  if(typeof v==='number'){const d=new Date((v-25569)*86400*1000);return d.toISOString().slice(0,10);}
+  if(v instanceof Date)return `${v.getFullYear()}-${_p2(v.getMonth()+1)}-${_p2(v.getDate())}`;
+  if(typeof v==='number'){const d=new Date(Date.UTC(1899,11,30)+v*86400000);
+    return `${d.getUTCFullYear()}-${_p2(d.getUTCMonth()+1)}-${_p2(d.getUTCDate())}`;}
   return String(v).slice(0,10);
 }
 function normalizeJung(j){
   return{...j,id:String(j.id||''),파일명:String(j.파일명||''),인원수:+j.인원수||50,
     분향실:String(j.분향실||''),고인:String(j.고인||''),날짜:normalizeDate(j.날짜),
     상주:String(j.상주||''),연락처:String(j.연락처||''),상태:String(j.상태||'진행중'),
-    결제:String(j.결제||''),생성일:String(j.생성일||new Date().toISOString()),
+    결제:String(j.결제||''),생성일:String(j.생성일||nowISO()),
     완료일:String(j.완료일||''),생성자:String(j.생성자||''),생성자id:String(j.생성자id||''),
     수정자:String(j.수정자||''),수정자id:String(j.수정자id||''),수정일:String(j.수정일||''),
     items:(j.items||[]).map(it=>({...it,품명:String(it.품명||''),단위:String(it.단위||''),
@@ -1513,7 +1514,7 @@ async function loadLogs(){
   }catch(e){console.error(e);}
 }
 async function addLog(사용자,작업,대상){
-  fbSet('logs/'+Date.now(),{시간:new Date().toISOString(),사용자,작업,대상:대상||''}).catch(()=>{});
+  fbSet('logs/'+Date.now(),{시간:nowISO(),사용자,작업,대상:대상||''}).catch(()=>{});
 }
 async function changePass(){
   const oldPw=document.getElementById('um-oldpw').value;
@@ -1564,7 +1565,7 @@ async function init(){
   const now=new Date();
   document.getElementById('stockMonth').value=now.getMonth()+1;
   document.getElementById('stockYear').value=now.getFullYear();
-  document.getElementById('filterMonth').value=now.toISOString().slice(0,7);
+  document.getElementById('filterMonth').value=todayStr().slice(0,7);
   document.getElementById('nw-날짜').value=('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2);
   updateNFN();
   initKoreanInputs();   // 고인·상주 입력란 한글 변환기 연결
@@ -1600,7 +1601,7 @@ function showPage(name,btn){
   const albaBtn=document.getElementById('tab-알바');
   if(albaBtn) albaBtn.style.background=name==='알바'?'#c0392b':'#e8821a';
   const eDate=document.getElementById('e-날짜');
-  if(name==='편집'&&eDate&&!eDate.value) eDate.value=new Date().toISOString().slice(0,10);
+  if(name==='편집'&&eDate&&!eDate.value) eDate.value=todayStr();
 }
 function goTab(name,idx){showPage(name,document.querySelectorAll('.ntab')[idx]);}
 function backToList(){
@@ -1674,7 +1675,7 @@ async function createJungsan(){
   const jung={
     id:Date.now().toString(),파일명,인원수:newCap,분향실,고인,
     날짜:날짜full,상주,연락처,상태:'진행중',결제:'',items,
-    생성일:new Date().toISOString(),완료일:'',생성자:currentUser?.이름||'',생성자id:currentUser?.id||''
+    생성일:nowISO(),완료일:'',생성자:currentUser?.이름||'',생성자id:currentUser?.id||''
   };
 
   // 1. 창 먼저 닫기 + 로컬에 추가 → 진행중 목록에 즉시 표시
@@ -1760,14 +1761,13 @@ function renderJungList(){
       <span class="ji-cap">${j.인원수}명</span>
       <span class="ji-name">${j.파일명}</span>
       <span class="ji-sub">발인 ${j.날짜}</span>
-      <span class="ji-sub">생성 ${j.생성일.slice(0,10)}</span>
+      <span class="ji-sub">생성 ${localDateOf(j.생성일)}</span>
       ${j.생성자?`<span class="ji-sub" style="color:#8a6d3b">작성 ${j.생성자id||j.생성자}</span>`:''}
       ${(j.수정자&&(j.수정자!==j.생성자||j.수정일))?`<span class="ji-sub" style="color:#e8821a">최종수정 ${j.수정자id||j.수정자}</span>`:''}
       <span style="margin-left:auto;font-weight:700;color:#1b3a5c;white-space:nowrap">${fmt(total)}원</span>
       ${done?`
         ${(()=>{
-          const today=new Date().toISOString().slice(0,10);
-          const isToday=j.완료일&&j.완료일.slice(0,10)===today;
+          const isToday=j.완료일&&localDateOf(j.완료일)===todayStr();
           return isToday
             ?'<span class="badge" style="background:#e74c3c;color:#fff;font-weight:700;animation:pulse 1.5s infinite">🔴 금일완료</span>'
             :'<span class="badge badge-done">✅ 완료</span>';
@@ -1811,8 +1811,8 @@ function loadForm(j,readOnly,forceEdit=false){
   document.getElementById('e-날짜').value=j.날짜;
   const wEl=document.getElementById('editWriter');
   if(wEl){
-    const made=j.생성자?`작성 ${j.생성자id||j.생성자}${j.생성일?' · '+j.생성일.slice(0,10):''}`:'';
-    const upd=j.수정자?`최종수정 ${j.수정자id||j.수정자}${j.수정일?' · '+j.수정일.slice(0,16).replace('T',' '):''}`:'';
+    const made=j.생성자?`작성 ${j.생성자id||j.생성자}${j.생성일?' · '+localDateOf(j.생성일):''}`:'';
+    const upd=j.수정자?`최종수정 ${j.수정자id||j.수정자}${j.수정일?' · '+localDateTimeOf(j.수정일):''}`:'';
     wEl.innerHTML=[made,upd].filter(Boolean).join(' &nbsp;|&nbsp; ');
   }
   document.getElementById('e-분향실').value=j.분향실;
@@ -2023,7 +2023,7 @@ async function saveEditing(){
   j.파일명=`최종정산서(${j.인원수})-${j.분향실}-${j.고인}-${mm}${dd}`;
   j.수정자=currentUser?.이름||'';
   j.수정자id=currentUser?.id||'';
-  j.수정일=new Date().toISOString();
+  j.수정일=nowISO();
 
   // 화면 즉시 갱신 + 메시지 바로 표시
   renderJungList();
@@ -2179,16 +2179,14 @@ window.onload=function(){
 let formMeta={};
 const META_LABEL={results:'결산서',stock:'재고관리장',price:'원가DB',alba:'알바관리',biz:'연말결산'};
 function touchMeta(key){
-  const m={id:currentUser?.id||'',이름:currentUser?.이름||'',시각:new Date().toISOString()};
+  const m={id:currentUser?.id||'',이름:currentUser?.이름||'',시각:nowISO()};
   formMeta[key]=m;
   renderMetaBadges();
   fbSet('meta/'+key,m).catch(e=>console.error('수정이력 저장 오류:',e));
 }
 function metaText(m){
   if(!m||!m.id) return '';
-  const t=new Date(m.시각);
-  const ds=isNaN(t)?'':`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
-  return `최종 수정 ${m.id}${m.이름?'('+m.이름+')':''} · ${ds}`;
+  return `최종 수정 ${m.id}${m.이름?'('+m.이름+')':''} · ${localDateTimeOf(m.시각)}`;
 }
 function renderMetaBadges(){
   Object.keys(META_LABEL).forEach(k=>{
@@ -2753,7 +2751,7 @@ async function saveMyWorkSlot(dateKey,slotIdx){
   if(!s){alert('해당 근무 기록을 찾지 못했습니다.');return;}
   if(s.승인){alert('이미 승인된 근무라 수정할 수 없습니다.');return;}   // 저장 직전 재확인
   s.출근=start; s.퇴근=end;
-  s.수정일=new Date().toISOString();
+  s.수정일=nowISO();
   try{
     await writeWorkSlots(dateKey,me,slots);
     document.getElementById('mwEditPop')?.remove();
@@ -2874,7 +2872,7 @@ function renderStockClose(){
   const al=document.getElementById('scAlert');
   if(done){
     al.style.background='#f0fff4'; al.style.border='1px solid #52be80'; al.style.color='#1e8449';
-    al.innerHTML=`✅ 이미 마감된 달입니다. 확정 ${done.확정자||''} · ${(done.확정일||'').slice(0,16).replace('T',' ')}<br>`
+    al.innerHTML=`✅ 이미 마감된 달입니다. 확정 ${done.확정자||''} · ${localDateTimeOf(done.확정일)}<br>`
       +`다시 마감하면 ${ymLabel(nextYM(ym))} 이월량을 덮어씁니다.`;
   } else {
     al.style.background='#fff8e7'; al.style.border='1px solid #f0d090'; al.style.color='#8a6d3b';
@@ -2924,7 +2922,7 @@ async function confirmStockClose(){
     stockData[nxt][k]['이월']=실사;
     항목[k]={장부:r.장부, 실사, 차이:diff, 사유:(scReason[r.품명]||'')};
   });
-  const rec={확정자:currentUser?.id||'', 확정일:new Date().toISOString(), 항목};
+  const rec={확정자:currentUser?.id||'', 확정일:nowISO(), 항목};
   stockClose[ym]=rec;
 
   showSaving(true);
@@ -2996,7 +2994,7 @@ function basicItemsFor(cap){
 }
 function openBasicSheet(){
   const now=new Date();
-  document.getElementById('bs-날짜').value=now.toISOString().slice(0,10);
+  document.getElementById('bs-날짜').value=todayStr();
   ['bs-분향실','bs-고인','bs-상주','bs-연락처'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   bsQty={};
   renderBasicSheet();
@@ -3189,9 +3187,9 @@ async function confirmPay(){
   const j=jungs.find(x=>x.id===pendingId);if(!j)return;
 
   // 1. 로컬 상태 즉시 반영
-  j.상태='완료';j.결제=pay;j.완료일=new Date().toISOString();
+  j.상태='완료';j.결제=pay;j.완료일=nowISO();
   const total=calcTotal(j.items);
-  const newResult={id:Date.now().toString(),분향실:j.분향실,고인:j.고인,날짜:j.날짜,금액:total,결제:pay,인원수:j.인원수,상주:j.상주||'',연락처:j.연락처||'',비고:'',time:new Date().toISOString()};
+  const newResult={id:Date.now().toString(),분향실:j.분향실,고인:j.고인,날짜:j.날짜,금액:total,결제:pay,인원수:j.인원수,상주:j.상주||'',연락처:j.연락처||'',비고:'',time:nowISO()};
   results.push(newResult);
   const ym=ymOfDate(j.날짜), d=+(j.날짜||'').slice(8,10);
   if(!stockData[ym])stockData[ym]={};
@@ -3395,7 +3393,7 @@ async function saveCalInput(dateKey){
   // 배열로 관리
   let logs=getWorkSlots(dateKey,myName);
   const job=document.getElementById('calJob')?.value||'';
-  logs.push({출근:start,퇴근:end,업무:job,승인:false,입력자:myName,입력일:new Date().toISOString()});
+  logs.push({출근:start,퇴근:end,업무:job,승인:false,입력자:myName,입력일:nowISO()});
   albaWorkLog[dateKey][myName]=logs;
   fbSet('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName),logs).catch(e=>console.error(e));
   document.getElementById('calPopup').remove();
@@ -3463,7 +3461,7 @@ function initAlbaMonth(){
 }
 function openAlbaModal(){
   document.getElementById('alba-name').value='';
-  document.getElementById('alba-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('alba-date').value=todayStr();
   document.getElementById('alba-start').value='09:00';
   document.getElementById('alba-end').value='18:00';
   document.getElementById('alba-memo').value='';
@@ -3736,7 +3734,7 @@ async function bulkApproveAlba(){
     const k=r.날짜+'|'+r.이름;
     (groups[k]=groups[k]||[]).push(r.slotIdx);
   });
-  const now=new Date().toISOString(), who=currentUser?.이름||'';
+  const now=nowISO(), who=currentUser?.이름||'';
   showSaving(true);
   let done=0,failed=0;
   try{
@@ -3947,7 +3945,7 @@ async function approveAlba(id,dateKey,이름,slotIdx){
   if(!confirm(`${이름} / ${dateKey} / ${slotIdx+1}회차 (${s.출근}~${s.퇴근})\n\n이 근무를 승인하시겠습니까?\n승인하면 알바 본인은 수정·삭제할 수 없습니다.`))return;
   s.승인=true;
   s.승인자=currentUser?.이름||'';
-  s.승인일=new Date().toISOString();
+  s.승인일=nowISO();
   await writeWorkSlots(dateKey,이름,slots);
   syncWorkLogToAlba();
   renderMiniCal();
@@ -4033,7 +4031,7 @@ function renderResults(){
   const fm=document.getElementById('filterMonth')?.value||'';
   let list=fm?results.filter(r=>r.날짜.startsWith(fm)):results;
   const total=results.reduce((s,r)=>s+(r.금액||0),0);
-  const tm=new Date().toISOString().slice(0,7);
+  const tm=todayStr().slice(0,7);
   const mc=results.filter(r=>r.날짜.startsWith(tm)).length;
   const mt=results.filter(r=>r.날짜.startsWith(tm)).reduce((s,r)=>s+(r.금액||0),0);
   document.getElementById('sumGrid').innerHTML=`
@@ -4065,7 +4063,7 @@ async function delResult(idx){
 function exportCSV(){
   let csv='NO,분향실,고인,발인일,정산액,결제방식,인원수,상주,연락처,비고\n';
   results.forEach((r,i)=>{csv+=`${i+1},${r.분향실},${r.고인},${r.날짜},${r.금액||0},${r.결제||''},${r.인원수||''},${r.상주||''},${r.연락처||''},${r.비고||''}\n`;});
-  dl('\uFEFF'+csv,'결산서_'+new Date().toISOString().slice(0,10)+'.csv','text/csv');
+  dl('\uFEFF'+csv,'결산서_'+todayStr()+'.csv','text/csv');
 }
 
 // ── 월별 차트 ──
@@ -4182,7 +4180,7 @@ function renderStock(){
   if(ci){
     const cl=stockClose[mKey];
     if(cl){
-      ci.innerHTML=`✅ <b>${ymLabel(mKey)} 마감 완료</b> · ${cl.확정자||''} · ${(cl.확정일||'').slice(0,10)}`;
+      ci.innerHTML=`✅ <b>${ymLabel(mKey)} 마감 완료</b> · ${cl.확정자||''} · ${localDateOf(cl.확정일)}`;
       ci.style.color='#1e8449';
     } else {
       const pv=stockClose[prevYM(mKey)];
@@ -4436,7 +4434,7 @@ function calcStockRow(inp){
 }
 // ── 재고량 수정 모달 ──
 function openStockEditModal(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=todayStr();
   document.getElementById('se-날짜').value=today;
   document.getElementById('seRows').innerHTML='';
   addSeRow();addSeRow();addSeRow(); // 기본 3행
@@ -4680,7 +4678,7 @@ function backupData(){
 
 // ── 자동 백업 ──
 function startAutoBackup(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=todayStr();
   const lastBackup=localStorage.getItem('hm_last_backup')||'';
 
   // 1. 오늘 첫 실행 시 자동 파일 백업
@@ -4721,8 +4719,8 @@ function startAutoBackup(){
 }
 
 function autoBackupToFile(label){
-  const data={jungs,results,stockData,priceDB,timestamp:new Date().toISOString(),version:'1.0'};
-  const today=new Date().toISOString().slice(0,10);
+  const data={jungs,results,stockData,priceDB,timestamp:nowISO(),version:'1.0'};
+  const today=todayStr();
   const timeStr=new Date().toTimeString().slice(0,5).replace(':','');
   const filename=`혼길마트_${today}_${timeStr}_${label}.json`;
   dl(JSON.stringify(data,null,2),filename,'application/json');
@@ -4735,7 +4733,7 @@ function autoBackupToFile(label){
 
 function autoSnapshot(){
   // localStorage에 최근 스냅샷 3개 유지
-  const snap={jungs,results,stockData,priceDB,timestamp:new Date().toISOString()};
+  const snap={jungs,results,stockData,priceDB,timestamp:nowISO()};
   const snaps=JSON.parse(localStorage.getItem('hm_snapshots')||'[]');
   snaps.unshift(snap);
   if(snaps.length>3) snaps.splice(3);
@@ -4816,6 +4814,37 @@ function restoreData(input){
 
 // ══ 유틸 ══
 function fmt(n){return(+n||0).toLocaleString('ko-KR');}
+
+// ══ 날짜·시각 (로컬 기준) ══
+// toISOString()은 UTC라 한국(UTC+9)에서는 오전 9시 이전에 하루 전 날짜가 나옵니다.
+const _p2=n=>String(n).padStart(2,'0');
+function todayStr(){                       // 오늘 YYYY-MM-DD
+  const d=new Date();
+  return `${d.getFullYear()}-${_p2(d.getMonth()+1)}-${_p2(d.getDate())}`;
+}
+function nowISO(){                         // 현재 시각 (시간대 오프셋 포함)
+  const d=new Date(), off=-d.getTimezoneOffset();
+  const sg=off>=0?'+':'-';
+  return `${d.getFullYear()}-${_p2(d.getMonth()+1)}-${_p2(d.getDate())}`
+    +`T${_p2(d.getHours())}:${_p2(d.getMinutes())}:${_p2(d.getSeconds())}`
+    +`${sg}${_p2(Math.floor(Math.abs(off)/60))}:${_p2(Math.abs(off)%60)}`;
+}
+// 저장된 시각 문자열에서 로컬 날짜를 뽑습니다 (예전 UTC 자료도 올바르게 변환)
+function localDateOf(iso){
+  if(!iso) return '';
+  if(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/.test(iso)){
+    const d=new Date(iso);
+    if(!isNaN(d)) return `${d.getFullYear()}-${_p2(d.getMonth()+1)}-${_p2(d.getDate())}`;
+  }
+  return String(iso).slice(0,10);
+}
+// 저장된 시각 문자열을 'YYYY-MM-DD HH:MM'으로 표시합니다
+function localDateTimeOf(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  if(isNaN(d)) return String(iso).slice(0,16).replace('T',' ');
+  return `${d.getFullYear()}-${_p2(d.getMonth()+1)}-${_p2(d.getDate())} ${_p2(d.getHours())}:${_p2(d.getMinutes())}`;
+}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 function dl(c,name,type){const b=new Blob([c],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
