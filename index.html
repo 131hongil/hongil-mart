@@ -37,6 +37,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .card-title{font-size:14px;font-weight:700;color:#1b3a5c;margin-bottom:11px;padding-bottom:7px;border-bottom:2px solid #e0eaf5;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .frow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:7px;align-items:flex-end}
 .fg{display:flex;flex-direction:column;gap:3px}
+.fg label{white-space:nowrap}
 .fg label{font-size:11px;color:#555;font-weight:700}
 .fg input,.fg select{padding:5px 7px;border:1px solid #ccc;border-radius:4px;font-size:13px;font-family:inherit}
 .fg input:focus,.fg select:focus{outline:none;border-color:#4da6ff}
@@ -94,8 +95,10 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .jung-item.done{background:#f0fff4;border-color:#52be80}
 .jung-item.done:hover{background:#d8f5e3;border-color:#217a3c;box-shadow:0 2px 8px rgba(33,122,60,.2)}
 .jung-item .btn-group{cursor:default}
-.ji-name{font-weight:700;color:#1b3a5c;font-size:13px;flex:1;min-width:160px}
+.ji-name{font-weight:700;color:#1b3a5c;font-size:13px;flex:0 1 auto;white-space:nowrap}
 .ji-sub{color:#888;font-size:11px;white-space:nowrap}
+.ji-burial{font-size:12px;color:#1b3a5c;font-weight:700;margin-left:10mm;white-space:nowrap}
+.ji-gap{margin-left:30mm}
 .ji-cap{background:#1b3a5c;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
 .empty-msg{color:#aaa;text-align:center;padding:30px;font-size:13px}
 
@@ -217,7 +220,10 @@ body.login #mobileNav{display:none!important}
     padding-top:calc(14px + env(safe-area-inset-top,0px));
     padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
   .modal h3{font-size:16px}
+  .frow[style*='nowrap']{flex-wrap:wrap!important}
   .jung-item{padding:11px 12px;gap:6px}
+  .ji-burial{margin-left:0;font-size:11px}
+  .ji-gap{margin-left:0}
   .jung-item .btn-group{width:100%;margin-top:5px}
   .jung-item .btn-group .btn{flex:1;justify-content:center}
   .card{padding:11px;border-radius:7px}
@@ -470,6 +476,9 @@ body.login #mobileNav{display:none!important}
       </div>
       <div class="frow" style="align-items:flex-end">
         <div class="fg"><label>발인일</label><input type="date" id="e-날짜" oninput="updateEditFileName()"></div>
+        <div class="fg"><label>발인시간</label>
+          <input type="text" id="e-발인시간" placeholder="예: 1400" maxlength="5" style="width:76px"
+            inputmode="numeric" onblur="this.value=parseTime(this.value)"></div>
         <div class="fg"><label>분향실</label>
           <div class="room-wrap">
             <input type="text" id="e-분향실" style="width:62px"
@@ -1078,44 +1087,52 @@ body.login #mobileNav{display:none!important}
           <div class="cap-btn" onclick="selCap(1000,this)">1000명</div>
         </div>
       </div>
-      <div class="frow" style="margin:0;gap:10px">
-        <div class="fg">
-          <label>분향실 번호 <span style="color:#e74c3c">*</span></label>
-          <div class="room-wrap">
-            <input type="text" id="nw-분향실" placeholder="번호" style="width:76px"
+      <div class="frow" style="margin:0;gap:10px;flex-wrap:nowrap;align-items:flex-start">
+        <div class="fg" style="flex:0 0 84px">
+          <label>분향실 <span style="color:#e74c3c">*</span></label>
+          <div class="room-wrap" style="width:100%">
+            <input type="text" id="nw-분향실" placeholder="번호" style="width:100%;min-width:0"
               oninput="this.value=this.value.replace(/[^0-9]/g,'');updateNFN()">
             <button type="button" class="room-arrow" onclick="toggleRoomList('nw-분향실',this)">▼</button>
           </div>
         </div>
-        <div class="fg">
+        <div class="fg" style="flex:1 1 auto;min-width:0">
           <label>고인 성함 <span style="color:#e74c3c">*</span></label>
-          <input type="text" id="nw-고인" placeholder="한글 성함"
+          <input type="text" id="nw-고인" placeholder="한글 성함" style="width:100%;min-width:0"
             inputmode="text" lang="ko"
             onfocus="setKorean(this)"
             onblur="filterHangul(this);updateNFN();clearKoreanStyle(this)">
         </div>
-        <div class="fg">
-          <label>발인일 MMDD <span style="color:#e74c3c">*</span></label>
-          <input type="text" id="nw-날짜" placeholder="예: 0901" maxlength="4" style="width:82px"
+        <div class="fg" style="flex:0 0 72px">
+          <label>발인일 <span style="color:#e74c3c">*</span></label>
+          <input type="text" id="nw-날짜" placeholder="0901" maxlength="4" style="width:100%;min-width:0"
             oninput="this.value=this.value.replace(/[^0-9]/g,'');updateNFN()">
         </div>
       </div>
-      <div class="frow" style="margin:0;gap:10px">
-        <div class="fg">
+      <div class="frow" style="margin:0;gap:10px;flex-wrap:nowrap;align-items:flex-start">
+        <div class="fg" style="flex:0 0 64px">
+          <label>발인시간</label>
+          <input type="text" id="nw-발인시간" placeholder="1400" maxlength="5" style="width:100%;min-width:0"
+            inputmode="numeric"
+            onblur="this.value=parseTime(this.value)">
+        </div>
+        <div class="fg" style="flex:0 0 96px">
           <label>상주 성함</label>
-          <input type="text" id="nw-상주" placeholder="한글 성함"
+          <input type="text" id="nw-상주" placeholder="한글 성함" style="width:100%;min-width:0"
             inputmode="text" lang="ko"
             onfocus="setKorean(this)"
             onblur="filterHangul(this);clearKoreanStyle(this)">
         </div>
-        <div class="fg">
-          <label>연락처 (8자리)</label>
-          <input type="text" id="nw-연락처" placeholder="00001111 → 010-0000-1111"
-            maxlength="8" oninput="this.value=this.value.replace(/[^0-9]/g,'');showTelHint(this)" style="width:170px">
+        <div class="fg" style="flex:1 1 auto;min-width:0">
+          <label>연락처</label>
+          <input type="text" id="nw-연락처" placeholder="00001111"
+            maxlength="8" oninput="this.value=this.value.replace(/[^0-9]/g,'');showTelHint(this)"
+            style="width:100%;min-width:92px">
           <div id="telHint" style="font-size:11px;color:#217a3c;margin-top:3px;min-height:14px"></div>
         </div>
       </div>
-      <div style="background:#f0f5ff;border-radius:5px;padding:8px 12px;font-size:12px;color:#1b3a5c">
+      <div style="background:#f0f5ff;border-radius:5px;padding:8px 12px;font-size:12px;color:#1b3a5c;
+        overflow:hidden;word-break:break-all">
         📁 파일명: <strong id="nwFN">최종정산서(50)--홍길동-0901</strong>
       </div>
     </div>
@@ -1601,7 +1618,7 @@ function normalizeDate(v){
 }
 function normalizeJung(j){
   return{...j,id:String(j.id||''),파일명:String(j.파일명||''),인원수:+j.인원수||50,
-    분향실:String(j.분향실||''),고인:String(j.고인||''),날짜:normalizeDate(j.날짜),
+    분향실:String(j.분향실||''),고인:String(j.고인||''),날짜:normalizeDate(j.날짜),발인시간:String(j.발인시간||''),
     상주:String(j.상주||''),연락처:String(j.연락처||''),상태:String(j.상태||'진행중'),
     결제:String(j.결제||''),생성일:String(j.생성일||nowISO()),
     완료일:String(j.완료일||''),생성자:String(j.생성자||''),생성자id:String(j.생성자id||''),
@@ -1800,7 +1817,7 @@ function backToList(){
 // ══ 새 정산서 ══
 function openNewModal(){
   // 이전 입력값 초기화
-  ['nw-분향실','nw-고인','nw-상주','nw-연락처'].forEach(id=>document.getElementById(id).value='');
+  ['nw-분향실','nw-고인','nw-상주','nw-연락처','nw-발인시간'].forEach(id=>document.getElementById(id).value='');
   const th=document.getElementById('telHint'); if(th) th.textContent='';
   newCap=50;
   document.querySelectorAll('#newCapBtns .cap-btn').forEach(b=>b.classList.remove('on'));
@@ -1835,6 +1852,19 @@ function showTelHint(inp){
                  : '';
   el.style.color = d.length===8 ? '#217a3c' : '#888';
 }
+// hhmm / hmm 입력을 hh:mm 으로 바꿔 줍니다
+function parseTime(v){
+  const d=(v||'').replace(/[^0-9]/g,'').slice(0,4);
+  if(!d) return '';
+  let h,m;
+  if(d.length>=4){ h=+d.slice(0,2); m=+d.slice(2,4); }
+  else if(d.length===3){ h=+d.slice(0,1); m=+d.slice(1,3); }
+  else { h=+d; m=0; }
+  if(h>23) h=23;
+  if(m>59) m=59;
+  return _p2(h)+':'+_p2(m);
+}
+
 function parseTel(val){
   const d=(val||'').replace(/[^0-9]/g,'');
   if(d.length===8)  return '010-'+d.slice(0,4)+'-'+d.slice(4);          // 1234-5678
@@ -1854,6 +1884,7 @@ async function createJungsan(){
   const 날짜str=document.getElementById('nw-날짜').value.trim();
   const 상주=document.getElementById('nw-상주').value.trim();
   const 연락처raw=document.getElementById('nw-연락처').value.trim();
+  const 발인시간=parseTime(document.getElementById('nw-발인시간').value);
   if(!분향실||!고인||!날짜str){alert('분향실·고인·발인일(MMDD)은 필수입니다.');return;}
   if(날짜str.length!==4||isNaN(날짜str)){alert('발인일은 MMDD 4자리 숫자로 입력하세요.\n예) 9월 1일 → 0901');return;}
   const 연락처=parseTel(연락처raw);
@@ -1880,7 +1911,7 @@ async function createJungsan(){
 
   const jung={
     id:Date.now().toString(),파일명,인원수:newCap,분향실,고인,
-    날짜:날짜full,상주,연락처,상태:'진행중',결제:'',items,
+    날짜:날짜full,발인시간,상주,연락처,상태:'진행중',결제:'',items,
     생성일:nowISO(),완료일:'',생성자:currentUser?.이름||'',생성자id:currentUser?.id||''
   };
 
@@ -1910,6 +1941,18 @@ function setFilter(f,btn){
   else btn.className='fbtn on-all';
   renderJungList();
 }
+// 목록에 쓸 발인 일시 표기 (예: 9월 3일(목) 14:00)
+const _DOW=['일','월','화','수','목','금','토'];
+function burialText(j){
+  const d=(j.날짜||'');
+  if(!d) return '-';
+  const [y,m,dd]=d.split('-').map(Number);
+  const dt=new Date(y,(m||1)-1,dd||1);
+  const dow=isNaN(dt)?'':`(${_DOW[dt.getDay()]})`;
+  const t=j.발인시간?` ${j.발인시간}`:'';
+  return `${m}월 ${dd}일${dow}${t}`;
+}
+
 function clearJungSearch(){
   const s=document.getElementById('jungSearch');
   if(s) s.value='';
@@ -1966,8 +2009,8 @@ function renderJungList(){
     div.innerHTML=`
       <span class="ji-cap">${j.인원수}명</span>
       <span class="ji-name">${j.파일명}</span>
-      <span class="ji-sub">발인 ${j.날짜}</span>
-      <span class="ji-sub">생성 ${localDateOf(j.생성일)}</span>
+      <span class="ji-burial">발인 ${burialText(j)}</span>
+      <span class="ji-sub ji-gap">생성 ${localDateOf(j.생성일)}</span>
       ${j.생성자?`<span class="ji-sub" style="color:#8a6d3b">작성 ${j.생성자id||j.생성자}</span>`:''}
       ${(j.수정자&&(j.수정자!==j.생성자||j.수정일))?`<span class="ji-sub" style="color:#e8821a">최종수정 ${j.수정자id||j.수정자}</span>`:''}
       <span style="margin-left:auto;font-weight:700;color:#1b3a5c;white-space:nowrap">${fmt(total)}원</span>
@@ -2021,6 +2064,7 @@ function loadForm(j,readOnly,forceEdit=false){
     const upd=j.수정자?`최종수정 ${j.수정자id||j.수정자}${j.수정일?' · '+localDateTimeOf(j.수정일):''}`:'';
     wEl.innerHTML=[made,upd].filter(Boolean).join(' &nbsp;|&nbsp; ');
   }
+  document.getElementById('e-발인시간').value=j.발인시간||'';
   document.getElementById('e-분향실').value=j.분향실;
   document.getElementById('e-고인').value=j.고인;
   document.getElementById('e-상주').value=j.상주||'';
@@ -2226,6 +2270,7 @@ async function saveEditing(){
   j.고인=document.getElementById('e-고인').value;
   j.상주=document.getElementById('e-상주').value;
   j.연락처=document.getElementById('e-연락처').value;
+  j.발인시간=parseTime(document.getElementById('e-발인시간').value);
   const mm=(j.날짜||'').slice(5,7),dd=(j.날짜||'').slice(8,10);
   j.파일명=`최종정산서(${j.인원수})-${j.분향실}-${j.고인}-${mm}${dd}`;
   j.수정자=currentUser?.이름||'';
@@ -3358,6 +3403,7 @@ function createJungFromBasic(){
   document.getElementById('nw-연락처').value=h.연락처;
   const d=document.getElementById('bs-날짜').value;
   document.getElementById('nw-날짜').value=d?d.slice(5,7)+d.slice(8,10):'';
+  document.getElementById('nw-발인시간').value='';
   newCap=h.cap;
   document.querySelectorAll('#newCapBtns .cap-btn').forEach(b=>{
     b.classList.toggle('on', +b.textContent.replace(/[^0-9]/g,'')===h.cap);
@@ -3380,6 +3426,7 @@ async function 정산완료(){
   j.고인=document.getElementById('e-고인').value||j.고인;
   j.상주=document.getElementById('e-상주').value||j.상주;
   j.연락처=document.getElementById('e-연락처').value||j.연락처;
+  j.발인시간=parseTime(document.getElementById('e-발인시간').value)||j.발인시간;
   const mm=(j.날짜||'').slice(5,7),dd=(j.날짜||'').slice(8,10);
   j.파일명=`최종정산서(${j.인원수})-${j.분향실}-${j.고인}-${mm}${dd}`;
   const total=calcTotal(j.items);
