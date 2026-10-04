@@ -1963,7 +1963,11 @@ function renderJungList(){
   let list=jungs;
   if(listFilter==='진행중') list=jungs.filter(j=>j.상태==='진행중');
   if(listFilter==='완료')   list=jungs.filter(j=>j.상태==='완료');
-  list=[...list].reverse();
+  // 발인일 오름차순 (같은 날은 발인시간 → 분향실 순)
+  list=[...list].sort((a,b)=>
+       (a.날짜||'9999-99-99').localeCompare(b.날짜||'9999-99-99')
+    || (a.발인시간||'99:99').localeCompare(b.발인시간||'99:99')
+    || (a.분향실||'').localeCompare(b.분향실||'', 'ko', {numeric:true}));
 
   // 검색: 발인일 / 고인 / 상주 / 분향실
   const q=(document.getElementById('jungSearch')?.value||'').trim();
