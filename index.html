@@ -1958,16 +1958,31 @@ function clearJungSearch(){
   if(s) s.value='';
   renderJungList();
 }
+// 발인일 기준 비교 (desc=true면 내림차순, 날짜 없는 건은 항상 뒤로)
+function cmpJung(a,b,desc){
+  const ad=a.날짜||'', bd=b.날짜||'';
+  if(!ad&&!bd) return 0;
+  if(!ad) return 1;
+  if(!bd) return -1;
+  let r = ad.localeCompare(bd);
+  if(!r) r = (a.발인시간||'').localeCompare(b.발인시간||'');
+  if(desc) r = -r;
+  return r || (a.분향실||'').localeCompare(b.분향실||'', 'ko', {numeric:true});
+}
 function renderJungList(){
   const el=document.getElementById('jungList');
   let list=jungs;
   if(listFilter==='진행중') list=jungs.filter(j=>j.상태==='진행중');
   if(listFilter==='완료')   list=jungs.filter(j=>j.상태==='완료');
-  // 발인일 오름차순 (같은 날은 발인시간 → 분향실 순)
-  list=[...list].sort((a,b)=>
-       (a.날짜||'9999-99-99').localeCompare(b.날짜||'9999-99-99')
-    || (a.발인시간||'99:99').localeCompare(b.발인시간||'99:99')
-    || (a.분향실||'').localeCompare(b.분향실||'', 'ko', {numeric:true}));
+  // 정렬: 진행중은 발인일 오름차순(임박한 건부터), 완료는 내림차순(최근 건부터)
+  list=[...list].sort((a,b)=>{
+    if(listFilter==='all'){                       // 전체: 진행중을 위로 모읍니다
+      const ad=a.상태==='완료'?1:0, bd=b.상태==='완료'?1:0;
+      if(ad!==bd) return ad-bd;
+      return cmpJung(a,b,ad===1);
+    }
+    return cmpJung(a,b, listFilter==='완료');
+  });
 
   // 검색: 발인일 / 고인 / 상주 / 분향실
   const q=(document.getElementById('jungSearch')?.value||'').trim();
