@@ -164,6 +164,34 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .cap-btn{padding:5px 12px;border:2px solid #1b3a5c;border-radius:5px;cursor:pointer;background:#fff;font-weight:700;font-size:12px;color:#1b3a5c;font-family:inherit}
 .cap-btn:hover,.cap-btn.on{background:#1b3a5c;color:#fff}
 
+/* ── 메모장 ── */
+.memo-badge{position:absolute;top:4px;right:5px;background:#e74c3c;color:#fff;font-size:9px;
+  font-weight:700;min-width:15px;height:15px;line-height:15px;border-radius:8px;padding:0 3px}
+.mm-tabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:6px;border-bottom:2px solid #e0e8f2;margin-bottom:9px}
+.mm-tab{flex:0 0 auto;padding:6px 11px;border:1px solid #c3d2e3;border-radius:6px 6px 0 0;
+  background:#f3f7fc;color:#45627f;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.mm-tab.on{background:#1b3a5c;color:#fff;border-color:#1b3a5c}
+.mm-tab .cnt{display:inline-block;margin-left:4px;background:#e74c3c;color:#fff;border-radius:7px;
+  font-size:10px;padding:0 4px;min-width:14px}
+.mm-tab.on .cnt{background:#ffb84d;color:#3a2a00}
+.mm-new{flex:0 0 auto;padding:6px 10px;border:1px dashed #9ab0c4;border-radius:6px;background:#fff;
+  color:#1b3a5c;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.mm-new:hover{background:#eef5fd}
+.mm-list{max-height:46vh;overflow-y:auto;border:1px solid #d0dff0;border-radius:6px;background:#fff}
+.mm-row{display:flex;align-items:flex-start;gap:7px;padding:7px 9px;border-bottom:1px solid #eef2f7}
+.mm-row:hover{background:#f7faff}
+.mm-row.done .mm-txt{text-decoration:line-through;color:#9aa8b4}
+.mm-row.imp{background:#fff8e8}
+.mm-chk{width:17px;height:17px;flex:0 0 auto;margin-top:4px;cursor:pointer;accent-color:#2a7a5c}
+.mm-txt{flex:1 1 auto;border:1px solid transparent;background:transparent;font-family:inherit;
+  font-size:13px;color:#22323f;padding:3px 4px;border-radius:4px;resize:none;overflow:hidden;line-height:1.5}
+.mm-txt:focus{border-color:#4da6ff;background:#fff;outline:none}
+.mm-meta{flex:0 0 auto;font-size:10px;color:#9aa8b4;text-align:right;min-width:72px;margin-top:3px;line-height:1.3}
+.mm-ico{flex:0 0 auto;border:none;background:none;cursor:pointer;font-size:14px;padding:2px 3px;margin-top:2px}
+.mm-add{display:flex;gap:6px;margin-top:9px}
+.mm-add input{flex:1 1 auto;padding:8px 10px;border:1px solid #c3d2e3;border-radius:5px;font-family:inherit;font-size:13px}
+.mm-empty{padding:26px 10px;text-align:center;color:#9aa8b4;font-size:12px}
+
 /* ── 마트관리 ── */
 .mgmt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}
 .mgmt-card{background:#f8faff;border:1px solid #d0dff0;border-radius:7px;padding:14px;cursor:pointer;transition:.15s;text-align:center}
@@ -226,6 +254,8 @@ body.login #mobileNav{display:none!important}
   .ji-gap{margin-left:0}
   .jung-item .btn-group{width:100%;margin-top:5px}
   .jung-item .btn-group .btn{flex:1;justify-content:center}
+  .mm-list{max-height:50vh}
+  .mm-meta{display:none}
   .card{padding:11px;border-radius:7px}
   .card-title{font-size:15px}
   .fbtn{flex:1;min-width:70px;text-align:center}
@@ -416,12 +446,13 @@ body.login #mobileNav{display:none!important}
   <div class="sidebar-logo"><span>🏪</span></div>
   <!-- 메뉴 영역 -->
   <div class="sidebar-inner">
-    <button class="ntab" onclick="showPage('진행중',this)"><span class="ti">📁</span>정산서<br>관리</button>
-    <button class="ntab" id="tab-결산" style="display:none" onclick="showPage('결산',this)"><span class="ti">📊</span>결산서</button>
-    <button class="ntab" id="tab-경영" style="display:none" onclick="showPage('경영',this)"><span class="ti">📒</span>연말<br>결산</button>
-    <button class="ntab" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
-    <button class="ntab" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
-    <button class="ntab on" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
+    <button class="ntab" data-pg="진행중" onclick="showPage('진행중',this)"><span class="ti">📁</span>정산서<br>관리</button>
+    <button class="ntab" id="tab-결산" data-pg="결산" style="display:none" onclick="showPage('결산',this)"><span class="ti">📊</span>결산서</button>
+    <button class="ntab" id="tab-경영" data-pg="경영" style="display:none" onclick="showPage('경영',this)"><span class="ti">📒</span>연말<br>결산</button>
+    <button class="ntab" data-pg="재고" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
+    <button class="ntab" data-pg="원가" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
+    <button class="ntab" id="tab-메모" style="position:relative" onclick="openMemoPad()"><span class="ti">📝</span>메모장<span class="memo-badge" id="memoBadge" style="display:none">0</span></button>
+    <button class="ntab on" data-pg="관리" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
     <!-- 캘린더 + 시간계산 버튼 - 마트관리 바로 아래 -->
     <div style="padding:5px 4px;border-top:1px solid #2d5580;margin-top:4px">
       <div id="miniCal" style="background:#0f2540;border-radius:6px;padding:4px;font-size:9px;color:#9bbcd4;margin-bottom:3px"></div>
@@ -704,6 +735,38 @@ body.login #mobileNav{display:none!important}
     <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
       <button class="btn btn-gray" onclick="closeModal('myWorkModal')">닫기</button>
       <button class="btn btn-info" onclick="printMyWork()">🖨️ 인쇄</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 메모장 ══ -->
+<div class="overlay" id="memoModal">
+  <div class="modal" style="max-width:700px;width:96%">
+    <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px">
+      <h3 style="margin:0">📝 메모장</h3>
+      <span id="mmTotal" style="font-size:12px;color:#c0392b;font-weight:700"></span>
+      <div style="margin-left:auto;display:flex;gap:5px">
+        <button class="btn btn-gray btn-sm" onclick="renameMemoBoard()">✏️ 이름변경</button>
+        <button class="btn btn-sm" style="background:#c0392b;color:#fff" onclick="delMemoBoard()">🗑 메모장 삭제</button>
+      </div>
+    </div>
+    <div class="mm-tabs" id="mmTabs"></div>
+    <div class="mm-list" id="mmList"></div>
+    <div class="mm-add">
+      <input type="text" id="mmNew" lang="ko" placeholder="메모 내용을 입력하고 Enter를 누르십시오"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();addMemoItem();}">
+      <button class="btn btn-success" onclick="addMemoItem()">＋ 추가</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:9px;flex-wrap:wrap">
+      <span id="mmInfo" style="font-size:11px;color:#8a98a6"></span>
+      <div style="margin-left:auto;display:flex;gap:5px">
+        <button class="btn btn-gray btn-sm" onclick="clearDoneMemo()">✓ 완료항목 정리</button>
+        <button class="btn btn-info btn-sm" onclick="printMemo()">🖨️ 인쇄</button>
+        <button class="btn btn-gray btn-sm" onclick="closeModal('memoModal')">닫기</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#8a6d3b;margin-top:7px">
+      ※ 입력한 내용은 자동으로 저장되며 직원 모두가 함께 봅니다. 메모장 삭제는 만든 사람과 관리자만 할 수 있습니다.
     </div>
   </div>
 </div>
@@ -1476,6 +1539,16 @@ function startRealtimeSync(){
     renderResults();
     if(typeof buildCharts==='function')buildCharts();
   });
+  // 메모장도 함께 실시간으로 받습니다
+  window._fbOnValue(fbRef('memos'),snap=>{
+    if(_syncPause)return;
+    memos=snap.exists()?(snap.val()||{}):{};
+    updateMemoBadge();
+    const open=document.getElementById('memoModal')?.classList.contains('show');
+    const typing=document.activeElement&&document.activeElement.closest
+      &&document.activeElement.closest('#memoModal');
+    if(open&&!typing) renderMemo();   // 입력 중일 때는 화면을 건드리지 않습니다
+  });
 }
 // 삭제 시 동기화 잠깐 멈추기 (2초)
 function pauseSync(){
@@ -1573,8 +1646,8 @@ async function loadAllData(){
   try{
     if(!DB) await initFirebase();
     document.getElementById('ubSync').style.color='#f39c12';
-    const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData]=await Promise.all([
-      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta'),fbGet('expenses'),fbGet('bizConfig'),fbGet('posSales'),fbGet('stockClose')
+    const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData,moData]=await Promise.all([
+      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta'),fbGet('expenses'),fbGet('bizConfig'),fbGet('posSales'),fbGet('stockClose'),fbGet('memos')
     ]);
     jungs    =jData?Object.values(jData).map(normalizeJung):[];
     results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
@@ -1594,6 +1667,8 @@ async function loadAllData(){
     if(bData) bizConfig=Object.assign(bizConfig,bData);
     posSales=psData||{};
     stockClose=scData||{};
+    memos=moData||{};
+    updateMemoBadge();
     formMeta=mData||{};
     renderMetaBadges();
     if(cData) albaConfig=Object.assign(albaConfig,cData);
@@ -1764,9 +1839,10 @@ function markMobileTab(name){
   document.querySelectorAll('.mn-tab').forEach(b=>
     b.classList.toggle('on', b.dataset.pg===name));
 }
+// 사이드 메뉴 버튼을 이름으로 찾습니다 (버튼이 늘어나도 어긋나지 않습니다)
+function ntabOf(name){ return document.querySelector(`.ntab[data-pg="${name}"]`)||null; }
 function goMobile(name){
-  const idx={'진행중':0,'결산':1,'경영':2,'재고':3,'원가':4,'알바':5,'관리':6};
-  showPage(name, document.querySelectorAll('.ntab')[idx[name]]||null);
+  showPage(name, ntabOf(name));
   markMobileTab(name);
   window.scrollTo(0,0);
 }
@@ -1775,8 +1851,10 @@ function openMore(){
   const w=document.getElementById('msWho');
   if(w&&currentUser) w.textContent=`${currentUser.이름}(${currentUser.id})`;
   const btn=(icon,label,fn)=>`<button class="ms-btn" onclick="closeMore();${fn}"><b>${icon}</b>${label}</button>`;
+  const mo=memoTotalOpen();
   g.innerHTML=
-      btn('📋','내 근무시간','openMyWork()')
+      btn('📝','메모장'+(mo?` (${mo})`:''),'openMemoPad()')
+    + btn('📋','내 근무시간','openMyWork()')
     + btn('📦','기본물품장','openBasicSheet()')
     + btn('💾','백업',"autoBackupToFile('수동')")
     + btn('↩','스냅샷 복원','restoreSnapshot()')
@@ -1809,7 +1887,7 @@ function showPage(name,btn){
   if(name==='편집'&&eDate&&!eDate.value) eDate.value=todayStr();
   markMobileTab(name);                    // 모바일 가로 메뉴 표시 갱신
 }
-function goTab(name,idx){showPage(name,document.querySelectorAll('.ntab')[idx]);}
+function goTab(name,idx){showPage(name,ntabOf(name)||document.querySelectorAll('.ntab')[idx]);}
 function backToList(){
   goTab('진행중',0);
 }
@@ -5007,7 +5085,8 @@ function autoBackupToFile(label){
     albaData,albaWorkLog,albaConfig,          // 알바 근무·시급표
     expenses,bizConfig,posSales,              // 연말결산
     stockClose,                               // 월 마감 이력
-    timestamp:nowISO(),version:'2.0'};
+    memos,                                    // 메모장
+    timestamp:nowISO(),version:'2.1'};
   const today=todayStr();
   const timeStr=new Date().toTimeString().slice(0,5).replace(':','');
   const filename=`혼길마트_${today}_${timeStr}_${label}.json`;
@@ -5022,7 +5101,7 @@ function autoBackupToFile(label){
 function autoSnapshot(){
   // localStorage에 최근 스냅샷 3개 유지
   const snap={jungs,results,stockData,priceDB,
-    albaData,albaWorkLog,albaConfig,expenses,bizConfig,posSales,stockClose,
+    albaData,albaWorkLog,albaConfig,expenses,bizConfig,posSales,stockClose,memos,
     timestamp:nowISO()};
   const snaps=JSON.parse(localStorage.getItem('hm_snapshots')||'[]');
   snaps.unshift(snap);
@@ -5057,6 +5136,7 @@ function restoreSnapshot(){
   if(snap.bizConfig){bizConfig=Object.assign(bizConfig,snap.bizConfig);fbSet('bizConfig',bizConfig).catch(()=>{});}
   if(snap.posSales){posSales=snap.posSales;fbSet('posSales',posSales).catch(()=>{});}
   if(snap.stockClose){stockClose=snap.stockClose;fbSet('stockClose',stockClose).catch(()=>{});}
+  if(snap.memos){memos=snap.memos;fbSet('memos',memos).catch(()=>{});updateMemoBadge();}
   renderJungList();renderResults();renderStock();renderPrice();
   if(typeof syncWorkLogToAlba==='function')syncWorkLogToAlba();
   if(typeof renderMiniCal==='function')renderMiniCal();
@@ -5124,6 +5204,8 @@ function restoreData(input){
       if(data.posSales){ posSales=data.posSales; await fbSet('posSales',posSales); }
       // ── 월 마감 이력 ──
       if(data.stockClose){ stockClose=data.stockClose; await fbSet('stockClose',stockClose); }
+      // ── 메모장 ──
+      if(data.memos){ memos=data.memos; await fbSet('memos',memos); updateMemoBadge(); }
 
       renderJungList();renderResults();renderStock();renderPrice();
       if(typeof syncWorkLogToAlba==='function')syncWorkLogToAlba();
@@ -5134,7 +5216,8 @@ function restoreData(input){
         `결산서 ${results.length}건`,
         data.albaData?`알바 근무 ${albaData.length}건`:null,
         data.expenses?`매입·경비 ${expenses.length}건`:null,
-        data.stockClose?`월 마감 ${Object.keys(stockClose).length}개월`:null
+        data.stockClose?`월 마감 ${Object.keys(stockClose).length}개월`:null,
+        data.memos?`메모장 ${Object.keys(memos).length}개`:null
       ].filter(Boolean).join('\n');
       alert(`✅ 복원 완료!\n\n${cnt}\n백업일시: ${data.timestamp?localDateTimeOf(data.timestamp):'-'}`
         +(data.version?`\n백업형식: v${data.version}`:'\n\n※ 예전 형식이라 알바·연말결산 자료는 들어 있지 않습니다.'));
@@ -5144,6 +5227,244 @@ function restoreData(input){
     input.value='';
   };
   reader.readAsText(file,'utf-8');
+}
+
+// ══════════════════════════════════════════════
+//  메모장 — 업무별로 메모장을 여러 개 만들어 함께 씁니다
+//  구조: memos/{메모장id}/{제목,순서,생성자,생성일,항목:{항목id:{내용,완료,중요,...}}}
+// ══════════════════════════════════════════════
+let memos={};          // 전체 메모장
+let memoBoard=null;    // 지금 보고 있는 메모장 id
+const _mmTimers={};    // 글자 입력 저장을 조금 늦추기 위한 타이머
+
+// 순서 → 생성일 순으로 정렬한 [id, 메모장] 목록
+function memoBoards(){
+  return Object.entries(memos)
+    .filter(([,b])=>b&&typeof b==='object')
+    .sort((a,b)=>(+a[1].순서||0)-(+b[1].순서||0)
+      || String(a[1].생성일||'').localeCompare(String(b[1].생성일||'')));
+}
+// 중요 → 미완료 → 작성순
+function memoItems(b){
+  const o=(b&&b.항목)||{};
+  return Object.entries(o).filter(([,v])=>v&&typeof v==='object')
+    .sort((x,y)=>{
+      const xd=x[1].완료?1:0, yd=y[1].완료?1:0;
+      if(xd!==yd) return xd-yd;
+      const xi=x[1].중요?0:1, yi=y[1].중요?0:1;
+      if(xi!==yi) return xi-yi;
+      return String(x[1].작성일||'').localeCompare(String(y[1].작성일||''));
+    });
+}
+function memoOpenCount(b){ return memoItems(b).filter(([,v])=>!v.완료).length; }
+function memoTotalOpen(){ return memoBoards().reduce((s,[,b])=>s+memoOpenCount(b),0); }
+
+// 사이드 메뉴 버튼의 빨간 숫자 (미완료 합계)
+function updateMemoBadge(){
+  const el=document.getElementById('memoBadge');
+  if(!el) return;
+  const n=memoTotalOpen();
+  el.textContent=n>99?'99+':String(n);
+  el.style.display=n?'':'none';
+}
+
+function openMemoPad(){
+  if(!memoBoard||!memos[memoBoard]){
+    const bs=memoBoards();
+    memoBoard=bs.length?bs[0][0]:null;
+  }
+  document.getElementById('memoModal').classList.add('show');
+  if(!memoBoard){ createMemoBoard('업무 메모',true); }
+  else renderMemo();
+  setTimeout(()=>document.getElementById('mmNew')?.focus(),80);
+}
+function selMemoBoard(id){ memoBoard=id; renderMemo(); }
+
+function autoGrow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
+
+function renderMemo(){
+  const tabs=document.getElementById('mmTabs'), list=document.getElementById('mmList');
+  if(!tabs||!list) return;
+  const bs=memoBoards();
+  if(bs.length&&(!memoBoard||!memos[memoBoard])) memoBoard=bs[0][0];
+
+  tabs.innerHTML=bs.map(([id,b])=>{
+    const n=memoOpenCount(b);
+    return `<button class="mm-tab${id===memoBoard?' on':''}" onclick="selMemoBoard('${id}')">`
+      +esc(b.제목||'메모')+(n?`<span class="cnt">${n}</span>`:'')+'</button>';
+  }).join('')+'<button class="mm-new" onclick="createMemoBoard()">＋ 메모장 추가</button>';
+
+  const b=memos[memoBoard];
+  if(!b){
+    list.innerHTML='<div class="mm-empty">메모장이 없습니다. ＋ 메모장 추가를 눌러 주십시오.</div>';
+    document.getElementById('mmTotal').textContent='';
+    document.getElementById('mmInfo').textContent='';
+    updateMemoBadge(); return;
+  }
+  const items=memoItems(b);
+  list.innerHTML=items.length?items.map(([iid,it])=>{
+    const cls=(it.완료?' done':'')+(it.중요&&!it.완료?' imp':'');
+    return `<div class="mm-row${cls}">`
+      +`<input type="checkbox" class="mm-chk"${it.완료?' checked':''} onchange="toggleMemoDone('${iid}',this.checked)">`
+      +`<textarea class="mm-txt" rows="1" lang="ko" oninput="autoGrow(this);editMemoItem('${iid}',this.value)">${esc(it.내용||'')}</textarea>`
+      +`<button class="mm-ico" title="중요 표시" onclick="toggleMemoImp('${iid}')">${it.중요?'⭐':'☆'}</button>`
+      +`<span class="mm-meta">${esc(it.작성자||'')}<br>${esc(localDateOf(it.수정일||it.작성일))}</span>`
+      +`<button class="mm-ico" title="삭제" onclick="delMemoItem('${iid}')">🗑</button>`
+      +'</div>';
+  }).join(''):'<div class="mm-empty">메모가 없습니다. 아래 칸에 입력하고 Enter를 누르십시오.</div>';
+  list.querySelectorAll('.mm-txt').forEach(autoGrow);
+
+  const n=memoOpenCount(b);
+  document.getElementById('mmTotal').textContent=items.length?(n?`미완료 ${n}건`:'모두 완료'):'';
+  document.getElementById('mmInfo').textContent=
+    `만든 사람 ${b.생성자||'-'} · ${localDateOf(b.생성일)||'-'} · 메모 ${items.length}건`;
+  updateMemoBadge();
+}
+
+async function createMemoBoard(name,silent){
+  const t=name||prompt('새 메모장 이름을 입력하십시오.','');
+  if(t===null||!String(t).trim()) return;
+  const id='mb'+Date.now()+Math.floor(Math.random()*900+100);
+  const board={제목:String(t).trim().slice(0,30),순서:Object.keys(memos).length+1,
+    생성자:currentUser?.이름||'',생성자id:currentUser?.id||'',생성일:nowISO()};
+  memos[id]=board; memoBoard=id;
+  renderMemo();
+  try{ await fbSet('memos/'+id,board); }
+  catch(e){ alert('메모장 추가에 실패했습니다: '+e.message); return; }
+  if(!silent) alert(`메모장 "${board.제목}"을 추가했습니다.`);
+}
+
+async function renameMemoBoard(){
+  const bid=memoBoard, b=memos[bid];
+  if(!b){ alert('메모장이 없습니다.'); return; }
+  const t=prompt('메모장 이름을 입력하십시오.',b.제목||'');
+  if(t===null) return;
+  if(!t.trim()){ alert('이름을 입력하십시오.'); return; }
+  b.제목=t.trim().slice(0,30);
+  renderMemo();
+  try{ await fbSet(`memos/${bid}/제목`,b.제목); }
+  catch(e){ alert('이름 변경에 실패했습니다: '+e.message); }
+}
+
+async function delMemoBoard(){
+  const bid=memoBoard, b=memos[bid];
+  if(!b){ alert('메모장이 없습니다.'); return; }
+  if(!isAdmin()&&b.생성자id&&b.생성자id!==currentUser?.id){
+    alert(`이 메모장은 ${b.생성자||b.생성자id} 님이 만들었습니다.\n만든 사람과 관리자만 삭제할 수 있습니다.`);
+    return;
+  }
+  const cnt=memoItems(b).length;
+  if(!confirm(`메모장 "${b.제목||''}"을 삭제하시겠습니까?\n\n메모 ${cnt}건이 함께 지워지며 되돌릴 수 없습니다.`)) return;
+  delete memos[bid]; memoBoard=null;
+  pauseSync(); renderMemo();
+  try{ await fbRemove('memos/'+bid); }
+  catch(e){ alert('메모장 삭제에 실패했습니다: '+e.message); }
+}
+
+async function addMemoItem(){
+  const inp=document.getElementById('mmNew');
+  const txt=(inp.value||'').trim();
+  if(!txt){ inp.focus(); return; }
+  const bid=memoBoard;
+  if(!bid||!memos[bid]){ alert('먼저 메모장을 추가하십시오.'); return; }
+  const iid='mi'+Date.now()+Math.floor(Math.random()*900+100);
+  const item={내용:txt,완료:false,중요:false,
+    작성자:currentUser?.이름||'',작성자id:currentUser?.id||'',
+    작성일:nowISO(),수정일:nowISO()};
+  if(!memos[bid].항목) memos[bid].항목={};
+  memos[bid].항목[iid]=item;
+  inp.value='';
+  renderMemo(); inp.focus();
+  try{ await fbSet(`memos/${bid}/항목/${iid}`,item); }
+  catch(e){ alert('메모 저장에 실패했습니다: '+e.message); }
+}
+
+// 글자를 입력하면 0.7초 뒤 자동 저장합니다 (버튼 없음)
+function editMemoItem(iid,val){
+  const bid=memoBoard, b=memos[bid];
+  if(!b||!b.항목||!b.항목[iid]) return;
+  const it=b.항목[iid];
+  it.내용=val; it.수정일=nowISO(); it.수정자=currentUser?.이름||'';
+  const key=bid+'|'+iid;
+  clearTimeout(_mmTimers[key]);
+  _mmTimers[key]=setTimeout(()=>{
+    fbSet(`memos/${bid}/항목/${iid}`,it).catch(e=>console.error('메모 저장 오류:',e));
+  },700);
+}
+
+async function toggleMemoDone(iid,v){
+  const bid=memoBoard, b=memos[bid];
+  if(!b||!b.항목||!b.항목[iid]) return;
+  const it=b.항목[iid];
+  it.완료=!!v; it.수정일=nowISO(); it.수정자=currentUser?.이름||'';
+  it.완료자=v?(currentUser?.이름||''):''; it.완료일=v?nowISO():'';
+  renderMemo();
+  try{ await fbSet(`memos/${bid}/항목/${iid}`,it); }
+  catch(e){ console.error('메모 저장 오류:',e); }
+}
+
+async function toggleMemoImp(iid){
+  const bid=memoBoard, b=memos[bid];
+  if(!b||!b.항목||!b.항목[iid]) return;
+  const it=b.항목[iid];
+  it.중요=!it.중요; it.수정일=nowISO();
+  renderMemo();
+  try{ await fbSet(`memos/${bid}/항목/${iid}`,it); }
+  catch(e){ console.error('메모 저장 오류:',e); }
+}
+
+async function delMemoItem(iid){
+  const bid=memoBoard, b=memos[bid];
+  if(!b||!b.항목||!b.항목[iid]) return;
+  const it=b.항목[iid];
+  if(!confirm(`메모를 삭제하시겠습니까?\n\n"${(it.내용||'').slice(0,40)}"`)) return;
+  delete b.항목[iid];
+  pauseSync(); renderMemo();
+  try{ await fbRemove(`memos/${bid}/항목/${iid}`); }
+  catch(e){ alert('메모 삭제에 실패했습니다: '+e.message); }
+}
+
+async function clearDoneMemo(){
+  const bid=memoBoard, b=memos[bid];
+  if(!b){ alert('메모장이 없습니다.'); return; }
+  const done=memoItems(b).filter(([,v])=>v.완료);
+  if(!done.length){ alert('완료된 메모가 없습니다.'); return; }
+  if(!confirm(`완료된 메모 ${done.length}건을 삭제하시겠습니까?`)) return;
+  done.forEach(([iid])=>{ delete b.항목[iid]; });
+  pauseSync(); renderMemo();
+  try{
+    for(const [iid] of done) await fbRemove(`memos/${bid}/항목/${iid}`);
+    alert(`완료된 메모 ${done.length}건을 정리했습니다.`);
+  }catch(e){ alert('정리 중 오류가 생겼습니다: '+e.message); }
+}
+
+function printMemo(){
+  const b=memos[memoBoard];
+  if(!b){ alert('인쇄할 메모장이 없습니다.'); return; }
+  const items=memoItems(b);
+  const rows=items.map(([,it],i)=>
+    `<tr><td class="c">${i+1}</td><td class="c">${it.완료?'✔':''}</td>`
+    +`<td>${it.중요?'⭐ ':''}${esc(it.내용||'').replace(/\n/g,'<br>')}</td>`
+    +`<td class="c">${esc(it.작성자||'')}</td>`
+    +`<td class="c">${esc(localDateOf(it.수정일||it.작성일))}</td></tr>`).join('');
+  const w=window.open('','_blank');
+  if(!w){ alert('팝업이 차단되었습니다. 팝업을 허용한 뒤 다시 시도하십시오.'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'
+    +esc(b.제목||'메모장')+'</title><style>'
+    +"body{font-family:'Malgun Gothic','맑은 고딕',sans-serif;margin:12mm;color:#222}"
+    +'h2{font-size:17px;margin:0 0 4px}.sub{font-size:11px;color:#666;margin-bottom:9px}'
+    +'table{width:100%;border-collapse:collapse;font-size:12px}'
+    +'th,td{border:1px solid #999;padding:5px 6px;vertical-align:top}'
+    +'th{background:#eef2f7}.c{text-align:center;white-space:nowrap}'
+    +'@page{size:A4;margin:12mm}</style></head><body>'
+    +'<h2>📝 '+esc(b.제목||'메모장')+'</h2>'
+    +'<div class="sub">출력 '+localDateTimeOf(nowISO())+' · 전체 '+items.length+'건 · 미완료 '+memoOpenCount(b)+'건</div>'
+    +'<table><thead><tr><th style="width:30px">No</th><th style="width:36px">완료</th>'
+    +'<th>내용</th><th style="width:70px">작성자</th><th style="width:80px">수정일</th></tr></thead><tbody>'
+    +(rows||'<tr><td colspan="5" class="c">메모가 없습니다.</td></tr>')
+    +'</tbody></table></body></html>');
+  w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); },300);
 }
 
 // ══ 유틸 ══
