@@ -228,7 +228,35 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .b-불공제{background:#fde8e8;color:#b53030}
 .b-pg{background:#efe4fb;color:#6b3fa0}
 .b-src{background:#eef2f7;color:#56707f}
-.ex-clip{border:none;background:none;cursor:pointer;font-size:14px;padding:1px 3px}
+.ex-clip{border:none;background:none;cursor:pointer;font-size:14px;padding:1px 3px;white-space:nowrap}
+/* 목록 — 가맹점 아래 메모는 한 줄로 줄여 보여 주고, 마우스를 올리면 전체가 보입니다 */
+/* 가맹점 이름 · 배지 · 실판매자/메모를 한 줄에 — 넘치면 메모 쪽만 …로 줄입니다 */
+/* 지출 목록은 칸 너비를 고정하고, 가맹점 칸이 남는 폭을 모두 씁니다 */
+.ex-main{table-layout:fixed;min-width:1020px}
+.ex-main td{white-space:nowrap}
+.ex-nm{display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden}
+.ex-nm .nm{font-weight:700;color:#1b3a5c;flex:0 0 auto;max-width:72%;overflow:hidden;text-overflow:ellipsis}
+.ex-nm .ex-badge{flex:0 0 auto}
+.ex-use{white-space:nowrap}
+.ex-ind{font-size:10px;color:#6b7f92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.ex-sub{font-size:10px;color:#8a98a6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  flex:1 1 0;min-width:0;margin-left:4px;padding-left:6px;border-left:1px solid #d6e0ea}
+.ex-sub .sp{color:#6b3fa0}
+/* 증빙 칸 — 영수증을 끌어다 놓는 자리 */
+.ex-drop{text-align:center;white-space:nowrap;border:2px dashed transparent;border-radius:6px;transition:.12s}
+.ex-drop.ex-dropon{border-color:#2a7a5c;background:#e3f6ec!important}
+.ex-up{font-size:12px;color:#2a7a5c;font-weight:700}
+.ex-fb .cnt{display:inline-block;margin-left:4px;font-size:10px;color:#8a98a6;font-weight:700}
+.ex-fb.on .cnt{color:#cfe0f0}
+/* 수정창 영수증 드롭 영역 */
+.ee-drop{border:2px dashed #c3d2e3;border-radius:8px;padding:8px;background:#fafcff;transition:.12s}
+.ee-drop.on{border-color:#2a7a5c;background:#eefaf3}
+.ee-drop-hint{font-size:11px;color:#6b7f92;text-align:center;padding:8px 4px 2px}
+.ee-drop-hint button{margin-left:4px}
+#exToast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1b3a5c;color:#fff;
+  font-size:13px;font-weight:700;padding:9px 16px;border-radius:20px;box-shadow:0 4px 14px rgba(0,0,0,.25);
+  z-index:3000;opacity:0;pointer-events:none;transition:opacity .2s}
+#exToast.on{opacity:1}
 .ex-note{font-size:11px;color:#8a6d3b;background:#fffaf0;border:1px solid #f0e2c0;
   border-radius:6px;padding:7px 9px;margin-bottom:8px;line-height:1.55}
 .rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px}
@@ -309,6 +337,7 @@ body.login #mobileNav{display:none!important}
   .extbl th:nth-child(6),.extbl td:nth-child(6){display:none}
   .extbl th,.extbl td{padding:6px 4px}
   .extbl td:nth-child(2){min-width:104px}
+  .ex-main{min-width:800px}
   .ex-use button{padding:5px 7px;white-space:nowrap}
   .extbl select{max-width:94px}
   .ex-tile{flex:1 1 44%}
@@ -983,6 +1012,7 @@ body.login #mobileNav{display:none!important}
       <button class="ex-fb" data-f="확인" onclick="setExpFilter('확인',this)">⬜ 확인필요</button>
       <button class="ex-fb" data-f="사업" onclick="setExpFilter('사업',this)">🟦 사업용</button>
       <button class="ex-fb" data-f="개인" onclick="setExpFilter('개인',this)">🟧 개인</button>
+      <button class="ex-fb" data-f="불공제" onclick="setExpFilter('불공제',this)">🚫 국세청 불공제</button>
       <button class="ex-fb" data-f="pg" onclick="setExpFilter('pg',this)">⚠️ 실판매자 확인</button>
       <button class="ex-fb" data-f="엇갈림" onclick="setExpFilter('엇갈림',this)">🔀 국세청과 다름</button>
       <button class="ex-fb" data-f="무증빙" onclick="setExpFilter('무증빙',this)">📷 영수증 없음</button>
@@ -994,7 +1024,7 @@ body.login #mobileNav{display:none!important}
     </div>
 
     <div style="max-height:56vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
-      <table class="extbl">
+      <table class="extbl ex-main">
         <thead><tr>
           <th style="width:78px">날짜</th>
           <th style="min-width:130px">가맹점</th>
@@ -1006,7 +1036,7 @@ body.login #mobileNav{display:none!important}
           <th style="width:94px">용도</th>
           <th style="width:106px">계정과목</th>
           <th style="width:58px">부가세</th>
-          <th style="width:42px">증빙</th>
+          <th style="width:60px" title="영수증 사진·PDF를 이 칸에 끌어다 놓으면 바로 첨부됩니다">증빙</th>
           <th style="width:52px">관리</th>
         </tr></thead>
         <tbody id="exBody"></tbody>
@@ -1047,10 +1077,13 @@ body.login #mobileNav{display:none!important}
     <div class="frow"><div class="fg" style="flex:1 1 100%"><label>적요·메모</label>
       <input type="text" id="ee-메모" lang="ko" placeholder="품목, 참석자, 사용 목적 등"></div></div>
     <div style="font-size:11px;font-weight:700;color:#1b3a5c;margin:6px 0 5px">📷 영수증</div>
-    <div class="rc-grid" id="eeRc" style="margin-bottom:7px"></div>
-    <button class="btn btn-gray btn-sm" onclick="document.getElementById('eeRcFile').click()">＋ 사진·PDF 추가</button>
+    <div class="ee-drop" id="eeDrop">
+      <div class="rc-grid" id="eeRc"></div>
+      <div class="ee-drop-hint">📥 사진·PDF를 여기로 끌어다 놓거나
+        <button class="btn btn-gray btn-sm" onclick="document.getElementById('eeRcFile').click()">파일 선택</button></div>
+    </div>
     <input type="file" id="eeRcFile" accept="image/*,application/pdf" multiple style="display:none" onchange="eeAddReceipt(this)">
-    <span id="eeRcMsg" style="font-size:11px;color:#6b7f92;margin-left:7px"></span>
+    <div id="eeRcMsg" style="font-size:11px;color:#2a7a5c;margin-top:5px;min-height:14px"></div>
     <div class="btn-group" style="justify-content:flex-end;margin-top:13px">
       <button class="btn btn-danger" id="eeDel" onclick="eeDelete()">삭제</button>
       <button class="btn btn-gray" onclick="closeModal('expEditModal')">닫기</button>
@@ -1735,7 +1768,7 @@ async function initStorage(){
 // 휴대폰 사진은 3~4MB라 그대로 올리면 느립니다. 긴 변 1600px, 품질 0.72로 줄입니다.
 function shrinkImage(file,maxPx,quality){
   maxPx=maxPx||1600; quality=quality||0.72;
-  return new Promise((resolve,reject)=>{
+  return new Promise((resolve)=>{
     if(!/^image\//.test(file.type)){ resolve(file); return; }   // PDF 등은 그대로
     const img=new Image(), url=URL.createObjectURL(file);
     img.onload=()=>{
@@ -1750,7 +1783,8 @@ function shrinkImage(file,maxPx,quality){
         resolve(new File([b],file.name.replace(/\.(png|heic|heif|webp)$/i,'.jpg'),{type:'image/jpeg'}));
       },'image/jpeg',quality);
     };
-    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('이미지를 읽을 수 없습니다.')); };
+    // 아이폰 HEIC처럼 브라우저가 열지 못하는 사진은 줄이지 않고 원본 그대로 올립니다
+    img.onerror=()=>{ URL.revokeObjectURL(url); resolve(file); };
     img.src=url;
   });
 }
@@ -5893,11 +5927,12 @@ function expOfMonth(m){
   return expenses.map((e,i)=>({e,i})).filter(({e})=>(e.날짜||'').slice(0,7)===m)
     .sort((a,b)=>(b.e.날짜||'').localeCompare(a.e.날짜||''));
 }
-function expMatchFilter(e){
-  switch(expFilter){
+function expMatchFilter(e,f){
+  switch(f||expFilter){
     case '확인':   return !expUse(e);
     case '사업':   return expUse(e)==='사업';
     case '개인':   return expUse(e)==='개인';
+    case '불공제': return e.국세청공제==='불공제';
     case 'pg':     return isPG(e);
     // 아직 용도를 정하지 않은 건은 '다름'으로 보지 않습니다 (판단 전이므로)
     case '엇갈림': return !!expUse(e) && !!e.국세청공제 && ((e.국세청공제==='공제')!==!!e.부가세공제);
@@ -5921,12 +5956,8 @@ function renderExp(){
     const rc=(e.영수증||[]).length;
     return `<tr class="${cls}">
       <td style="font-size:11px">${e.날짜||'-'}</td>
-      <td><span style="font-weight:700;color:#1b3a5c">${esc(e.거래처||'-')}</span>
-        ${isPG(e)?'<span class="ex-badge b-pg">PG</span>':''}
-        ${e.출처&&e.출처!=='card'?`<span class="ex-badge b-src">${e.출처==='manual'?'수기':'영수증'}</span>`:''}
-        ${e.실판매자?`<br><span style="font-size:10px;color:#6b3fa0">→ ${esc(e.실판매자)}</span>`:''}
-        ${e.메모?`<br><span style="font-size:10px;color:#8a98a6">${esc(e.메모)}</span>`:''}</td>
-      <td style="font-size:10px;color:#6b7f92">${esc((e.업종||e.업태||'').slice(0,14))}</td>
+      <td><div class="ex-nm"><span class="nm">${esc(e.거래처||'-')}</span>${isPG(e)?'<span class="ex-badge b-pg">PG</span>':''}${e.출처&&e.출처!=='card'?`<span class="ex-badge b-src">${e.출처==='manual'?'수기':'영수증'}</span>`:''}${expSubLine(e)}</div></td>
+      <td class="ex-ind" title="${esc([e.업태,e.업종].filter(Boolean).join(' / '))}">${esc(e.업종||e.업태||'')}</td>
       <td class="num" style="font-weight:700${(+e.합계||0)<0?';color:#b53030':''}">${fmt(e.합계||((+e.공급가액||0)+(+e.부가세||0)))}</td>
       <td class="num">${fmt(e.공급가액)}</td>
       <td class="num">${fmt(e.부가세)}</td>
@@ -5938,8 +5969,8 @@ function renderExp(){
         :`<select onchange="setAcc('${e.id}',this.value)" title="${esc(accHint(e.구분))}">${accOpts(e.구분)}</select>`}</td>
       <td style="text-align:center">${u==='개인'?'—'
         :`<input type="checkbox"${e.부가세공제?' checked':''} onchange="setVat('${e.id}',this.checked)">`}</td>
-      <td style="text-align:center"><button class="ex-clip" onclick="openExpEdit('${e.id}')"
-        title="${rc?rc+'장 첨부됨':'영수증 없음'}">${rc?'📎'+rc:'📷'}</button></td>
+      <td class="ex-drop" data-drop="${e.id}" title="영수증을 이 칸에 끌어다 놓으면 바로 첨부됩니다"><button class="ex-clip" onclick="openExpEdit('${e.id}')"
+        >${rc?'📎'+rc:'📷'}</button></td>
       <td style="text-align:center"><button class="ex-clip" onclick="openExpEdit('${e.id}')">✏️</button></td>
     </tr>`;
   }).join('')
@@ -5947,8 +5978,29 @@ function renderExp(){
       ${all.length?'이 조건에 맞는 지출이 없습니다.':'이 달에 등록된 지출이 없습니다. [카드내역 업로드] 또는 [직접 입력]으로 시작하십시오.'}</td></tr>`;
 
   document.getElementById('exCount').textContent=`${list.length} / ${all.length}건`;
+  // 필터 버튼마다 이 달 건수를 붙여 둡니다
+  document.querySelectorAll('.ex-fb').forEach(b=>{
+    const f=b.dataset.f; if(!f) return;
+    const n=f==='all'?all.length:all.filter(({e})=>expMatchFilter(e,f)).length;
+    let c=b.querySelector('.cnt');
+    if(!c){ c=document.createElement('span'); c.className='cnt'; b.appendChild(c); }
+    c.textContent=n;
+  });
   renderExpTiles(all.map(x=>x.e));
   updateExpBadge();
+  exDropInit();
+}
+// 가맹점 이름 옆 — 실판매자와 메모를 이어서 보여 주고, 넘치면 …로 줄입니다
+function expSubLine(e){
+  const sp=(e.실판매자||'').trim();
+  let mm=(e.메모||'').trim();
+  // 메모가 실판매자 이름으로 시작하면 그 부분만 빼고 나머지(품목 등)를 보여 줍니다
+  if(sp&&mm.startsWith(sp)) mm=mm.slice(sp.length).replace(/^[\s,·:\-—]+/,'');
+  if(!sp&&!mm) return '';
+  const full=[sp?'→ '+sp:'', mm].filter(Boolean).join(' · ');
+  return `<span class="ex-sub" title="${esc(full)}">`
+    +(sp?`<span class="sp">→ ${esc(sp)}</span>`:'')
+    +(sp&&mm?' · ':'')+esc(mm)+'</span>';
 }
 function renderExpTiles(list){
   const biz=list.filter(e=>expUse(e)==='사업');
@@ -6081,41 +6133,168 @@ function eeHint(){
 function renderEeReceipts(){
   const g=document.getElementById('eeRc');
   const rc=eeDraft.영수증||[];
-  g.innerHTML=rc.length?rc.map((f,i)=>`<div class="rc-item">
-      ${/\.pdf$/i.test(f.name||'')?`<div class="rc-pdf" onclick="window.open('${f.url}','_blank')">📄</div>`
+  g.style.marginBottom=rc.length?'4px':'0';
+  g.innerHTML=rc.map((f,i)=>`<div class="rc-item">
+      ${isPdfRc(f)?`<div class="rc-pdf" onclick="window.open('${f.url}','_blank')">📄</div>`
         :`<img src="${f.url}" alt="" onclick="window.open('${f.url}','_blank')">`}
       <div class="nm">${esc((f.name||'').slice(-18))}</div>
       <button class="del" onclick="eeDelReceipt(${i})">✕</button>
-    </div>`).join('')
-  : '<div style="grid-column:1/-1;padding:14px;text-align:center;color:#9aa8b4;font-size:11px;border:1px dashed #d0dff0;border-radius:6px">첨부된 영수증이 없습니다.</div>';
+    </div>`).join('');
 }
+function isPdfRc(f){ return /\.pdf$/i.test(f.name||'')||/pdf/i.test(f.type||''); }
+
+// ── 영수증 파일 거르기 ──
+// Storage 규칙과 같게: 사진 또는 PDF, 12MB 미만 (사진은 올리기 전에 줄입니다)
+function okReceiptFile(f){
+  const pic=/^image\//.test(f.type)||/\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(f.name||'');
+  const pdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name||'');
+  if(!pic&&!pdf) return '사진·PDF가 아닙니다';
+  if(pdf&&f.size>=12*1024*1024) return 'PDF가 12MB를 넘습니다';
+  return '';
+}
+function splitReceiptFiles(files){
+  const ok=[], bad=[];
+  files.forEach(f=>{ const why=okReceiptFile(f); if(why) bad.push(`${f.name} — ${why}`); else ok.push(f); });
+  return {ok,bad};
+}
+function expToast(msg){
+  let t=document.getElementById('exToast');
+  if(!t){ t=document.createElement('div'); t.id='exToast'; document.body.appendChild(t); }
+  t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2600);
+}
+
+// ── 수정창: 파일 선택 또는 끌어다 놓기 ──
 async function eeAddReceipt(input){
   const files=[...(input.files||[])];
   input.value='';
-  if(!files.length) return;
+  await eeAddFiles(files);
+}
+async function eeAddFiles(files){
+  if(!files.length||!eeDraft) return;
+  const {ok,bad}=splitReceiptFiles(files);
+  if(bad.length) alert('다음 파일은 첨부하지 않았습니다.\n\n'+bad.join('\n'));
+  if(!ok.length) return;
   const msg=document.getElementById('eeRcMsg');
+  const ups=[];
   try{
-    for(let i=0;i<files.length;i++){
-      msg.textContent=`올리는 중… (${i+1}/${files.length})`;
-      const up=await stUpload(files[i],'receipts/'+(eeDraft.날짜||todayStr()).slice(0,7));
+    for(let i=0;i<ok.length;i++){
+      msg.textContent=`올리는 중… (${i+1}/${ok.length})`;
+      const up=await stUpload(ok[i],'receipts/'+(eeDraft.날짜||todayStr()).slice(0,7));
+      ups.push(up);
       eeDraft.영수증.push(up);
       renderEeReceipts();
     }
-    msg.textContent=`${files.length}장을 올렸습니다. 저장을 눌러야 반영됩니다.`;
+    // 이미 등록된 지출이면 영수증만 바로 저장합니다 (닫아도 사라지지 않습니다)
+    const cur=eeId?expById(eeId):null;
+    if(cur){
+      cur.영수증=(cur.영수증||[]).concat(ups);
+      cur.수정일=nowISO(); cur.수정자=currentUser?.이름||'';
+      await fbSet('expenses/'+cur.id,cur);
+      renderExp();
+      msg.textContent=`${ups.length}장을 올려 바로 저장했습니다.`;
+    } else {
+      msg.textContent=`${ups.length}장을 올렸습니다. [저장]을 누르면 함께 등록됩니다.`;
+    }
   }catch(e){
-    msg.textContent='';
+    msg.textContent=ups.length?`${ups.length}장까지 올렸습니다.`:'';
     alert('사진을 올리지 못했습니다.\n\n'+(e.code||'')+' '+e.message
       +'\n\n마트관리 화면의 [저장소 연결 확인]으로 설정을 점검하십시오.');
   }
 }
+// 지울 때는 기록을 먼저 고치고 파일을 지웁니다.
+// (반대로 하면 [저장] 전에 창을 닫았을 때 기록이 없는 파일을 가리키게 됩니다)
 async function eeDelReceipt(i){
   const f=(eeDraft.영수증||[])[i];
   if(!f) return;
   if(!confirm('이 영수증을 삭제하시겠습니까?')) return;
-  try{ await stDelete(f.path); }catch(e){ console.error(e); }
   eeDraft.영수증.splice(i,1);
   renderEeReceipts();
+  const cur=eeId?expById(eeId):null;
+  try{
+    if(cur){
+      cur.영수증=(cur.영수증||[]).filter(x=>x.path!==f.path);
+      cur.수정일=nowISO(); cur.수정자=currentUser?.이름||'';
+      await fbSet('expenses/'+cur.id,cur);
+      renderExp();
+    }
+    await stDelete(f.path);
+    document.getElementById('eeRcMsg').textContent='영수증을 삭제했습니다.';
+  }catch(e){ alert('영수증을 지우지 못했습니다: '+e.message); }
 }
+
+// ── 목록: 증빙 칸에 끌어다 놓으면 그 지출에 바로 첨부 ──
+async function attachFilesTo(id,files,td){
+  const e=expById(id); if(!e) return;
+  const {ok,bad}=splitReceiptFiles(files);
+  if(bad.length) alert('다음 파일은 첨부하지 않았습니다.\n\n'+bad.join('\n'));
+  if(!ok.length) return;
+  if(td) td.innerHTML=`<span class="ex-up">⏳ 0/${ok.length}</span>`;
+  const ups=[];
+  try{
+    for(let i=0;i<ok.length;i++){
+      ups.push(await stUpload(ok[i],'receipts/'+(e.날짜||todayStr()).slice(0,7)));
+      if(td&&td.isConnected) td.innerHTML=`<span class="ex-up">⏳ ${i+1}/${ok.length}</span>`;
+    }
+    // 올리는 동안 실시간 동기화로 목록이 바뀌었을 수 있으니 다시 찾습니다
+    const cur=expById(id)||e;
+    cur.영수증=(cur.영수증||[]).concat(ups);
+    cur.수정일=nowISO(); cur.수정자=currentUser?.이름||'';
+    await fbSet('expenses/'+cur.id,cur);
+    renderExp();
+    expToast(`📎 ${cur.거래처} — 영수증 ${ups.length}장을 첨부했습니다.`);
+  }catch(err){
+    renderExp();
+    alert('영수증을 올리지 못했습니다.\n\n'+(err.code||'')+' '+err.message
+      +'\n\n마트관리 화면의 [저장소 연결 확인]으로 설정을 점검하십시오.');
+  }
+}
+function dtHasFiles(ev){
+  const t=ev.dataTransfer&&ev.dataTransfer.types;
+  return !!t&&[...t].includes('Files');
+}
+function exDropInit(){
+  const body=document.getElementById('exBody');
+  if(!body||body._dnd) return;
+  body._dnd=true;
+  const cellOf=ev=>ev.target&&ev.target.closest?ev.target.closest('td[data-drop]'):null;
+  const clear=keep=>document.querySelectorAll('.ex-dropon').forEach(x=>{ if(x!==keep) x.classList.remove('ex-dropon'); });
+  body.addEventListener('dragover',ev=>{
+    if(!dtHasFiles(ev)) return;
+    const td=cellOf(ev);
+    if(!td){ clear(null); return; }
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect='copy';
+    clear(td); td.classList.add('ex-dropon');
+  });
+  body.addEventListener('dragleave',ev=>{
+    const td=cellOf(ev);
+    if(td&&!td.contains(ev.relatedTarget)) td.classList.remove('ex-dropon');
+  });
+  body.addEventListener('drop',ev=>{
+    const td=cellOf(ev);
+    clear(null);
+    if(!td||!dtHasFiles(ev)) return;
+    ev.preventDefault();
+    attachFilesTo(td.dataset.drop,[...ev.dataTransfer.files],td);
+  });
+}
+// 수정창의 드롭 영역과, 엉뚱한 곳에 놓았을 때 브라우저가 파일을 열어 버리는 것을 막는 처리
+(function(){
+  const boot=()=>{
+    const z=document.getElementById('eeDrop');
+    if(z&&!z._dnd){
+      z._dnd=true;
+      z.addEventListener('dragover',ev=>{ if(!dtHasFiles(ev)) return; ev.preventDefault(); ev.dataTransfer.dropEffect='copy'; z.classList.add('on'); });
+      z.addEventListener('dragleave',ev=>{ if(!z.contains(ev.relatedTarget)) z.classList.remove('on'); });
+      z.addEventListener('drop',ev=>{ z.classList.remove('on'); if(!dtHasFiles(ev)) return; ev.preventDefault(); eeAddFiles([...ev.dataTransfer.files]); });
+    }
+    // 드롭 자리가 아닌 곳에 놓으면 아무 일도 일어나지 않게 합니다 (화면이 사진으로 바뀌어 작업이 날아가는 것 방지)
+    window.addEventListener('dragover',ev=>{ if(dtHasFiles(ev)&&!ev.defaultPrevented){ ev.preventDefault(); ev.dataTransfer.dropEffect='none'; } });
+    window.addEventListener('drop',ev=>{ if(dtHasFiles(ev)&&!ev.defaultPrevented) ev.preventDefault(); });
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})();
 async function eeSave(){
   const v=id=>document.getElementById(id).value;
   const d=eeDraft;
