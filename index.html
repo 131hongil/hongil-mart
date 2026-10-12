@@ -192,6 +192,53 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .mm-add input{flex:1 1 auto;padding:8px 10px;border:1px solid #c3d2e3;border-radius:5px;font-family:inherit;font-size:13px}
 .mm-empty{padding:26px 10px;text-align:center;color:#9aa8b4;font-size:12px}
 
+/* ── 지출관리 ── */
+.ex-tiles{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ex-tile{flex:1 1 128px;background:#f8faff;border:1px solid #d0dff0;border-radius:7px;padding:9px 11px}
+.ex-tile .lb{font-size:11px;color:#6b7f92;margin-bottom:3px}
+.ex-tile .vl{font-size:16px;font-weight:700;color:#1b3a5c;line-height:1.2}
+.ex-tile .sb{font-size:10px;color:#8a98a6;margin-top:2px}
+.ex-tile.warn{background:#fff6e8;border-color:#e8c48a}
+.ex-tile.warn .vl{color:#b3701a}
+.ex-tile.ok{background:#eefaf3;border-color:#a9ddc2}
+.ex-tile.ok .vl{color:#1f7a4d}
+.ex-filters{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.ex-fb{padding:5px 11px;border:1px solid #c3d2e3;border-radius:14px;background:#fff;color:#45627f;
+  font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.ex-fb.on{background:#1b3a5c;color:#fff;border-color:#1b3a5c}
+.extbl{width:100%;border-collapse:collapse;font-size:12px}
+.extbl th{background:#1b3a5c;color:#fff;padding:6px 5px;font-size:11px;font-weight:700;
+  position:sticky;top:0;z-index:2;white-space:nowrap}
+.extbl td{padding:4px 5px;border-bottom:1px solid #eef2f7;vertical-align:middle}
+.extbl tr:hover td{background:#f7faff}
+.extbl tr.u-개인 td{background:#fff4ec}
+.extbl tr.u-개인:hover td{background:#ffe9da}
+.extbl tr.u-확인 td{background:#fffdf0}
+.extbl tr.u-확인:hover td{background:#fff8dc}
+.extbl select,.extbl input{padding:3px 4px;border:1px solid #d6e0ea;border-radius:4px;
+  font-family:inherit;font-size:11px;background:#fff}
+.extbl .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ex-use{display:inline-flex;border:1px solid #c3d2e3;border-radius:5px;overflow:hidden}
+.ex-use button{border:none;background:#fff;color:#667;font-size:11px;font-weight:700;
+  padding:3px 7px;cursor:pointer;font-family:inherit}
+.ex-use button.on-biz{background:#1b6fb8;color:#fff}
+.ex-use button.on-per{background:#e07b2a;color:#fff}
+.ex-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 5px;border-radius:9px;white-space:nowrap}
+.b-공제{background:#dff3e6;color:#1f7a4d}
+.b-불공제{background:#fde8e8;color:#b53030}
+.b-pg{background:#efe4fb;color:#6b3fa0}
+.b-src{background:#eef2f7;color:#56707f}
+.ex-clip{border:none;background:none;cursor:pointer;font-size:14px;padding:1px 3px}
+.ex-note{font-size:11px;color:#8a6d3b;background:#fffaf0;border:1px solid #f0e2c0;
+  border-radius:6px;padding:7px 9px;margin-bottom:8px;line-height:1.55}
+.rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px}
+.rc-item{position:relative;border:1px solid #d0dff0;border-radius:6px;overflow:hidden;background:#f7faff}
+.rc-item img{width:100%;height:84px;object-fit:cover;display:block;cursor:zoom-in}
+.rc-item .nm{font-size:9px;color:#6b7f92;padding:3px 4px;word-break:break-all;line-height:1.3}
+.rc-item .del{position:absolute;top:2px;right:2px;background:rgba(192,57,43,.9);color:#fff;
+  border:none;border-radius:50%;width:19px;height:19px;cursor:pointer;font-size:11px;line-height:1}
+.rc-pdf{display:flex;align-items:center;justify-content:center;height:84px;font-size:26px;cursor:pointer}
+
 /* ── 마트관리 ── */
 .mgmt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}
 .mgmt-card{background:#f8faff;border:1px solid #d0dff0;border-radius:7px;padding:14px;cursor:pointer;transition:.15s;text-align:center}
@@ -256,6 +303,17 @@ body.login #mobileNav{display:none!important}
   .jung-item .btn-group .btn{flex:1;justify-content:center}
   .mm-list{max-height:50vh}
   .mm-meta{display:none}
+  /* 지출관리 — 좁은 화면에서는 업종·공급가액·세액을 숨겨 표를 읽을 수 있게 합니다 */
+  .extbl th:nth-child(3),.extbl td:nth-child(3),
+  .extbl th:nth-child(5),.extbl td:nth-child(5),
+  .extbl th:nth-child(6),.extbl td:nth-child(6){display:none}
+  .extbl th,.extbl td{padding:6px 4px}
+  .extbl td:nth-child(2){min-width:104px}
+  .ex-use button{padding:5px 7px;white-space:nowrap}
+  .extbl select{max-width:94px}
+  .ex-tile{flex:1 1 44%}
+  .ex-tile .vl{font-size:15px}
+  #exFile+.btn,.card-title .btn{margin-top:3px}
   .card{padding:11px;border-radius:7px}
   .card-title{font-size:15px}
   .fbtn{flex:1;min-width:70px;text-align:center}
@@ -451,6 +509,7 @@ body.login #mobileNav{display:none!important}
     <button class="ntab" id="tab-경영" data-pg="경영" style="display:none" onclick="showPage('경영',this)"><span class="ti">📒</span>연말<br>결산</button>
     <button class="ntab" data-pg="재고" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
     <button class="ntab" data-pg="원가" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
+    <button class="ntab" id="tab-지출" data-pg="지출" style="display:none;position:relative" onclick="showPage('지출',this)"><span class="ti">💳</span>지출<br>관리<span class="memo-badge" id="expBadge" style="display:none">0</span></button>
     <button class="ntab" id="tab-메모" style="position:relative" onclick="openMemoPad()"><span class="ti">📝</span>메모장<span class="memo-badge" id="memoBadge" style="display:none">0</span></button>
     <button class="ntab on" data-pg="관리" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
     <!-- 캘린더 + 시간계산 버튼 - 마트관리 바로 아래 -->
@@ -898,6 +957,149 @@ body.login #mobileNav{display:none!important}
 </div>
 
 <!-- ══ 연말결산 ══ -->
+<!-- ══ 지출관리 ══ -->
+<div id="page-지출" class="page">
+  <div class="card">
+    <div class="card-title">💳 지출관리
+      <input type="month" id="ex-월" onchange="renderExp()"
+        style="margin-left:10px;padding:5px 7px;border:1px solid #c3d2e3;border-radius:5px;font-family:inherit;font-size:13px">
+      <button class="btn btn-success btn-sm" style="margin-left:8px" onclick="document.getElementById('exFile').click()">📥 카드내역 업로드</button>
+      <input type="file" id="exFile" accept=".xls,.xlsx,.csv" style="display:none" onchange="importCardFile(this)">
+      <button class="btn btn-primary btn-sm" style="margin-left:5px" onclick="openExpEdit(null)">+ 직접 입력</button>
+      <button class="btn btn-sm" style="background:#6b4fa0;color:#fff;margin-left:5px" onclick="openVendorBook()">🏷️ 거래처 규칙</button>
+      <button class="btn btn-info btn-sm" style="margin-left:5px" onclick="printExp()">🖨️ 세무사 전달용</button>
+    </div>
+
+    <div class="ex-note">
+      ※ 국세청 공제 판정은 업종으로 기계적으로 나눈 <b>참고값</b>입니다. 직원 회식·업무 출장처럼 실제 용도가 다르면 직접 바꾸십시오.
+      부가세 공제와 소득세 경비는 기준이 다릅니다 — <b>접대비·여비교통비는 부가세 공제가 안 되지만 경비로는 인정</b>됩니다.
+      최종 판단은 세무대리인과 확인하십시오.
+    </div>
+
+    <div class="ex-tiles" id="exTiles"></div>
+
+    <div class="ex-filters">
+      <button class="ex-fb on" data-f="all" onclick="setExpFilter('all',this)">전체</button>
+      <button class="ex-fb" data-f="확인" onclick="setExpFilter('확인',this)">⬜ 확인필요</button>
+      <button class="ex-fb" data-f="사업" onclick="setExpFilter('사업',this)">🟦 사업용</button>
+      <button class="ex-fb" data-f="개인" onclick="setExpFilter('개인',this)">🟧 개인</button>
+      <button class="ex-fb" data-f="pg" onclick="setExpFilter('pg',this)">⚠️ 실판매자 확인</button>
+      <button class="ex-fb" data-f="엇갈림" onclick="setExpFilter('엇갈림',this)">🔀 국세청과 다름</button>
+      <button class="ex-fb" data-f="무증빙" onclick="setExpFilter('무증빙',this)">📷 영수증 없음</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
+        <input type="text" id="exSearch" placeholder="가맹점·사업자번호 검색" lang="ko" oninput="renderExp()"
+          style="width:190px;padding:5px 8px;border:1px solid #c3d2e3;border-radius:5px;font-family:inherit;font-size:12px">
+        <span id="exCount" style="font-size:12px;color:#1b3a5c;font-weight:700"></span>
+      </div>
+    </div>
+
+    <div style="max-height:56vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+      <table class="extbl">
+        <thead><tr>
+          <th style="width:78px">날짜</th>
+          <th style="min-width:130px">가맹점</th>
+          <th style="width:86px">업종</th>
+          <th style="width:84px">합계</th>
+          <th style="width:80px">공급가액</th>
+          <th style="width:70px">세액</th>
+          <th style="width:56px">국세청</th>
+          <th style="width:94px">용도</th>
+          <th style="width:106px">계정과목</th>
+          <th style="width:58px">부가세</th>
+          <th style="width:42px">증빙</th>
+          <th style="width:52px">관리</th>
+        </tr></thead>
+        <tbody id="exBody"></tbody>
+      </table>
+    </div>
+    <div id="exFoot" style="font-size:11px;color:#6b7f92;margin-top:7px"></div>
+  </div>
+</div>
+
+<!-- ══ 지출 한 건 편집 ══ -->
+<div class="overlay" id="expEditModal">
+  <div class="modal" style="max-width:560px;width:96%">
+    <h3 id="eeTitle">지출 입력</h3>
+    <div class="frow" style="gap:8px;flex-wrap:wrap">
+      <div class="fg" style="flex:0 0 118px"><label>날짜</label><input type="date" id="ee-날짜"></div>
+      <div class="fg" style="flex:1 1 150px"><label>거래처·가맹점</label><input type="text" id="ee-거래처" lang="ko"></div>
+      <div class="fg" style="flex:0 0 124px"><label>사업자번호</label><input type="text" id="ee-사업자" placeholder="000-00-00000"></div>
+    </div>
+    <div class="frow" style="gap:8px;flex-wrap:wrap">
+      <div class="fg" style="flex:0 0 110px"><label>합계</label><input type="number" id="ee-합계" oninput="eeSplit()"></div>
+      <div class="fg" style="flex:0 0 110px"><label>공급가액</label><input type="number" id="ee-공급" oninput="eeSum()"></div>
+      <div class="fg" style="flex:0 0 100px"><label>부가세</label><input type="number" id="ee-세액" oninput="eeSum()"></div>
+      <div class="fg" style="flex:0 0 96px"><label>비과세</label><input type="number" id="ee-비과" oninput="eeSum()"></div>
+    </div>
+    <div style="font-size:11px;color:#6b7f92;margin:-4px 0 8px">
+      합계만 넣으면 공급가액·부가세를 10%로 나눠 채웁니다. 면세품이 섞였으면 직접 고치십시오.
+    </div>
+    <div class="frow" style="gap:8px;flex-wrap:wrap">
+      <div class="fg" style="flex:0 0 100px"><label>용도</label>
+        <select id="ee-용도" onchange="eeAcc()"><option value="">확인필요</option><option value="사업">사업용</option><option value="개인">개인</option></select></div>
+      <div class="fg" style="flex:0 0 130px"><label>계정과목</label><select id="ee-계정" onchange="eeAcc()"></select></div>
+      <div class="fg" style="flex:0 0 118px"><label>부가세 공제</label>
+        <select id="ee-공제"><option value="1">공제</option><option value="0">불공제</option></select></div>
+      <div class="fg" style="flex:1 1 110px"><label>결제수단</label>
+        <select id="ee-수단"><option>계좌이체</option><option>현금</option><option>카드</option><option>기타</option></select></div>
+    </div>
+    <div id="eeHint" style="font-size:11px;color:#1f6b9a;background:#eef6fc;border-radius:5px;padding:6px 8px;margin-bottom:8px"></div>
+    <div class="frow"><div class="fg" style="flex:1 1 100%"><label>적요·메모</label>
+      <input type="text" id="ee-메모" lang="ko" placeholder="품목, 참석자, 사용 목적 등"></div></div>
+    <div style="font-size:11px;font-weight:700;color:#1b3a5c;margin:6px 0 5px">📷 영수증</div>
+    <div class="rc-grid" id="eeRc" style="margin-bottom:7px"></div>
+    <button class="btn btn-gray btn-sm" onclick="document.getElementById('eeRcFile').click()">＋ 사진·PDF 추가</button>
+    <input type="file" id="eeRcFile" accept="image/*,application/pdf" multiple style="display:none" onchange="eeAddReceipt(this)">
+    <span id="eeRcMsg" style="font-size:11px;color:#6b7f92;margin-left:7px"></span>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:13px">
+      <button class="btn btn-danger" id="eeDel" onclick="eeDelete()">삭제</button>
+      <button class="btn btn-gray" onclick="closeModal('expEditModal')">닫기</button>
+      <button class="btn btn-success" onclick="eeSave()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 거래처 규칙 ══ -->
+<div class="overlay" id="vendorModal">
+  <div class="modal" style="max-width:660px;width:96%">
+    <h3>🏷️ 거래처 규칙</h3>
+    <div style="font-size:11px;color:#6b7f92;margin-bottom:9px">
+      한 번 정해 두면 다음 달 카드내역을 올릴 때 같은 사업자번호는 자동으로 분류됩니다.
+    </div>
+    <div style="max-height:52vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+      <table class="extbl">
+        <thead><tr><th style="min-width:130px">거래처</th><th style="width:116px">사업자번호</th>
+          <th style="width:88px">용도</th><th style="width:112px">계정과목</th>
+          <th style="width:58px">부가세</th><th style="width:48px">삭제</th></tr></thead>
+        <tbody id="vdBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-gray" onclick="closeModal('vendorModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 업로드 미리보기 ══ -->
+<div class="overlay" id="impModal">
+  <div class="modal" style="max-width:760px;width:97%">
+    <h3>📥 카드내역 업로드</h3>
+    <div id="impSummary" style="font-size:12px;line-height:1.7;margin-bottom:10px"></div>
+    <div style="max-height:44vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+      <table class="extbl">
+        <thead><tr><th style="width:34px">등록</th><th style="width:78px">날짜</th><th style="min-width:120px">가맹점</th>
+          <th style="width:82px">합계</th><th style="width:56px">국세청</th>
+          <th style="width:84px">용도</th><th style="width:100px">계정과목</th><th style="min-width:90px">비고</th></tr></thead>
+        <tbody id="impBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-gray" onclick="closeModal('impModal')">취소</button>
+      <button class="btn btn-success" onclick="commitImport()">선택한 건 등록</button>
+    </div>
+  </div>
+</div>
+
 <div id="page-경영" class="page">
   <div class="card">
     <div class="card-title">📒 연말결산 <span class="meta-by" id="meta-biz"></span>
@@ -1122,6 +1324,8 @@ body.login #mobileNav{display:none!important}
       <div class="mgmt-card" onclick="goTab('진행중',0)"><div class="icon">📁</div><div class="name">정산서 목록</div><div class="desc">진행중/완료 조회</div></div>
       <div class="mgmt-card" id="mgmt-결산" style="display:none" onclick="goTab('결산',1)"><div class="icon">📊</div><div class="name">결산서</div><div class="desc">전체 정산 내역</div></div>
       <div class="mgmt-card" id="mgmt-경영" style="display:none" onclick="showPage('경영',document.getElementById('tab-경영'))"><div class="icon">📒</div><div class="name">연말결산</div><div class="desc">손익·부가세·종합소득세</div></div>
+      <div class="mgmt-card" id="mgmt-지출" style="display:none" onclick="showPage('지출',document.getElementById('tab-지출'))"><div class="icon">💳</div><div class="name">지출관리</div><div class="desc">카드내역·영수증 보관</div></div>
+      <div class="mgmt-card" id="mgmt-저장소" style="display:none" onclick="testStorage()"><div class="icon">🗄️</div><div class="name">저장소 연결 확인</div><div class="desc">영수증 사진 업로드 점검</div></div>
       <div class="mgmt-card" onclick="goTab('재고',2)"><div class="icon">📦</div><div class="name">재고관리장</div><div class="desc">월별 출고 현황</div></div>
       <div class="mgmt-card" onclick="goTab('원가',3)"><div class="icon">💰</div><div class="name">원가DB 관리</div><div class="desc">품목·단가 수정</div></div>
       <div class="mgmt-card" onclick="backupData()"><div class="icon">💾</div><div class="name">데이터 백업</div><div class="desc">JSON 파일로 저장</div></div>
@@ -1498,10 +1702,15 @@ const FB_CONFIG={
   apiKey:"AIzaSyDoloODoAZ6T_lSSi0gl9aQu91VFQRZmPo",
   databaseURL:"https://hongil-mart-default-rtdb.firebaseio.com",
   projectId:"hongil-mart",
-  appId:"1:401830236418:web:52031f60638048e0cfb21b"
+  appId:"1:401830236418:web:52031f60638048e0cfb21b",
+  // 영수증 사진 저장소입니다. Firebase 콘솔 > Storage 화면 맨 위에 적힌
+  // gs:// 주소에서 'gs://'를 뺀 값을 넣으십시오.
+  // 예전에 만든 프로젝트는 hongil-mart.appspot.com 일 수 있습니다.
+  storageBucket:"hongil-mart.firebasestorage.app"
 };
-let FB=null, DB=null;
+let FB=null, DB=null, ST=null;
 let currentUser=null;
+let _stLib=null;   // Storage 함수 모음 (필요할 때 한 번만 불러옵니다)
 
 // Firebase 초기화
 async function initFirebase(){
@@ -1511,6 +1720,75 @@ async function initFirebase(){
   DB=getDatabase(FB);
   window._fbRef=ref; window._fbSet=set; window._fbGet=get;
   window._fbRemove=remove; window._fbUpdate=update; window._fbOnValue=onValue;
+}
+
+// ── 영수증 저장소 (Firebase Storage) ──
+// 사진을 쓸 때만 불러옵니다. 앱을 열 때마다 받지 않습니다.
+async function initStorage(){
+  if(ST) return ST;
+  if(!FB) await initFirebase();
+  const m=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
+  _stLib=m;
+  ST=m.getStorage(FB);
+  return ST;
+}
+// 휴대폰 사진은 3~4MB라 그대로 올리면 느립니다. 긴 변 1600px, 품질 0.72로 줄입니다.
+function shrinkImage(file,maxPx,quality){
+  maxPx=maxPx||1600; quality=quality||0.72;
+  return new Promise((resolve,reject)=>{
+    if(!/^image\//.test(file.type)){ resolve(file); return; }   // PDF 등은 그대로
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let {width:w,height:h}=img;
+      const sc=Math.min(1,maxPx/Math.max(w,h));
+      w=Math.round(w*sc); h=Math.round(h*sc);
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      cv.toBlob(b=>{
+        if(!b||b.size>=file.size){ resolve(file); return; }      // 더 커지면 원본 사용
+        resolve(new File([b],file.name.replace(/\.(png|heic|heif|webp)$/i,'.jpg'),{type:'image/jpeg'}));
+      },'image/jpeg',quality);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('이미지를 읽을 수 없습니다.')); };
+    img.src=url;
+  });
+}
+// 올리기 → {path,url,name,size}
+async function stUpload(file,folder){
+  await initStorage();
+  const f=await shrinkImage(file);
+  const safe=(f.name||'file').replace(/[^\w.\-가-힣]/g,'_').slice(-60);
+  const path=`${folder||'receipts'}/${Date.now()}_${Math.floor(Math.random()*900+100)}_${safe}`;
+  const r=_stLib.ref(ST,path);
+  await _stLib.uploadBytes(r,f,{contentType:f.type||'application/octet-stream'});
+  const url=await _stLib.getDownloadURL(r);
+  return {path,url,name:f.name,size:f.size};
+}
+async function stDelete(path){
+  if(!path) return;
+  await initStorage();
+  try{ await _stLib.deleteObject(_stLib.ref(ST,path)); }
+  catch(e){ if(e.code!=='storage/object-not-found') throw e; }
+}
+// 저장소가 제대로 붙었는지 확인하는 버튼용
+async function testStorage(){
+  try{
+    await initStorage();
+    const blob=new Blob(['hongil-mart storage test'],{type:'text/plain'});
+    const p='_test/'+Date.now()+'.txt';
+    const r=_stLib.ref(ST,p);
+    await _stLib.uploadBytes(r,blob);
+    await _stLib.getDownloadURL(r);
+    await _stLib.deleteObject(r);
+    alert('✅ 영수증 저장소가 정상으로 연결됐습니다.\n\n저장소: '+FB_CONFIG.storageBucket);
+  }catch(e){
+    alert('❌ 저장소에 연결하지 못했습니다.\n\n'+(e.code||'')+' '+e.message
+      +'\n\n확인하십시오.'
+      +'\n1. Firebase 콘솔에서 요금제를 Blaze로 바꾸셨습니까?'
+      +'\n2. Storage 화면의 gs:// 주소가 "'+FB_CONFIG.storageBucket+'" 와 같습니까?'
+      +'\n3. Storage 규칙에서 읽기·쓰기를 허용하셨습니까?');
+  }
 }
 
 // DB 헬퍼
@@ -1538,6 +1816,20 @@ function startRealtimeSync(){
     results=data?Object.values(data).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
     renderResults();
     if(typeof buildCharts==='function')buildCharts();
+  });
+  // 지출·거래처도 함께 받습니다 (다른 직원이 분류한 내용이 바로 보입니다)
+  window._fbOnValue(fbRef('expenses'),snap=>{
+    if(_syncPause)return;
+    const d=snap.exists()?snap.val():null;
+    expenses=d?Object.values(d).map(normalizeExp):[];
+    const open=document.getElementById('page-지출')?.classList.contains('on');
+    const typing=document.activeElement&&document.activeElement.closest
+      &&document.activeElement.closest('#expEditModal,#impModal');
+    if(open&&!typing) renderExp(); else updateExpBadge();
+  });
+  window._fbOnValue(fbRef('vendors'),snap=>{
+    if(_syncPause)return;
+    vendors=snap.exists()?(snap.val()||{}):{};
   });
   // 메모장도 함께 실시간으로 받습니다
   window._fbOnValue(fbRef('memos'),snap=>{
@@ -1610,11 +1902,19 @@ async function onLoginSuccess(){
   document.getElementById('tab-결산').style.display=isAdmin()?'':'none';
   document.getElementById('tab-경영').style.display=isAdmin()?'':'none';
   document.getElementById('tab-알바').style.display=isAdmin()?'':'none';
+  document.getElementById('tab-지출').style.display=isAdmin()?'':'none';
   // 마트관리 화면의 결산서 카드도 권한에 따라 표시/숨김
   const mgmtResult=document.getElementById('mgmt-결산');
   if(mgmtResult) mgmtResult.style.display=isAdmin()?'':'none';
   const mgmtBiz=document.getElementById('mgmt-경영');
   if(mgmtBiz) mgmtBiz.style.display=isAdmin()?'':'none';
+  ['mgmt-지출','mgmt-저장소'].forEach(id=>{
+    const c=document.getElementById(id);
+    if(c) c.style.display=isAdmin()?'':'none';
+  });
+  // 지출관리 기본 월은 이번 달로 둡니다
+  const exm=document.getElementById('ex-월');
+  if(exm&&!exm.value) exm.value=todayStr().slice(0,7);
   // 미니 캘린더 렌더링
   renderMiniCal();
   buildMobileNav();
@@ -1646,8 +1946,8 @@ async function loadAllData(){
   try{
     if(!DB) await initFirebase();
     document.getElementById('ubSync').style.color='#f39c12';
-    const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData,moData]=await Promise.all([
-      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta'),fbGet('expenses'),fbGet('bizConfig'),fbGet('posSales'),fbGet('stockClose'),fbGet('memos')
+    const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData,moData,vnData]=await Promise.all([
+      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta'),fbGet('expenses'),fbGet('bizConfig'),fbGet('posSales'),fbGet('stockClose'),fbGet('memos'),fbGet('vendors')
     ]);
     jungs    =jData?Object.values(jData).map(normalizeJung):[];
     results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
@@ -1663,12 +1963,14 @@ async function loadAllData(){
     priceDB  =pData?Object.values(pData):DEF_PRICE;
     albaData =aData?Object.values(aData):[];
     albaWorkLog=wData?normalizeWorkLog(wData):{};
-    expenses=eData?Object.values(eData):[];
+    expenses=eData?Object.values(eData).map(normalizeExp):[];
     if(bData) bizConfig=Object.assign(bizConfig,bData);
     posSales=psData||{};
     stockClose=scData||{};
     memos=moData||{};
     updateMemoBadge();
+    vendors=vnData||{};
+    updateExpBadge();
     formMeta=mData||{};
     renderMetaBadges();
     if(cData) albaConfig=Object.assign(albaConfig,cData);
@@ -1826,6 +2128,7 @@ function buildMobileNav(){
     ['경영','📒 연말결산',isAdmin()],
     ['재고','📦 재고관리',true],
     ['원가','💰 원가DB',true],
+    ['지출','💳 지출관리',isAdmin()],
     ['알바','⏱️ 시간계산',isAdmin()],
     ['관리','⚙️ 마트관리',true],
   ].filter(x=>x[2]);
@@ -1880,6 +2183,7 @@ function showPage(name,btn){
   if(name==='원가') renderPrice();
   if(name==='알바'){initAlbaMonth();applyAlbaConfig();renderAlba();}
   if(name==='경영') initBiz();
+  if(name==='지출') renderExp();
   // 알바 버튼 색상 (ntab 아닌 별도 버튼)
   const albaBtn=document.getElementById('tab-알바');
   if(albaBtn) albaBtn.style.background=name==='알바'?'#c0392b':'#e8821a';
@@ -2550,7 +2854,62 @@ let expenses=[];
 let bizConfig={과세:'일반',매출기준:'pos',부양:1,연금:0,기타공제:0,세액공제:0};
 let posSales={};   // {'YYYY-MM':{카드,현금영수증,현금,메모}}
 let bizDirty=false;
-const EXP_TYPES=['매입(상품)','임차료','공과금','통신비','보험료','소모품비','차량유지비','지급수수료','접대비','광고선전비','수수료·이자','기타경비'];
+// 계정과목 — vat:true면 부가세 매입세액 공제가 되는 것이 보통입니다.
+// 공제 여부는 어디까지나 기본 추천이며, 최종 판단은 세무대리인과 확인하십시오.
+const ACCOUNTS=[
+  {n:'매입(상품)',  vat:true,  h:'판매할 물품 매입'},
+  {n:'복리후생비',  vat:true,  h:'직원 회식·간식·피복·경조사 — 부가세 공제 가능'},
+  {n:'접대비',      vat:false, h:'거래처 접대 — 부가세 공제 불가, 경비는 한도 내 인정'},
+  {n:'여비교통비',  vat:false, h:'항공·택시·KTX·고속버스는 부가세 공제 불가, 경비는 인정'},
+  {n:'차량유지비',  vat:false, h:'비영업용 승용차는 공제 불가 / 화물차·경차·9인승 이상은 공제'},
+  {n:'통신비',      vat:true,  h:'전화·인터넷'},
+  {n:'수도광열비',  vat:true,  h:'전기·가스는 공제 / 수도요금은 면세라 부가세 없음'},
+  {n:'공과금',      vat:true,  h:''},
+  {n:'임차료',      vat:true,  h:''},
+  {n:'소모품비',    vat:true,  h:''},
+  {n:'지급수수료',  vat:true,  h:'수수료·용역비'},
+  {n:'운반비',      vat:true,  h:'택배·화물'},
+  {n:'광고선전비',  vat:true,  h:'불특정 다수 대상 — 공제 가능'},
+  {n:'교육훈련비',  vat:true,  h:''},
+  {n:'보험료',      vat:false, h:'면세라 부가세가 없습니다'},
+  {n:'세금과공과',  vat:false, h:'면세라 부가세가 없습니다'},
+  {n:'수수료·이자', vat:false, h:'이자는 면세'},
+  {n:'기타경비',    vat:true,  h:''},
+];
+const EXP_TYPES=ACCOUNTS.map(a=>a.n);
+const ACC_OF=Object.fromEntries(ACCOUNTS.map(a=>[a.n,a]));
+function accVat(n){ return ACC_OF[n] ? ACC_OF[n].vat : true; }
+function accHint(n){ return (ACC_OF[n]&&ACC_OF[n].h)||''; }
+
+// 업태·업종으로 1차 추천합니다. ask:true면 사람이 꼭 확인해야 하는 항목입니다.
+// 식당·항공처럼 회식·출장일 수 있는 것은 개인으로 단정하지 않고 물어봅니다.
+const IND_RULES=[
+  // 결제대행 — 실제 판매자가 가려져 있어 영수증을 봐야 합니다
+  {k:['전자지급결제대행','전자금융업','신용카드결제대행','부가통신','선불전자','금융전산망','기타 금융 지원','기타금융지원','정보서비스','신용카드 및 할부','신용판매'], pg:true, ask:true},
+  // 마트 매입이 거의 확실한 업종
+  {k:['청량음료','주류','농수산물','식잡','얼음','위탁판매','양곡','농산물','식품','제과','정육','수산'], 용도:'사업', 계정:'매입(상품)'},
+  {k:['슈퍼마켓','대형할인점','편의점','종합 소매','종합소매','그릇','미용재료','생활용품'], 용도:'사업', 계정:'소모품비', ask:true},
+  // 식당 — 직원 회식일 수도, 거래처 접대일 수도, 개인일 수도 있습니다
+  {k:['한식','일반 음식점','일반음식점','중식','일식','양식','분식','빵','디저트','커피','주점','카페','음식점'], 계정:'복리후생비', ask:true, msg:'직원 회식이면 복리후생비(공제), 거래처 접대면 접대비(불공제), 개인 식사면 개인입니다.'},
+  // 교통 — 출장일 수 있습니다
+  {k:['항공운송','여객','택시','철도','고속버스','전세버스','운송','주차장'], 계정:'여비교통비', ask:true, msg:'업무 출장이면 여비교통비로 경비 인정됩니다. 다만 부가세는 공제되지 않습니다.'},
+  {k:['주유소','석유류','가스충전'], 계정:'차량유지비', ask:true, msg:'업무용 차량이면 차량유지비입니다. 비영업용 승용차는 부가세 공제가 안 됩니다.'},
+  {k:['전신전화','통신','이동통신'], 용도:'사업', 계정:'통신비'},
+  {k:['소프트웨어','S/W','인터넷및컴퓨터','정보처리','전산'], 용도:'사업', 계정:'지급수수료'},
+  {k:['택배','화물','운수'], 용도:'사업', 계정:'운반비'},
+  {k:['광고','인쇄','간판'], 용도:'사업', 계정:'광고선전비'},
+  {k:['부동산','임대'], 용도:'사업', 계정:'임차료'},
+  {k:['보험'], 계정:'보험료', ask:true},
+  // 개인일 가능성이 높은 업종 — 그래도 단정하지 않고 표시만 합니다
+  {k:['병원','의원','약국','의약품','피부과','치과','한의원','동물병원','건강'], 용도:'개인', ask:true},
+  {k:['골프','레저','스포츠','숙박','여행알선','호텔','콘도'], 계정:'접대비', ask:true, msg:'거래처 접대면 접대비(부가세 불공제), 개인 여가면 개인입니다.'},
+  {k:['의류','침구','화장품','귀금속','사찰','기부'], 용도:'개인', ask:true},
+];
+function indMatch(업태,업종){
+  const t=(업태||'')+' '+(업종||'');
+  for(const r of IND_RULES){ if(r.k.some(k=>t.includes(k))) return r; }
+  return null;
+}
 const PROOF_TYPES=['세금계산서','계산서','카드','현금영수증','간이영수증','없음'];
 // 종합소득세 누진세율 (과세표준 기준)
 const TAX_BRACKETS=[
@@ -2644,7 +3003,8 @@ function bizLabor(pr){
     .reduce((s,r)=>s+Math.round(calcHours(r.출근,r.퇴근)*getWageFor(r.이름,r.업무)),0);
 }
 function bizExpenses(pr){
-  return expenses.filter(e=>inPeriod(e.날짜,pr));
+  // 지출관리에서 '개인'으로 표시한 건은 경비에서 뺍니다
+  return expenses.filter(e=>inPeriod(e.날짜,pr)&&e.용도!=='개인');
 }
 // 손익·세액을 한 번에 계산합니다
 function bizCalc(){
@@ -2671,8 +3031,9 @@ function bizCalc(){
   const 매출세액   = 매출총액-매출공급가;
   const exp=bizExpenses(pr);
   const 매입공급가=exp.filter(e=>e.구분==='매입(상품)').reduce((s,e)=>s+(+e.공급가액||0),0);
-  const 매입세액  =exp.reduce((s,e)=>s+(+e.부가세||0),0);
-  const 경비공급가=exp.filter(e=>e.구분!=='매입(상품)').reduce((s,e)=>s+(+e.공급가액||0),0);
+  // 부가세는 '공제'로 표시한 건만 더합니다 (접대비·여객운송 등은 경비이지만 공제 대상이 아닙니다)
+  const 매입세액  =exp.reduce((s,e)=>s+((e.부가세공제===false)?0:(+e.부가세||0)),0);
+  const 경비공급가=exp.filter(e=>e.구분!=='매입(상품)').reduce((s,e)=>s+(+e.공급가액||0)+(+e.비과세||0),0);
   const 인건비=bizLabor(pr);
   const 영업이익=매출공급가-매입공급가-인건비-경비공급가;
   // 종합소득세
@@ -5086,7 +5447,8 @@ function autoBackupToFile(label){
     expenses,bizConfig,posSales,              // 연말결산
     stockClose,                               // 월 마감 이력
     memos,                                    // 메모장
-    timestamp:nowISO(),version:'2.1'};
+    vendors,                                  // 거래처 규칙
+    timestamp:nowISO(),version:'2.2'};
   const today=todayStr();
   const timeStr=new Date().toTimeString().slice(0,5).replace(':','');
   const filename=`혼길마트_${today}_${timeStr}_${label}.json`;
@@ -5101,7 +5463,7 @@ function autoBackupToFile(label){
 function autoSnapshot(){
   // localStorage에 최근 스냅샷 3개 유지
   const snap={jungs,results,stockData,priceDB,
-    albaData,albaWorkLog,albaConfig,expenses,bizConfig,posSales,stockClose,memos,
+    albaData,albaWorkLog,albaConfig,expenses,bizConfig,posSales,stockClose,memos,vendors,
     timestamp:nowISO()};
   const snaps=JSON.parse(localStorage.getItem('hm_snapshots')||'[]');
   snaps.unshift(snap);
@@ -5137,6 +5499,7 @@ function restoreSnapshot(){
   if(snap.posSales){posSales=snap.posSales;fbSet('posSales',posSales).catch(()=>{});}
   if(snap.stockClose){stockClose=snap.stockClose;fbSet('stockClose',stockClose).catch(()=>{});}
   if(snap.memos){memos=snap.memos;fbSet('memos',memos).catch(()=>{});updateMemoBadge();}
+  if(snap.vendors){vendors=snap.vendors;fbSet('vendors',vendors).catch(()=>{});}
   renderJungList();renderResults();renderStock();renderPrice();
   if(typeof syncWorkLogToAlba==='function')syncWorkLogToAlba();
   if(typeof renderMiniCal==='function')renderMiniCal();
@@ -5196,7 +5559,7 @@ function restoreData(input){
       }
       // ── 연말결산 ──
       if(data.expenses){
-        expenses=Array.isArray(data.expenses)?data.expenses:Object.values(data.expenses);
+        expenses=(Array.isArray(data.expenses)?data.expenses:Object.values(data.expenses)).map(normalizeExp);
         const obj={};expenses.forEach(x=>{if(x&&x.id)obj[x.id]=x;});
         await fbSet('expenses',obj);
       }
@@ -5206,6 +5569,7 @@ function restoreData(input){
       if(data.stockClose){ stockClose=data.stockClose; await fbSet('stockClose',stockClose); }
       // ── 메모장 ──
       if(data.memos){ memos=data.memos; await fbSet('memos',memos); updateMemoBadge(); }
+      if(data.vendors){ vendors=data.vendors; await fbSet('vendors',vendors); }
 
       renderJungList();renderResults();renderStock();renderPrice();
       if(typeof syncWorkLogToAlba==='function')syncWorkLogToAlba();
@@ -5217,7 +5581,8 @@ function restoreData(input){
         data.albaData?`알바 근무 ${albaData.length}건`:null,
         data.expenses?`매입·경비 ${expenses.length}건`:null,
         data.stockClose?`월 마감 ${Object.keys(stockClose).length}개월`:null,
-        data.memos?`메모장 ${Object.keys(memos).length}개`:null
+        data.memos?`메모장 ${Object.keys(memos).length}개`:null,
+        data.vendors?`거래처 규칙 ${Object.keys(vendors).length}개`:null
       ].filter(Boolean).join('\n');
       alert(`✅ 복원 완료!\n\n${cnt}\n백업일시: ${data.timestamp?localDateTimeOf(data.timestamp):'-'}`
         +(data.version?`\n백업형식: v${data.version}`:'\n\n※ 예전 형식이라 알바·연말결산 자료는 들어 있지 않습니다.'));
@@ -5227,6 +5592,623 @@ function restoreData(input){
     input.value='';
   };
   reader.readAsText(file,'utf-8');
+}
+
+// ══════════════════════════════════════════════
+//  지출관리 — 카드내역 업로드 · 사업/개인 분류 · 영수증 보관
+//  지출 한 건은 expenses 배열에 들어갑니다 (연말결산과 같은 자료입니다)
+// ══════════════════════════════════════════════
+let vendors={};            // {사업자번호: {상호,용도,계정,부가세,수정일}}
+
+// 예전에 연말결산에서 직접 넣은 자료도 그대로 쓰이도록 모자란 칸을 채웁니다.
+// 예전 입력은 모두 경비로 넣은 것이므로 용도를 '사업'으로 봅니다.
+function normalizeExp(e){
+  e=Object.assign({},e||{});
+  e.id=String(e.id||('ex'+Date.now()+Math.floor(Math.random()*1000)));
+  e.날짜=normalizeDate(e.날짜);
+  e.거래처=String(e.거래처||'');
+  e.구분=String(e.구분||'기타경비');
+  e.공급가액=+e.공급가액||0; e.부가세=+e.부가세||0; e.비과세=+e.비과세||0;
+  if(!e.합계) e.합계=e.공급가액+e.부가세+e.비과세;
+  else e.합계=+e.합계||0;
+  if(!e.출처) e.출처='manual';
+  if(e.용도===undefined||e.용도===null) e.용도='사업';
+  if(e.부가세공제===undefined) e.부가세공제 = e.용도==='사업' && accVat(e.구분);
+  if(!Array.isArray(e.영수증)) e.영수증 = e.영수증 ? Object.values(e.영수증) : [];
+  e.사업자번호=e.사업자번호?normBn(e.사업자번호):'';
+  return e;
+}
+let expFilter='all';
+let impRows=[];            // 업로드 미리보기 대기 줄
+let eeId=null;             // 편집 중인 지출 id
+let eeDraft=null;
+
+function expMonth(){
+  const el=document.getElementById('ex-월');
+  if(el&&el.value) return el.value;
+  return todayStr().slice(0,7);
+}
+// 사업자번호를 000-00-00000 꼴로 맞춥니다 (열쇠로 쓰므로 통일이 중요합니다)
+function normBn(v){
+  const d=String(v||'').replace(/[^0-9]/g,'');
+  return d.length===10 ? `${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}` : String(v||'').trim();
+}
+function expUse(e){ return e.용도==='개인'?'개인':(e.용도==='사업'?'사업':''); }
+function isPG(e){ return !!e.pg; }
+
+// ── 거래처 규칙 ──
+function vendorOf(bn){ return bn?vendors[toFbKey(bn)]||vendors[bn]||null : null; }
+async function saveVendor(bn,obj){
+  if(!bn) return;
+  const k=toFbKey(bn);
+  vendors[k]=Object.assign({사업자번호:bn},vendors[k]||{},obj,{수정일:nowISO()});
+  try{ await fbSet('vendors/'+k,vendors[k]); }catch(err){ console.error('거래처 저장 오류:',err); }
+}
+function openVendorBook(){ renderVendors(); document.getElementById('vendorModal').classList.add('show'); }
+function renderVendors(){
+  const b=document.getElementById('vdBody');
+  const list=Object.entries(vendors).filter(([,v])=>v&&typeof v==='object')
+    .sort((x,y)=>String(x[1].상호||'').localeCompare(String(y[1].상호||''),'ko'));
+  b.innerHTML=list.length?list.map(([k,v])=>`<tr>
+    <td>${esc(v.상호||'')}</td><td>${esc(v.사업자번호||fromFbKey(k))}</td>
+    <td><select onchange="updVendor('${k}','용도',this.value)">
+      <option value=""${!v.용도?' selected':''}>확인필요</option>
+      <option value="사업"${v.용도==='사업'?' selected':''}>사업용</option>
+      <option value="개인"${v.용도==='개인'?' selected':''}>개인</option></select></td>
+    <td><select onchange="updVendor('${k}','계정',this.value)">${accOpts(v.계정)}</select></td>
+    <td style="text-align:center"><input type="checkbox"${v.부가세?' checked':''} onchange="updVendor('${k}','부가세',this.checked)"></td>
+    <td style="text-align:center"><button class="ex-clip" onclick="delVendor('${k}')">🗑</button></td>
+  </tr>`).join('')
+  : '<tr><td colspan="6" style="padding:16px;text-align:center;color:#9aa8b4">등록된 거래처 규칙이 없습니다. 지출 목록에서 용도를 정하면 자동으로 쌓입니다.</td></tr>';
+}
+function accOpts(sel){
+  return '<option value=""></option>'+ACCOUNTS.map(a=>`<option value="${a.n}"${sel===a.n?' selected':''}>${a.n}</option>`).join('');
+}
+function updVendor(k,f,v){
+  if(!vendors[k]) return;
+  vendors[k][f]=v;
+  if(f==='계정') vendors[k].부가세=accVat(v);
+  vendors[k].수정일=nowISO();
+  fbSet('vendors/'+k,vendors[k]).catch(e=>console.error(e));
+  renderVendors();
+}
+function delVendor(k){
+  if(!confirm('이 거래처 규칙을 삭제하시겠습니까?\n\n이미 등록된 지출 내역은 그대로 남습니다.')) return;
+  delete vendors[k];
+  pauseSync(); renderVendors();
+  fbRemove('vendors/'+k).catch(e=>alert('삭제 실패: '+e.message));
+}
+
+// ── 자동 분류 ──
+// 1순위 거래처 규칙 → 2순위 재고 입고 기록 → 3순위 업종 추천
+function autoClassify(row){
+  const out={용도:'',계정:'',부가세:false,pg:false,사유:''};
+  const ind=indMatch(row.업태,row.업종);
+  if(ind&&ind.pg){ out.pg=true; out.사유='결제대행 경유 — 실제 판매자 확인이 필요합니다.'; }
+
+  const v=vendorOf(row.사업자번호);
+  if(v&&(v.용도||v.계정)){
+    out.용도=v.용도||''; out.계정=v.계정||'';
+    out.부가세=v.계정?(v.부가세!==undefined?!!v.부가세:accVat(v.계정)):false;
+    out.사유='거래처 규칙';
+    return out;
+  }
+  if(ind){
+    if(ind.용도) out.용도=ind.용도;
+    if(ind.계정) out.계정=ind.계정;
+    if(ind.msg) out.사유=ind.msg;
+    else if(!out.사유) out.사유='업종 추천';
+  }
+  // 국세청이 당연·간이 불공제로 본 건은 부가세를 켜지 않습니다
+  const 당연 = /당연|간이/.test(row.국세청비고||'');
+  out.부가세 = !!out.계정 && out.용도==='사업' && accVat(out.계정) && !당연;
+  if(out.용도==='개인') out.계정='', out.부가세=false;
+  return out;
+}
+
+// ── 홈택스 건별 엑셀 읽기 ──
+let _xlsxLoading=null;
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  if(_xlsxLoading) return _xlsxLoading;
+  _xlsxLoading=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=res; s.onerror=()=>rej(new Error('엑셀 読み 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하십시오.'));
+    document.head.appendChild(s);
+  });
+  return _xlsxLoading;
+}
+// 홈택스 파일은 1행이 "총 사용금액" 배너, 2행이 제목줄입니다. 제목줄을 찾아 씁니다.
+const COLMAP={승인일자:'날짜',거래일자:'날짜',사용일자:'날짜',
+  카드사:'카드사',카드번호:'카드번호',
+  가맹점사업자번호:'사업자번호','가맹점 사업자번호':'사업자번호',사업자등록번호:'사업자번호',사업자번호:'사업자번호',
+  가맹점명:'거래처',가맹점:'거래처',상호:'거래처',
+  공급가액:'공급가액',세액:'세액',부가세:'세액',부가세액:'세액',비과세:'비과세',합계:'합계',금액:'합계',
+  가맹점유형:'유형',유형:'유형',업태:'업태',업종:'업종',
+  공제여부결정:'국세청공제',공제여부:'국세청공제',비고:'국세청비고'};
+function findHeader(aoa){
+  for(let i=0;i<Math.min(aoa.length,8);i++){
+    const r=(aoa[i]||[]).map(c=>String(c||'').replace(/\s+/g,''));
+    const hit=r.filter(c=>COLMAP[c]).length;
+    if(hit>=4) return i;
+  }
+  return -1;
+}
+async function importCardFile(input){
+  const file=input.files&&input.files[0];
+  input.value='';
+  if(!file) return;
+  showSaving(true);
+  try{
+    await loadXLSX();
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array',cellDates:false,codepage:949});
+    const sh=wb.Sheets[wb.SheetNames[0]];
+    const aoa=XLSX.utils.sheet_to_json(sh,{header:1,raw:true,defval:''});
+    const hi=findHeader(aoa);
+    if(hi<0) throw new Error('제목줄을 찾지 못했습니다.\n홈택스 "사업용신용카드 사용내역"을 거래 건별로 내려받은 파일인지 확인하십시오.');
+    const hdr=(aoa[hi]||[]).map(c=>String(c||'').replace(/\s+/g,''));
+    const idx={};
+    hdr.forEach((h,i)=>{ if(COLMAP[h]&&idx[COLMAP[h]]===undefined) idx[COLMAP[h]]=i; });
+    if(idx.거래처===undefined||idx.합계===undefined)
+      throw new Error('가맹점명 또는 합계 열을 찾지 못했습니다. 다른 형식의 파일로 보입니다.');
+
+    const num=v=>{ const n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; };
+    const rows=[];
+    for(let r=hi+1;r<aoa.length;r++){
+      const a=aoa[r]||[];
+      const 거래처=String(a[idx.거래처]==null?'':a[idx.거래처]).trim();
+      if(!거래처) continue;
+      const o={
+        날짜:xlDate(a[idx.날짜]),
+        카드사:String(a[idx.카드사]||'').trim(),
+        카드번호:String(a[idx.카드번호]||'').trim(),
+        사업자번호:normBn(a[idx.사업자번호]),
+        거래처,
+        공급가액:num(a[idx.공급가액]), 세액:num(a[idx.세액]),
+        비과세:num(a[idx.비과세]), 합계:num(a[idx.합계]),
+        유형:String(a[idx.유형]||'').trim(),
+        업태:String(a[idx.업태]||'').trim(), 업종:String(a[idx.업종]||'').trim(),
+        국세청공제:String(a[idx.국세청공제]||'').trim(),
+        국세청비고:String(a[idx.국세청비고]||'').trim()
+      };
+      if(!o.합계) o.합계=o.공급가액+o.세액+o.비과세;
+      if(!o.공급가액&&!o.세액&&o.합계) { o.공급가액=Math.round(o.합계/1.1); o.세액=o.합계-o.공급가액; }
+      if(!o.날짜&&!o.합계) continue;
+      rows.push(o);
+    }
+    if(!rows.length) throw new Error('읽을 수 있는 거래가 없습니다.');
+    prepareImport(rows,file.name);
+  }catch(e){
+    alert('파일을 읽지 못했습니다.\n\n'+e.message);
+  }finally{ showSaving(false); }
+}
+// 엑셀 날짜는 문자열일 수도 일련번호일 수도 있습니다
+function xlDate(v){
+  if(v==null||v==='') return '';
+  if(typeof v==='number'){
+    const d=new Date(Date.UTC(1899,11,30)+v*86400000);
+    return `${d.getUTCFullYear()}-${_p2(d.getUTCMonth()+1)}-${_p2(d.getUTCDate())}`;
+  }
+  const s=String(v).trim();
+  let m=s.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+  if(m) return `${m[1]}-${_p2(+m[2])}-${_p2(+m[3])}`;
+  m=s.match(/^(\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+  if(m) return `20${m[1]}-${_p2(+m[2])}-${_p2(+m[3])}`;
+  m=s.replace(/[^0-9]/g,'');
+  if(m.length===8) return `${m.slice(0,4)}-${m.slice(4,6)}-${m.slice(6)}`;
+  return '';
+}
+// 같은 날짜·같은 카드·같은 금액이면 이미 등록된 건으로 봅니다
+function dupKeyOf(e){
+  return [e.날짜||'',(e.카드번호||'').slice(-4),Math.round(+e.합계||0),normBn(e.사업자번호||'')].join('|');
+}
+function prepareImport(rows,fname){
+  const have=new Set(expenses.map(dupKeyOf));
+  const seen=new Set();
+  impRows=rows.map(r=>{
+    const k=dupKeyOf(r);
+    const dup=have.has(k)||seen.has(k);
+    seen.add(k);
+    const c=autoClassify(r);
+    return Object.assign({},r,{_dup:dup,_sel:!dup,용도:c.용도,계정:c.계정,부가세:c.부가세,pg:c.pg,사유:c.사유});
+  });
+  const n=impRows.length, dup=impRows.filter(r=>r._dup).length;
+  const 합=impRows.reduce((s,r)=>s+r.합계,0);
+  const 기간=[impRows.map(r=>r.날짜).filter(Boolean).sort()[0]||'?',
+             impRows.map(r=>r.날짜).filter(Boolean).sort().slice(-1)[0]||'?'];
+  const 확인=impRows.filter(r=>!r.용도).length, pg=impRows.filter(r=>r.pg).length;
+  const neg=impRows.filter(r=>r.합계<0).length;
+  document.getElementById('impSummary').innerHTML=
+     `<b>${esc(fname)}</b><br>`
+    +`읽은 거래 <b>${n}건</b> · 합계 <b>${fmt(Math.round(합))}원</b> · 기간 ${기간[0]} ~ ${기간[1]}<br>`
+    +(dup?`<span style="color:#b53030">이미 등록된 것으로 보이는 ${dup}건은 체크를 꺼 두었습니다.</span><br>`:'')
+    +(neg?`<span style="color:#6b3fa0">환불(음수) ${neg}건이 들어 있습니다.</span><br>`:'')
+    +`<span style="color:#b3701a">용도를 정해야 하는 건 ${확인}건</span>`
+    +(pg?` · <span style="color:#6b3fa0">결제대행 경유 ${pg}건</span>`:'');
+  document.getElementById('impBody').innerHTML=impRows.map((r,i)=>`<tr>
+    <td style="text-align:center"><input type="checkbox"${r._sel?' checked':''} onchange="impRows[${i}]._sel=this.checked"></td>
+    <td>${r.날짜||'-'}</td>
+    <td>${esc(r.거래처)}${r.pg?' <span class="ex-badge b-pg">PG</span>':''}</td>
+    <td class="num">${fmt(r.합계)}</td>
+    <td style="text-align:center">${r.국세청공제?`<span class="ex-badge b-${r.국세청공제}">${r.국세청공제}</span>`:'-'}</td>
+    <td><select onchange="impSet(${i},'용도',this.value)">
+      <option value=""${!r.용도?' selected':''}>확인필요</option>
+      <option value="사업"${r.용도==='사업'?' selected':''}>사업용</option>
+      <option value="개인"${r.용도==='개인'?' selected':''}>개인</option></select></td>
+    <td><select onchange="impSet(${i},'계정',this.value)">${accOpts(r.계정)}</select></td>
+    <td style="font-size:10px;color:#8a98a6">${r._dup?'<span style="color:#b53030;font-weight:700">중복</span> ':''}${esc(r.사유||'')}</td>
+  </tr>`).join('');
+  document.getElementById('impModal').classList.add('show');
+}
+function impSet(i,f,v){
+  if(!impRows[i]) return;
+  impRows[i][f]=v;
+  if(f==='계정'){ impRows[i].부가세=!!v&&impRows[i].용도==='사업'&&accVat(v); }
+  if(f==='용도'&&v==='개인'){ impRows[i].계정=''; impRows[i].부가세=false; }
+  if(f==='용도'&&v==='사업'&&impRows[i].계정) impRows[i].부가세=accVat(impRows[i].계정);
+}
+async function commitImport(){
+  const sel=impRows.filter(r=>r._sel);
+  if(!sel.length){ alert('등록할 건을 하나 이상 선택하십시오.'); return; }
+  showSaving(true);
+  try{
+    const add=sel.map((r,n)=>({
+      id:'ex'+Date.now()+String(n).padStart(3,'0'),
+      출처:'card', 날짜:r.날짜||todayStr(),
+      구분:r.계정||'기타경비', 항목:'', 거래처:r.거래처, 사업자번호:r.사업자번호,
+      카드사:r.카드사, 카드번호:r.카드번호,
+      공급가액:r.공급가액, 부가세:r.세액, 비과세:r.비과세, 합계:r.합계,
+      유형:r.유형, 업태:r.업태, 업종:r.업종,
+      국세청공제:r.국세청공제, 국세청비고:r.국세청비고,
+      용도:r.용도||'', 부가세공제:!!r.부가세, pg:!!r.pg,
+      증빙:'카드', 수단:'카드', 영수증:[], 메모:'',
+      등록자:currentUser?.이름||'', 등록일:nowISO()
+    }));
+    expenses=expenses.concat(add);
+    const obj={}; add.forEach(e=>{ obj[e.id]=e; });
+    await Promise.all(add.map(e=>fbSet('expenses/'+e.id,e)));
+    // 용도를 정한 가맹점은 규칙으로 기억해 둡니다
+    const done={};
+    sel.forEach(r=>{ if(r.용도&&r.사업자번호&&!done[r.사업자번호]){ done[r.사업자번호]=1;
+      saveVendor(r.사업자번호,{상호:r.거래처,용도:r.용도,계정:r.계정||'',부가세:!!r.부가세}); } });
+    closeModal('impModal');
+    const m=(add[0].날짜||'').slice(0,7);
+    const el=document.getElementById('ex-월'); if(el&&m) el.value=m;
+    renderExp();
+    alert(`✅ ${add.length}건을 등록했습니다.\n\n용도를 정해야 하는 건이 ${add.filter(e=>!e.용도).length}건 남아 있습니다.`);
+  }catch(e){ alert('등록 중 오류가 생겼습니다: '+e.message); }
+  finally{ showSaving(false); }
+}
+
+// ── 목록 ──
+function setExpFilter(f,btn){
+  expFilter=f;
+  document.querySelectorAll('.ex-fb').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  renderExp();
+}
+function expOfMonth(m){
+  return expenses.map((e,i)=>({e,i})).filter(({e})=>(e.날짜||'').slice(0,7)===m)
+    .sort((a,b)=>(b.e.날짜||'').localeCompare(a.e.날짜||''));
+}
+function expMatchFilter(e){
+  switch(expFilter){
+    case '확인':   return !expUse(e);
+    case '사업':   return expUse(e)==='사업';
+    case '개인':   return expUse(e)==='개인';
+    case 'pg':     return isPG(e);
+    // 아직 용도를 정하지 않은 건은 '다름'으로 보지 않습니다 (판단 전이므로)
+    case '엇갈림': return !!expUse(e) && !!e.국세청공제 && ((e.국세청공제==='공제')!==!!e.부가세공제);
+    case '무증빙': return !(e.영수증&&e.영수증.length);
+    default:       return true;
+  }
+}
+function renderExp(){
+  const body=document.getElementById('exBody');
+  if(!body) return;
+  const m=expMonth();
+  const el=document.getElementById('ex-월'); if(el&&!el.value) el.value=m;
+  const all=expOfMonth(m);
+  const q=(document.getElementById('exSearch')?.value||'').trim();
+  let list=all.filter(({e})=>expMatchFilter(e));
+  if(q) list=list.filter(({e})=>(e.거래처||'').includes(q)||String(e.사업자번호||'').includes(q)||(e.메모||'').includes(q));
+
+  body.innerHTML=list.length?list.map(({e})=>{
+    const u=expUse(e);
+    const cls=u==='개인'?'u-개인':(u?'':'u-확인');
+    const rc=(e.영수증||[]).length;
+    return `<tr class="${cls}">
+      <td style="font-size:11px">${e.날짜||'-'}</td>
+      <td><span style="font-weight:700;color:#1b3a5c">${esc(e.거래처||'-')}</span>
+        ${isPG(e)?'<span class="ex-badge b-pg">PG</span>':''}
+        ${e.출처&&e.출처!=='card'?`<span class="ex-badge b-src">${e.출처==='manual'?'수기':'영수증'}</span>`:''}
+        ${e.실판매자?`<br><span style="font-size:10px;color:#6b3fa0">→ ${esc(e.실판매자)}</span>`:''}
+        ${e.메모?`<br><span style="font-size:10px;color:#8a98a6">${esc(e.메모)}</span>`:''}</td>
+      <td style="font-size:10px;color:#6b7f92">${esc((e.업종||e.업태||'').slice(0,14))}</td>
+      <td class="num" style="font-weight:700${(+e.합계||0)<0?';color:#b53030':''}">${fmt(e.합계||((+e.공급가액||0)+(+e.부가세||0)))}</td>
+      <td class="num">${fmt(e.공급가액)}</td>
+      <td class="num">${fmt(e.부가세)}</td>
+      <td style="text-align:center">${e.국세청공제?`<span class="ex-badge b-${e.국세청공제}" title="${esc(e.국세청비고||'')}">${e.국세청공제}</span>`:'-'}</td>
+      <td><span class="ex-use">
+        <button class="${u==='사업'?'on-biz':''}" onclick="setUse('${e.id}','사업')">사업</button>
+        <button class="${u==='개인'?'on-per':''}" onclick="setUse('${e.id}','개인')">개인</button></span></td>
+      <td>${u==='개인'?'<span style="font-size:10px;color:#9aa8b4">—</span>'
+        :`<select onchange="setAcc('${e.id}',this.value)" title="${esc(accHint(e.구분))}">${accOpts(e.구분)}</select>`}</td>
+      <td style="text-align:center">${u==='개인'?'—'
+        :`<input type="checkbox"${e.부가세공제?' checked':''} onchange="setVat('${e.id}',this.checked)">`}</td>
+      <td style="text-align:center"><button class="ex-clip" onclick="openExpEdit('${e.id}')"
+        title="${rc?rc+'장 첨부됨':'영수증 없음'}">${rc?'📎'+rc:'📷'}</button></td>
+      <td style="text-align:center"><button class="ex-clip" onclick="openExpEdit('${e.id}')">✏️</button></td>
+    </tr>`;
+  }).join('')
+  : `<tr><td colspan="12" style="padding:22px;text-align:center;color:#9aa8b4">
+      ${all.length?'이 조건에 맞는 지출이 없습니다.':'이 달에 등록된 지출이 없습니다. [카드내역 업로드] 또는 [직접 입력]으로 시작하십시오.'}</td></tr>`;
+
+  document.getElementById('exCount').textContent=`${list.length} / ${all.length}건`;
+  renderExpTiles(all.map(x=>x.e));
+  updateExpBadge();
+}
+function renderExpTiles(list){
+  const biz=list.filter(e=>expUse(e)==='사업');
+  const 경비=biz.reduce((s,e)=>s+(+e.공급가액||0)+(+e.비과세||0),0);
+  const 매입=biz.filter(e=>e.구분==='매입(상품)').reduce((s,e)=>s+(+e.공급가액||0),0);
+  const 공제세액=biz.filter(e=>e.부가세공제).reduce((s,e)=>s+(+e.부가세||0),0);
+  const 개인=list.filter(e=>expUse(e)==='개인').reduce((s,e)=>s+(+e.합계||0),0);
+  const 확인=list.filter(e=>!expUse(e)).length;
+  const pg=list.filter(e=>isPG(e)&&!e.실판매자).length;
+  const 엇갈림=list.filter(e=>!!expUse(e)&&!!e.국세청공제&&((e.국세청공제==='공제')!==!!e.부가세공제)).length;
+  const t=(cls,lb,vl,sb)=>`<div class="ex-tile ${cls}"><div class="lb">${lb}</div><div class="vl">${vl}</div><div class="sb">${sb||''}</div></div>`;
+  document.getElementById('exTiles').innerHTML=
+      t('ok','사업용 경비 (공급가액)',fmt(경비)+'원',`${biz.length}건 · 그중 상품매입 ${fmt(매입)}원`)
+    + t('ok','부가세 공제세액',fmt(공제세액)+'원','공제로 표시한 건만 더했습니다')
+    + t('','개인 지출',fmt(개인)+'원','경비에서 빠집니다')
+    + t(확인?'warn':'','용도 확인필요',확인+'건',확인?'눌러서 사업·개인을 정하십시오':'모두 정했습니다')
+    + t(pg?'warn':'','실판매자 확인',pg+'건',pg?'영수증을 넣어 주십시오':'확인이 끝났습니다')
+    + t(엇갈림?'warn':'','국세청과 다름',엇갈림+'건',엇갈림?'세무사와 상의할 목록입니다':'차이 없음');
+  const 미증빙=biz.filter(e=>!(e.영수증&&e.영수증.length)).length;
+  document.getElementById('exFoot').textContent=
+    `사업용 ${biz.length}건 중 영수증이 없는 건 ${미증빙}건입니다. 증빙은 신고기한으로부터 5년간 보관해야 합니다.`;
+}
+function updateExpBadge(){
+  const el=document.getElementById('expBadge');
+  if(!el) return;
+  const n=expenses.filter(e=>e.출처&&!expUse(e)).length;
+  el.textContent=n>99?'99+':String(n);
+  el.style.display=n?'':'none';
+}
+// 실시간 동기화로 목록 순서가 바뀔 수 있으므로 행 번호가 아니라 id로 찾습니다
+function expById(id){ return expenses.find(x=>x.id===id)||null; }
+function applyAcc(e,acc){
+  e.구분=acc;
+  e.부가세공제 = !!acc && expUse(e)==='사업' && accVat(acc) && !/당연|간이/.test(e.국세청비고||'');
+}
+// 같은 가맹점의 다른 건에도 똑같이 적용할지 물어봅니다.
+// 결제대행(PG) 건은 결제마다 실제 판매자가 달라서 묻지 않습니다.
+function spreadSame(src,fn){
+  if(isPG(src)||!src.사업자번호) return [];
+  const m=(src.날짜||'').slice(0,7);
+  const same=expenses.filter(x=>x!==src&&x.사업자번호===src.사업자번호&&(x.날짜||'').slice(0,7)===m
+    &&(x.용도!==src.용도||x.구분!==src.구분));
+  if(!same.length) return [];
+  if(!confirm(`같은 가맹점 "${src.거래처}" 의 다른 ${same.length}건에도 똑같이 적용하시겠습니까?`)) return [];
+  same.forEach(fn);
+  return same;
+}
+function pushExp(list){
+  list.forEach(e=>{ e.수정일=nowISO(); e.수정자=currentUser?.이름||'';
+    fbSet('expenses/'+e.id,e).catch(err=>console.error('지출 저장 오류:',err)); });
+}
+function setUse(id,v){
+  const e=expById(id); if(!e) return;
+  if(e.용도===v) return;                     // 이미 그 값이면 아무것도 하지 않습니다
+  e.용도=v;                                  // 확인필요로 되돌리려면 ✏️ 편집에서 바꾸십시오
+  if(e.용도==='개인'){ e.부가세공제=false; }
+  else if(e.용도==='사업'&&e.구분){ applyAcc(e,e.구분); }
+  const also=spreadSame(e,x=>{ x.용도=e.용도; if(e.용도==='개인'){x.부가세공제=false;} else if(x.구분){applyAcc(x,x.구분);} });
+  pushExp([e].concat(also));
+  if(e.사업자번호) saveVendor(e.사업자번호,{상호:e.거래처,용도:e.용도,계정:e.용도==='개인'?'':e.구분,부가세:!!e.부가세공제});
+  renderExp();
+}
+function setAcc(id,v){
+  const e=expById(id); if(!e) return;
+  applyAcc(e,v);
+  const also=spreadSame(e,x=>{ applyAcc(x,v); });
+  pushExp([e].concat(also));
+  if(e.사업자번호) saveVendor(e.사업자번호,{상호:e.거래처,용도:e.용도||'',계정:v,부가세:!!e.부가세공제});
+  renderExp();
+}
+function setVat(id,v){
+  const e=expById(id); if(!e) return;
+  e.부가세공제=!!v;
+  pushExp([e]);
+  renderExp();
+}
+
+// ── 한 건 편집 · 영수증 ──
+function openExpEdit(id){
+  eeId=id;
+  const e=id?expenses.find(x=>x.id===id):null;
+  eeDraft=e?JSON.parse(JSON.stringify(e)):{
+    id:'ex'+Date.now(), 출처:'manual', 날짜:expMonth()+'-'+_p2(new Date().getDate()),
+    구분:'매입(상품)', 거래처:'', 사업자번호:'', 공급가액:0, 부가세:0, 비과세:0, 합계:0,
+    용도:'사업', 부가세공제:true, 증빙:'세금계산서', 수단:'계좌이체', 영수증:[], 메모:'',
+    등록자:currentUser?.이름||'', 등록일:nowISO()
+  };
+  if(!eeDraft.영수증) eeDraft.영수증=[];
+  document.getElementById('eeTitle').textContent=e?'지출 수정':'지출 직접 입력';
+  document.getElementById('eeDel').style.display=e?'':'none';
+  document.getElementById('ee-계정').innerHTML=accOpts(eeDraft.구분);
+  const g=(k,v)=>{ document.getElementById(k).value=v; };
+  g('ee-날짜',eeDraft.날짜||''); g('ee-거래처',eeDraft.거래처||''); g('ee-사업자',eeDraft.사업자번호||'');
+  g('ee-합계',eeDraft.합계||0); g('ee-공급',eeDraft.공급가액||0);
+  g('ee-세액',eeDraft.부가세||0); g('ee-비과',eeDraft.비과세||0);
+  g('ee-용도',eeDraft.용도||''); g('ee-계정',eeDraft.구분||'');
+  g('ee-공제',eeDraft.부가세공제?'1':'0'); g('ee-수단',eeDraft.수단||'계좌이체');
+  g('ee-메모',eeDraft.메모||'');
+  eeHint(); renderEeReceipts();
+  document.getElementById('eeRcMsg').textContent='';
+  document.getElementById('expEditModal').classList.add('show');
+}
+function eeSplit(){           // 합계 → 공급가액·부가세
+  const t=+document.getElementById('ee-합계').value||0;
+  const s=Math.round(t/1.1);
+  document.getElementById('ee-공급').value=s;
+  document.getElementById('ee-세액').value=t-s;
+  document.getElementById('ee-비과').value=0;
+}
+function eeSum(){             // 공급가액+부가세+비과세 → 합계
+  const s=+document.getElementById('ee-공급').value||0;
+  const v=+document.getElementById('ee-세액').value||0;
+  const z=+document.getElementById('ee-비과').value||0;
+  document.getElementById('ee-합계').value=s+v+z;
+}
+function eeAcc(){
+  const u=document.getElementById('ee-용도').value;
+  const a=document.getElementById('ee-계정').value;
+  document.getElementById('ee-공제').value=(u==='사업'&&a&&accVat(a))?'1':'0';
+  eeHint();
+}
+function eeHint(){
+  const u=document.getElementById('ee-용도').value;
+  const a=document.getElementById('ee-계정').value;
+  const el=document.getElementById('eeHint');
+  if(u==='개인'){ el.textContent='개인 지출은 경비와 부가세 공제에서 모두 빠집니다.'; return; }
+  const h=accHint(a);
+  el.textContent=h||(a?'':'계정과목을 고르면 부가세 공제 여부를 추천해 드립니다.');
+}
+function renderEeReceipts(){
+  const g=document.getElementById('eeRc');
+  const rc=eeDraft.영수증||[];
+  g.innerHTML=rc.length?rc.map((f,i)=>`<div class="rc-item">
+      ${/\.pdf$/i.test(f.name||'')?`<div class="rc-pdf" onclick="window.open('${f.url}','_blank')">📄</div>`
+        :`<img src="${f.url}" alt="" onclick="window.open('${f.url}','_blank')">`}
+      <div class="nm">${esc((f.name||'').slice(-18))}</div>
+      <button class="del" onclick="eeDelReceipt(${i})">✕</button>
+    </div>`).join('')
+  : '<div style="grid-column:1/-1;padding:14px;text-align:center;color:#9aa8b4;font-size:11px;border:1px dashed #d0dff0;border-radius:6px">첨부된 영수증이 없습니다.</div>';
+}
+async function eeAddReceipt(input){
+  const files=[...(input.files||[])];
+  input.value='';
+  if(!files.length) return;
+  const msg=document.getElementById('eeRcMsg');
+  try{
+    for(let i=0;i<files.length;i++){
+      msg.textContent=`올리는 중… (${i+1}/${files.length})`;
+      const up=await stUpload(files[i],'receipts/'+(eeDraft.날짜||todayStr()).slice(0,7));
+      eeDraft.영수증.push(up);
+      renderEeReceipts();
+    }
+    msg.textContent=`${files.length}장을 올렸습니다. 저장을 눌러야 반영됩니다.`;
+  }catch(e){
+    msg.textContent='';
+    alert('사진을 올리지 못했습니다.\n\n'+(e.code||'')+' '+e.message
+      +'\n\n마트관리 화면의 [저장소 연결 확인]으로 설정을 점검하십시오.');
+  }
+}
+async function eeDelReceipt(i){
+  const f=(eeDraft.영수증||[])[i];
+  if(!f) return;
+  if(!confirm('이 영수증을 삭제하시겠습니까?')) return;
+  try{ await stDelete(f.path); }catch(e){ console.error(e); }
+  eeDraft.영수증.splice(i,1);
+  renderEeReceipts();
+}
+async function eeSave(){
+  const v=id=>document.getElementById(id).value;
+  const d=eeDraft;
+  d.날짜=v('ee-날짜')||todayStr();
+  d.거래처=v('ee-거래처').trim();
+  d.사업자번호=normBn(v('ee-사업자'));
+  d.합계=+v('ee-합계')||0; d.공급가액=+v('ee-공급')||0;
+  d.부가세=+v('ee-세액')||0; d.비과세=+v('ee-비과')||0;
+  d.용도=v('ee-용도'); d.구분=v('ee-계정')||'기타경비';
+  d.부가세공제=v('ee-공제')==='1'&&d.용도==='사업';
+  d.수단=v('ee-수단'); d.메모=v('ee-메모').trim();
+  if(!d.거래처){ alert('거래처를 입력하십시오.'); return; }
+  if(!d.출처) d.출처='manual';
+  d.수정일=nowISO(); d.수정자=currentUser?.이름||'';
+  // 결제대행 건에 실판매자를 적어 두면 목록에 함께 보입니다
+  if(d.pg&&d.메모&&!d.실판매자) d.실판매자=d.메모.split(/[,·]/)[0].trim().slice(0,24);
+  showSaving(true);
+  try{
+    const idx=expenses.findIndex(x=>x.id===d.id);
+    if(idx>=0) expenses[idx]=d; else expenses.push(d);
+    await fbSet('expenses/'+d.id,d);
+    if(d.사업자번호&&d.용도) saveVendor(d.사업자번호,{상호:d.거래처,용도:d.용도,계정:d.용도==='개인'?'':d.구분,부가세:!!d.부가세공제});
+    closeModal('expEditModal');
+    renderExp();
+  }catch(e){ alert('저장하지 못했습니다: '+e.message); }
+  finally{ showSaving(false); }
+}
+async function eeDelete(){
+  if(!eeId) return;
+  const e=expenses.find(x=>x.id===eeId);
+  if(!e) return;
+  if(!confirm(`이 지출을 삭제하시겠습니까?\n\n${e.날짜} ${e.거래처} ${fmt(e.합계)}원`
+    +((e.영수증||[]).length?`\n첨부된 영수증 ${e.영수증.length}장도 함께 지워집니다.`:''))) return;
+  showSaving(true);
+  try{
+    for(const f of (e.영수증||[])){ try{ await stDelete(f.path); }catch(err){ console.error(err); } }
+    expenses=expenses.filter(x=>x.id!==eeId);
+    pauseSync();
+    await fbRemove('expenses/'+eeId);
+    closeModal('expEditModal');
+    renderExp();
+  }catch(err){ alert('삭제하지 못했습니다: '+err.message); }
+  finally{ showSaving(false); }
+}
+
+// ── 세무사 전달용 인쇄 ──
+function printExp(){
+  const m=expMonth();
+  const list=expOfMonth(m).map(x=>x.e);
+  if(!list.length){ alert('이 달에 등록된 지출이 없습니다.'); return; }
+  const biz=list.filter(e=>expUse(e)==='사업');
+  const 확인=list.filter(e=>!expUse(e));
+  const 엇=biz.filter(e=>!!e.국세청공제&&((e.국세청공제==='공제')!==!!e.부가세공제));   // 사업용으로 정한 건만
+  const byAcc={};
+  biz.forEach(e=>{ const k=e.구분||'기타경비';
+    byAcc[k]=byAcc[k]||{n:0,s:0,v:0}; byAcc[k].n++; byAcc[k].s+=(+e.공급가액||0)+(+e.비과세||0); byAcc[k].v+=e.부가세공제?(+e.부가세||0):0; });
+  const row=e=>`<tr><td class="c">${e.날짜||''}</td><td>${esc(e.거래처||'')}</td>
+    <td class="c">${esc(e.사업자번호||'')}</td><td class="c">${esc(e.구분||'')}</td>
+    <td class="r">${fmt(e.공급가액)}</td><td class="r">${fmt(e.부가세)}</td>
+    <td class="c">${e.부가세공제?'공제':'불공제'}</td>
+    <td class="c" style="font-size:10px">${esc(e.국세청공제||'-')}</td>
+    <td style="font-size:10px">${esc(e.메모||'')}</td></tr>`;
+  const w=window.open('','_blank');
+  if(!w){ alert('팝업이 차단되었습니다. 팝업을 허용한 뒤 다시 시도하십시오.'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>지출내역 '+m+'</title><style>'
+    +"body{font-family:'Malgun Gothic','맑은 고딕',sans-serif;margin:10mm;color:#222;font-size:11px}"
+    +'h2{font-size:16px;margin:0 0 3px}.sub{font-size:10px;color:#666;margin-bottom:8px}'
+    +'h3{font-size:12px;margin:12px 0 4px;padding-bottom:2px;border-bottom:1px solid #999}'
+    +'table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:6px}'
+    +'th,td{border:1px solid #aaa;padding:3px 4px}th{background:#eef2f7}'
+    +'.c{text-align:center;white-space:nowrap}.r{text-align:right;white-space:nowrap}'
+    +'tfoot td{font-weight:700;background:#f4f7fb}@page{size:A4;margin:10mm}</style></head><body>'
+    +'<h2>혼길마트 지출내역 — '+m+'</h2>'
+    +'<div class="sub">출력 '+localDateTimeOf(nowISO())+' · 전체 '+list.length+'건 (사업용 '+biz.length+'건 / 개인 '
+      +list.filter(e=>expUse(e)==='개인').length+'건 / 미정 '+확인.length+'건)</div>'
+    +'<h3>계정과목별 요약</h3><table><thead><tr><th>계정과목</th><th>건수</th><th>공급가액</th><th>공제 부가세</th></tr></thead><tbody>'
+    +Object.entries(byAcc).sort((a,b)=>b[1].s-a[1].s).map(([k,v])=>
+      `<tr><td>${k}</td><td class="c">${v.n}</td><td class="r">${fmt(v.s)}</td><td class="r">${fmt(v.v)}</td></tr>`).join('')
+    +'</tbody><tfoot><tr><td class="c">합계</td><td class="c">'+biz.length+'</td>'
+    +'<td class="r">'+fmt(Object.values(byAcc).reduce((s,v)=>s+v.s,0))+'</td>'
+    +'<td class="r">'+fmt(Object.values(byAcc).reduce((s,v)=>s+v.v,0))+'</td></tr></tfoot></table>'
+    +(엇.length?'<h3>※ 국세청 판정과 다르게 본 건 — 확인 부탁드립니다</h3><table><thead><tr>'
+      +'<th>날짜</th><th>거래처</th><th>사업자번호</th><th>계정과목</th><th>공급가액</th><th>부가세</th><th>내 판단</th><th>국세청</th><th>메모</th>'
+      +'</tr></thead><tbody>'+엇.map(row).join('')+'</tbody></table>':'')
+    +'<h3>사업용 지출 전체</h3><table><thead><tr>'
+    +'<th>날짜</th><th>거래처</th><th>사업자번호</th><th>계정과목</th><th>공급가액</th><th>부가세</th><th>공제</th><th>국세청</th><th>메모</th>'
+    +'</tr></thead><tbody>'+biz.map(row).join('')+'</tbody></table>'
+    +(확인.length?'<h3>※ 용도를 정하지 못한 건</h3><table><thead><tr>'
+      +'<th>날짜</th><th>거래처</th><th>사업자번호</th><th>계정과목</th><th>공급가액</th><th>부가세</th><th>공제</th><th>국세청</th><th>메모</th>'
+      +'</tr></thead><tbody>'+확인.map(row).join('')+'</tbody></table>':'')
+    +'</body></html>');
+  w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); },300);
 }
 
 // ══════════════════════════════════════════════
