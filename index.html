@@ -192,6 +192,36 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .mm-add input{flex:1 1 auto;padding:8px 10px;border:1px solid #c3d2e3;border-radius:5px;font-family:inherit;font-size:13px}
 .mm-empty{padding:26px 10px;text-align:center;color:#9aa8b4;font-size:12px}
 
+/* ── 연말결산 탭 ── */
+.bz-tabs{display:flex;gap:4px;border-bottom:2px solid #1b3a5c;margin:4px 0 12px;overflow-x:auto}
+.bz-tab{flex:0 0 auto;padding:8px 16px;border:1px solid #c3d2e3;border-bottom:none;border-radius:7px 7px 0 0;
+  background:#f3f7fc;color:#45627f;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.bz-tab:hover{background:#e6eef8}
+.bz-tab.on{background:#1b3a5c;color:#fff;border-color:#1b3a5c}
+.bz-cnt{display:inline-block;margin-left:4px;background:#e74c3c;color:#fff;border-radius:8px;
+  font-size:10px;padding:0 5px;min-width:16px;line-height:16px}
+.bz-pane{display:none}
+.bz-pane.on{display:block}
+.biz-saved{font-size:11px;color:#1f7a4d;font-weight:700;margin-right:6px;white-space:nowrap}
+.biz-saved.err{color:#c0392b}
+.bz-set{border:1px solid #d0dff0;border-radius:8px;padding:11px 13px;margin-bottom:10px;background:#fafcff}
+.bz-set-h{font-size:12px;font-weight:700;color:#1b3a5c;margin-bottom:8px}
+.bz-todo{display:flex;gap:7px;flex-wrap:wrap;align-items:center;background:#fff6e8;border:1px solid #e8c48a;
+  border-radius:8px;padding:9px 12px;margin-bottom:11px;font-size:12px;color:#8a5a14}
+.bz-todo.ok{background:#eefaf3;border-color:#a9ddc2;color:#1f7a4d}
+.bz-todo b{font-weight:700}
+.bz-todo button{border:1px solid #e0b26a;background:#fff;color:#8a5a14;border-radius:14px;padding:4px 10px;
+  font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.bz-todo button:hover{background:#fff1d6}
+.ex-months{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.ex-mo{padding:5px 10px;border:1px solid #c3d2e3;border-radius:6px;background:#fff;color:#45627f;
+  font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.ex-mo .n{display:inline-block;margin-left:3px;font-size:10px;color:#8a98a6}
+.ex-mo.empty{color:#b5c0ca;border-color:#e3e9ef}
+.ex-mo.on{background:#1b3a5c;color:#fff;border-color:#1b3a5c}
+.ex-mo.on .n{color:#cfe0f0}
+.ex-mo.all{border-style:dashed}
+
 /* ── 지출관리 ── */
 .ex-tiles{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .ex-tile{flex:1 1 128px;background:#f8faff;border:1px solid #d0dff0;border-radius:7px;padding:9px 11px}
@@ -535,10 +565,9 @@ body.login #mobileNav{display:none!important}
   <div class="sidebar-inner">
     <button class="ntab" data-pg="진행중" onclick="showPage('진행중',this)"><span class="ti">📁</span>정산서<br>관리</button>
     <button class="ntab" id="tab-결산" data-pg="결산" style="display:none" onclick="showPage('결산',this)"><span class="ti">📊</span>결산서</button>
-    <button class="ntab" id="tab-경영" data-pg="경영" style="display:none" onclick="showPage('경영',this)"><span class="ti">📒</span>연말<br>결산</button>
+    <button class="ntab" id="tab-경영" data-pg="경영" style="display:none;position:relative" onclick="showPage('경영',this)"><span class="ti">📒</span>연말<br>결산<span class="memo-badge" id="expBadge" style="display:none" title="사업·개인을 정하지 않은 지출">0</span></button>
     <button class="ntab" data-pg="재고" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
     <button class="ntab" data-pg="원가" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
-    <button class="ntab" id="tab-지출" data-pg="지출" style="display:none;position:relative" onclick="showPage('지출',this)"><span class="ti">💳</span>지출<br>관리<span class="memo-badge" id="expBadge" style="display:none">0</span></button>
     <button class="ntab" id="tab-메모" style="position:relative" onclick="openMemoPad()"><span class="ti">📝</span>메모장<span class="memo-badge" id="memoBadge" style="display:none">0</span></button>
     <button class="ntab on" data-pg="관리" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
     <!-- 캘린더 + 시간계산 버튼 - 마트관리 바로 아래 -->
@@ -909,8 +938,11 @@ body.login #mobileNav{display:none!important}
           <option value="1000">1000명</option>
         </select>
       </div>
-      <div class="fg"><label>발인일</label>
-        <input type="date" id="bs-날짜" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+      <div class="fg"><label>날짜
+          <span style="font-weight:400;margin-left:6px;white-space:nowrap">
+            <input type="checkbox" id="bs-날짜사용" onchange="onBasicDateToggle()" style="vertical-align:-2px"> 금일 날짜</span></label>
+        <input type="date" id="bs-날짜" disabled title="체크를 끄면 인쇄 후 월·일을 손으로 적을 수 있게 비워 둡니다"
+          style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
       </div>
       <div class="fg"><label>분향실</label>
         <div class="room-wrap">
@@ -943,8 +975,8 @@ body.login #mobileNav{display:none!important}
         </tr></tfoot>
       </table>
     </div>
-    <div style="font-size:11px;color:#666;margin-top:6px">
-      ※ 묶음포장 개봉시 반품이 안됩니다.&nbsp;&nbsp;<b>계좌번호 32-02-014675 제주은행</b> 예금주: 송미봉
+    <div style="font-size:12px;color:#222;margin-top:6px;text-align:center">
+      <b>※ 묶음포장 개봉 시 반품이 불가합니다</b>
     </div>
 
     <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
@@ -986,66 +1018,6 @@ body.login #mobileNav{display:none!important}
 </div>
 
 <!-- ══ 연말결산 ══ -->
-<!-- ══ 지출관리 ══ -->
-<div id="page-지출" class="page">
-  <div class="card">
-    <div class="card-title">💳 지출관리
-      <input type="month" id="ex-월" onchange="renderExp()"
-        style="margin-left:10px;padding:5px 7px;border:1px solid #c3d2e3;border-radius:5px;font-family:inherit;font-size:13px">
-      <button class="btn btn-success btn-sm" style="margin-left:8px" onclick="document.getElementById('exFile').click()">📥 카드내역 업로드</button>
-      <input type="file" id="exFile" accept=".xls,.xlsx,.csv" style="display:none" onchange="importCardFile(this)">
-      <button class="btn btn-primary btn-sm" style="margin-left:5px" onclick="openExpEdit(null)">+ 직접 입력</button>
-      <button class="btn btn-sm" style="background:#6b4fa0;color:#fff;margin-left:5px" onclick="openVendorBook()">🏷️ 거래처 규칙</button>
-      <button class="btn btn-info btn-sm" style="margin-left:5px" onclick="printExp()">🖨️ 세무사 전달용</button>
-    </div>
-
-    <div class="ex-note">
-      ※ 국세청 공제 판정은 업종으로 기계적으로 나눈 <b>참고값</b>입니다. 직원 회식·업무 출장처럼 실제 용도가 다르면 직접 바꾸십시오.
-      부가세 공제와 소득세 경비는 기준이 다릅니다 — <b>접대비·여비교통비는 부가세 공제가 안 되지만 경비로는 인정</b>됩니다.
-      최종 판단은 세무대리인과 확인하십시오.
-    </div>
-
-    <div class="ex-tiles" id="exTiles"></div>
-
-    <div class="ex-filters">
-      <button class="ex-fb on" data-f="all" onclick="setExpFilter('all',this)">전체</button>
-      <button class="ex-fb" data-f="확인" onclick="setExpFilter('확인',this)">⬜ 확인필요</button>
-      <button class="ex-fb" data-f="사업" onclick="setExpFilter('사업',this)">🟦 사업용</button>
-      <button class="ex-fb" data-f="개인" onclick="setExpFilter('개인',this)">🟧 개인</button>
-      <button class="ex-fb" data-f="불공제" onclick="setExpFilter('불공제',this)">🚫 국세청 불공제</button>
-      <button class="ex-fb" data-f="pg" onclick="setExpFilter('pg',this)">⚠️ 실판매자 확인</button>
-      <button class="ex-fb" data-f="엇갈림" onclick="setExpFilter('엇갈림',this)">🔀 국세청과 다름</button>
-      <button class="ex-fb" data-f="무증빙" onclick="setExpFilter('무증빙',this)">📷 영수증 없음</button>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
-        <input type="text" id="exSearch" placeholder="가맹점·사업자번호 검색" lang="ko" oninput="renderExp()"
-          style="width:190px;padding:5px 8px;border:1px solid #c3d2e3;border-radius:5px;font-family:inherit;font-size:12px">
-        <span id="exCount" style="font-size:12px;color:#1b3a5c;font-weight:700"></span>
-      </div>
-    </div>
-
-    <div style="max-height:56vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
-      <table class="extbl ex-main">
-        <thead><tr>
-          <th style="width:78px">날짜</th>
-          <th style="min-width:130px">가맹점</th>
-          <th style="width:86px">업종</th>
-          <th style="width:84px">합계</th>
-          <th style="width:80px">공급가액</th>
-          <th style="width:70px">세액</th>
-          <th style="width:56px">국세청</th>
-          <th style="width:94px">용도</th>
-          <th style="width:106px">계정과목</th>
-          <th style="width:58px">부가세</th>
-          <th style="width:60px" title="영수증 사진·PDF를 이 칸에 끌어다 놓으면 바로 첨부됩니다">증빙</th>
-          <th style="width:52px">관리</th>
-        </tr></thead>
-        <tbody id="exBody"></tbody>
-      </table>
-    </div>
-    <div id="exFoot" style="font-size:11px;color:#6b7f92;margin-top:7px"></div>
-  </div>
-</div>
-
 <!-- ══ 지출 한 건 편집 ══ -->
 <div class="overlay" id="expEditModal">
   <div class="modal" style="max-width:560px;width:96%">
@@ -1136,20 +1108,20 @@ body.login #mobileNav{display:none!important}
 <div id="page-경영" class="page">
   <div class="card">
     <div class="card-title">📒 연말결산 <span class="meta-by" id="meta-biz"></span>
-      <div class="btn-group" style="margin-left:auto">
-        <button class="btn btn-success btn-sm" onclick="saveBiz()">💾 저장</button>
+      <div class="btn-group" style="margin-left:auto;align-items:center">
+        <span id="bizSaved" class="biz-saved"></span>
         <button class="btn btn-info btn-sm" onclick="exportBiz()">📥 CSV</button>
-        <button class="btn btn-info btn-sm" onclick="printBiz()">🖨️ 인쇄</button>
+        <button class="btn btn-info btn-sm" onclick="printBiz()">🖨️ 결산 인쇄</button>
       </div>
     </div>
 
-    <!-- 기간·과세유형 -->
-    <div class="frow" style="margin:0 0 10px;gap:10px;align-items:flex-end;flex-wrap:wrap">
+    <!-- 기간 — 모든 탭이 이 기간을 함께 씁니다 -->
+    <div class="frow" style="margin:0 0 8px;gap:10px;align-items:flex-end;flex-wrap:wrap">
       <div class="fg"><label>연도</label>
-        <input type="number" id="bz-연도" style="width:82px;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit" onchange="renderBiz()">
+        <input type="number" id="bz-연도" style="width:82px;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit" onchange="onBizPeriod()">
       </div>
       <div class="fg"><label>기간</label>
-        <select id="bz-기간" onchange="renderBiz()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+        <select id="bz-기간" onchange="onBizPeriod()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
           <option value="year">연간</option>
           <option value="1H">상반기(1~6월)</option>
           <option value="2H">하반기(7~12월)</option>
@@ -1159,24 +1131,21 @@ body.login #mobileNav{display:none!important}
         </select>
       </div>
       <div class="fg" id="bz월Box" style="display:none"><label>월</label>
-        <select id="bz-월" onchange="renderBiz()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit"></select>
+        <select id="bz-월" onchange="onBizPeriod()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit"></select>
       </div>
-      <div class="fg"><label>매출 기준</label>
-        <select id="bz-매출기준" onchange="markBizDirty()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
-          <option value="pos">POS 실매출 (세무신고 기준)</option>
-          <option value="jung">결산서 합계 (내부관리 기준)</option>
-        </select>
-      </div>
-      <div class="fg"><label>과세유형</label>
-        <select id="bz-과세" onchange="markBizDirty()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
-          <option value="일반">일반과세자</option>
-          <option value="간이">간이과세자</option>
-          <option value="면세">면세사업자</option>
-        </select>
-      </div>
-      <span id="bizDirty" style="display:none;font-size:11px;color:#c0392b;font-weight:700;padding-bottom:7px">● 저장되지 않은 변경이 있습니다</span>
     </div>
 
+    <!-- 탭 -->
+    <div class="bz-tabs">
+      <button class="bz-tab on" data-t="요약" onclick="setBizTab('요약')">📊 요약</button>
+      <button class="bz-tab" data-t="지출" onclick="setBizTab('지출')">💳 지출 <span class="bz-cnt" id="bzCntExp" style="display:none"></span></button>
+      <button class="bz-tab" data-t="매출" onclick="setBizTab('매출')">🧾 매출대사</button>
+      <button class="bz-tab" data-t="설정" onclick="setBizTab('설정')">⚙️ 설정</button>
+    </div>
+
+    <!-- ── 📊 요약 ── -->
+    <div class="bz-pane on" id="bzp-요약">
+      <div id="bizTodo"></div>
     <!-- 요약 카드 -->
     <div id="bizSummary" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap"></div>
 
@@ -1192,18 +1161,7 @@ body.login #mobileNav{display:none!important}
       <!-- 종합소득세 추정 -->
       <div style="flex:1;min-width:330px">
         <div style="font-size:12px;font-weight:700;color:#1b3a5c;margin-bottom:6px">🧾 종합소득세 추정</div>
-        <div style="background:#fff8e7;border:1px solid #f0d090;border-radius:8px;padding:9px 12px;margin-bottom:8px">
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <div><label style="font-size:11px;color:#555;display:block">인적공제(명)</label>
-              <input type="number" id="bz-부양" value="1" min="1" style="width:62px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="markBizDirty()"></div>
-            <div><label style="font-size:11px;color:#555;display:block">연금보험료</label>
-              <input type="number" id="bz-연금" value="0" step="10000" style="width:98px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="markBizDirty()"></div>
-            <div><label style="font-size:11px;color:#555;display:block">기타 소득공제</label>
-              <input type="number" id="bz-기타공제" value="0" step="10000" style="width:98px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="markBizDirty()"></div>
-            <div><label style="font-size:11px;color:#555;display:block">세액공제</label>
-              <input type="number" id="bz-세액공제" value="0" step="10000" style="width:98px;padding:5px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="markBizDirty()"></div>
-          </div>
-        </div>
+        <div id="bizTaxCfg" style="font-size:11px;color:#6b7f92;margin-bottom:6px"></div>
         <table class="dtbl" style="width:100%">
           <tbody id="bizTax"></tbody>
         </table>
@@ -1213,7 +1171,67 @@ body.login #mobileNav{display:none!important}
         </div>
       </div>
     </div>
+    </div>
 
+    <!-- ── 💳 지출 ── -->
+    <div class="bz-pane" id="bzp-지출">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="btn btn-success btn-sm" onclick="document.getElementById('exFile').click()">📥 카드내역 업로드</button>
+        <input type="file" id="exFile" accept=".xls,.xlsx,.csv" style="display:none" onchange="importCardFile(this)">
+        <button class="btn btn-primary btn-sm" onclick="openExpEdit(null)">+ 직접 입력</button>
+        <button class="btn btn-sm" style="background:#6b4fa0;color:#fff" onclick="openVendorBook()">🏷️ 거래처 규칙</button>
+        <button class="btn btn-info btn-sm" onclick="printExp()">🖨️ 세무사 전달용</button>
+        <input type="hidden" id="ex-월">
+      </div>
+      <div class="ex-months" id="exMonths"></div>
+    <div class="ex-note">
+      ※ 국세청 공제 판정은 업종으로 기계적으로 나눈 <b>참고값</b>입니다. 직원 회식·업무 출장처럼 실제 용도가 다르면 직접 바꾸십시오.
+      부가세 공제와 소득세 경비는 기준이 다릅니다 — <b>접대비·여비교통비는 부가세 공제가 안 되지만 경비로는 인정</b>됩니다.
+      최종 판단은 세무대리인과 확인하십시오.
+    </div>
+
+    <div class="ex-tiles" id="exTiles"></div>
+
+    <div class="ex-filters">
+      <button class="ex-fb on" data-f="all" onclick="setExpFilter('all',this)">전체</button>
+      <button class="ex-fb" data-f="확인" onclick="setExpFilter('확인',this)">⬜ 확인필요</button>
+      <button class="ex-fb" data-f="사업" onclick="setExpFilter('사업',this)">🟦 사업용</button>
+      <button class="ex-fb" data-f="개인" onclick="setExpFilter('개인',this)">🟧 개인</button>
+      <button class="ex-fb" data-f="불공제" onclick="setExpFilter('불공제',this)">🚫 국세청 불공제</button>
+      <button class="ex-fb" data-f="pg" onclick="setExpFilter('pg',this)">⚠️ 실판매자 확인</button>
+      <button class="ex-fb" data-f="엇갈림" onclick="setExpFilter('엇갈림',this)">🔀 국세청과 다름</button>
+      <button class="ex-fb" data-f="무증빙" onclick="setExpFilter('무증빙',this)">📷 영수증 없음</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
+        <input type="text" id="exSearch" placeholder="가맹점·사업자번호 검색" lang="ko" oninput="renderExp()"
+          style="width:190px;padding:5px 8px;border:1px solid #c3d2e3;border-radius:5px;font-family:inherit;font-size:12px">
+        <span id="exCount" style="font-size:12px;color:#1b3a5c;font-weight:700"></span>
+      </div>
+    </div>
+
+    <div style="max-height:56vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+      <table class="extbl ex-main">
+        <thead><tr>
+          <th style="width:78px">날짜</th>
+          <th style="min-width:130px">가맹점</th>
+          <th style="width:86px">업종</th>
+          <th style="width:84px">합계</th>
+          <th style="width:80px">공급가액</th>
+          <th style="width:70px">세액</th>
+          <th style="width:56px">국세청</th>
+          <th style="width:94px">용도</th>
+          <th style="width:106px">계정과목</th>
+          <th style="width:58px">부가세</th>
+          <th style="width:60px" title="영수증 사진·PDF를 이 칸에 끌어다 놓으면 바로 첨부됩니다">증빙</th>
+          <th style="width:52px">관리</th>
+        </tr></thead>
+        <tbody id="exBody"></tbody>
+      </table>
+    </div>
+    <div id="exFoot" style="font-size:11px;color:#6b7f92;margin-top:7px"></div>
+    </div>
+
+    <!-- ── 🧾 매출대사 ── -->
+    <div class="bz-pane" id="bzp-매출">
     <!-- 매출 대사 -->
     <div style="margin-top:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
@@ -1238,25 +1256,46 @@ body.login #mobileNav{display:none!important}
         </table>
       </div>
     </div>
+    </div>
 
-    <!-- 매입·경비 -->
-    <div style="margin-top:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-        <div style="font-size:12px;font-weight:700;color:#1b3a5c">🧾 매입·경비 내역</div>
-        <button class="btn btn-primary btn-sm" onclick="addExpense()">+ 행 추가</button>
-        <span style="font-size:11px;color:#888">매출·인건비는 정산서와 알바관리에서 자동으로 집계됩니다</span>
+    <!-- ── ⚙️ 설정 ── -->
+    <div class="bz-pane" id="bzp-설정">
+      <div style="font-size:11px;color:#6b7f92;margin-bottom:10px">바꾸는 즉시 저장되고 요약에 반영됩니다.</div>
+      <div class="bz-set">
+        <div class="bz-set-h">과세 · 매출</div>
+        <div class="frow" style="gap:12px;flex-wrap:wrap;margin:0">
+          <div class="fg"><label>과세유형</label>
+            <select id="bz-과세" onchange="onBizCfg()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+              <option value="일반">일반과세자</option>
+              <option value="간이">간이과세자</option>
+              <option value="면세">면세사업자</option>
+            </select></div>
+          <div class="fg"><label>매출 기준</label>
+            <select id="bz-매출기준" onchange="onBizCfg()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+              <option value="pos">POS 실매출 (세무신고 기준)</option>
+              <option value="jung">결산서 합계 (내부관리 기준)</option>
+            </select></div>
+        </div>
       </div>
-      <div style="max-height:38vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
-        <table class="dtbl" style="width:100%">
-          <thead><tr>
-            <th style="width:112px">날짜</th><th style="width:104px">구분</th>
-            <th>항목·적요</th><th style="width:120px">거래처</th>
-            <th style="width:108px">공급가액</th><th style="width:100px">부가세</th>
-            <th style="width:96px">증빙</th><th style="width:56px">삭제</th>
-          </tr></thead>
-          <tbody id="bizExpBody"></tbody>
-          <tfoot><tr id="bizExpTotal" style="background:#f0f5ff;font-weight:700"></tr></tfoot>
-        </table>
+      <div class="bz-set">
+        <div class="bz-set-h">종합소득세 공제</div>
+        <div class="frow" style="gap:12px;flex-wrap:wrap;margin:0">
+          <div class="fg"><label>인적공제(명)</label>
+            <input type="number" id="bz-부양" value="1" min="1" style="width:72px;padding:6px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit" onchange="onBizCfg()"></div>
+          <div class="fg"><label>연금보험료</label>
+            <input type="number" id="bz-연금" value="0" step="10000" style="width:118px;padding:6px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="onBizCfg()"></div>
+          <div class="fg"><label>기타 소득공제</label>
+            <input type="number" id="bz-기타공제" value="0" step="10000" style="width:118px;padding:6px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="onBizCfg()"></div>
+          <div class="fg"><label>세액공제</label>
+            <input type="number" id="bz-세액공제" value="0" step="10000" style="width:118px;padding:6px;border:1px solid #ccc;border-radius:4px;text-align:right;font-family:inherit" onchange="onBizCfg()"></div>
+        </div>
+      </div>
+      <div class="bz-set">
+        <div class="bz-set-h">지출 · 영수증</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm" style="background:#6b4fa0;color:#fff" onclick="openVendorBook()">🏷️ 거래처 규칙</button>
+          <button class="btn btn-gray btn-sm" onclick="testStorage()">🗄️ 영수증 저장소 연결 확인</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1357,11 +1396,12 @@ body.login #mobileNav{display:none!important}
       <div class="mgmt-card" onclick="goTab('진행중',0)"><div class="icon">📁</div><div class="name">정산서 목록</div><div class="desc">진행중/완료 조회</div></div>
       <div class="mgmt-card" id="mgmt-결산" style="display:none" onclick="goTab('결산',1)"><div class="icon">📊</div><div class="name">결산서</div><div class="desc">전체 정산 내역</div></div>
       <div class="mgmt-card" id="mgmt-경영" style="display:none" onclick="showPage('경영',document.getElementById('tab-경영'))"><div class="icon">📒</div><div class="name">연말결산</div><div class="desc">손익·부가세·종합소득세</div></div>
-      <div class="mgmt-card" id="mgmt-지출" style="display:none" onclick="showPage('지출',document.getElementById('tab-지출'))"><div class="icon">💳</div><div class="name">지출관리</div><div class="desc">카드내역·영수증 보관</div></div>
+      <div class="mgmt-card" id="mgmt-지출" style="display:none" onclick="showPage('지출')"><div class="icon">💳</div><div class="name">지출관리</div><div class="desc">연말결산 › 지출 탭</div></div>
       <div class="mgmt-card" id="mgmt-저장소" style="display:none" onclick="testStorage()"><div class="icon">🗄️</div><div class="name">저장소 연결 확인</div><div class="desc">영수증 사진 업로드 점검</div></div>
       <div class="mgmt-card" onclick="goTab('재고',2)"><div class="icon">📦</div><div class="name">재고관리장</div><div class="desc">월별 출고 현황</div></div>
       <div class="mgmt-card" onclick="goTab('원가',3)"><div class="icon">💰</div><div class="name">원가DB 관리</div><div class="desc">품목·단가 수정</div></div>
       <div class="mgmt-card" onclick="backupData()"><div class="icon">💾</div><div class="name">데이터 백업</div><div class="desc">JSON 파일로 저장</div></div>
+      <div class="mgmt-card" onclick="pickBackupDir()"><div class="icon">📁</div><div class="name">백업 폴더 지정</div><div class="desc" id="bkDirDesc">지정 안 됨 · 다운로드 폴더에 저장</div></div>
       <div class="mgmt-card" onclick="document.getElementById('restoreFile').click()"><div class="icon">📂</div><div class="name">데이터 복원</div><div class="desc">백업 파일 불러오기</div></div>
       <div class="mgmt-card" onclick="restoreSnapshot()"><div class="icon">↩</div><div class="name">스냅샷 복원</div><div class="desc">30분 단위 자동 저장본</div></div>
       <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(this)">
@@ -1856,10 +1896,10 @@ function startRealtimeSync(){
     if(_syncPause)return;
     const d=snap.exists()?snap.val():null;
     expenses=d?Object.values(d).map(normalizeExp):[];
-    const open=document.getElementById('page-지출')?.classList.contains('on');
+    const open=document.getElementById('page-경영')?.classList.contains('on');
     const typing=document.activeElement&&document.activeElement.closest
-      &&document.activeElement.closest('#expEditModal,#impModal');
-    if(open&&!typing) renderExp(); else updateExpBadge();
+      &&document.activeElement.closest('#expEditModal,#impModal,#page-경영 input,#page-경영 select');
+    if(open&&!typing) renderBiz(); else updateExpBadge();
   });
   window._fbOnValue(fbRef('vendors'),snap=>{
     if(_syncPause)return;
@@ -1936,7 +1976,6 @@ async function onLoginSuccess(){
   document.getElementById('tab-결산').style.display=isAdmin()?'':'none';
   document.getElementById('tab-경영').style.display=isAdmin()?'':'none';
   document.getElementById('tab-알바').style.display=isAdmin()?'':'none';
-  document.getElementById('tab-지출').style.display=isAdmin()?'':'none';
   // 마트관리 화면의 결산서 카드도 권한에 따라 표시/숨김
   const mgmtResult=document.getElementById('mgmt-결산');
   if(mgmtResult) mgmtResult.style.display=isAdmin()?'':'none';
@@ -2162,7 +2201,6 @@ function buildMobileNav(){
     ['경영','📒 연말결산',isAdmin()],
     ['재고','📦 재고관리',true],
     ['원가','💰 원가DB',true],
-    ['지출','💳 지출관리',isAdmin()],
     ['알바','⏱️ 시간계산',isAdmin()],
     ['관리','⚙️ 마트관리',true],
   ].filter(x=>x[2]);
@@ -2207,6 +2245,11 @@ function openMore(){
 function closeMore(){ document.getElementById('moreSheet')?.classList.remove('on'); }
 
 function showPage(name,btn){
+  if(name==='지출'){            // 지출관리는 연말결산 안의 탭이 됐습니다
+    try{ localStorage.setItem('hm_biztab','지출'); }catch(e){}
+    if(typeof bizTab!=='undefined') bizTab='지출';
+    name='경영'; btn=ntabOf('경영');
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
   const pg=document.getElementById('page-'+name);
@@ -2217,7 +2260,6 @@ function showPage(name,btn){
   if(name==='원가') renderPrice();
   if(name==='알바'){initAlbaMonth();applyAlbaConfig();renderAlba();}
   if(name==='경영') initBiz();
-  if(name==='지출') renderExp();
   // 알바 버튼 색상 (ntab 아닌 별도 버튼)
   const albaBtn=document.getElementById('tab-알바');
   if(albaBtn) albaBtn.style.background=name==='알바'?'#c0392b':'#e8821a';
@@ -2957,11 +2999,7 @@ const TAX_BRACKETS=[
   {limit:Infinity,  rate:0.45, deduct:65940000}
 ];
 
-function markBizDirty(){
-  bizDirty=true;
-  const d=document.getElementById('bizDirty'); if(d) d.style.display='';
-  renderBiz();
-}
+function markBizDirty(){ onBizCfg(); }   // 예전 이름 호환 — 이제는 바로 저장합니다
 function clearBizDirty(){
   bizDirty=false;
   const d=document.getElementById('bizDirty'); if(d) d.style.display='none';
@@ -2973,7 +3011,7 @@ function initBiz(){
   if(me&&!me.options.length)
     me.innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}">${i+1}월</option>`).join('');
   applyBizConfig();
-  renderBiz();
+  setBizTab(bizTab||'요약');
 }
 function applyBizConfig(){
   const g=id=>document.getElementById(id);
@@ -3037,8 +3075,9 @@ function bizLabor(pr){
     .reduce((s,r)=>s+Math.round(calcHours(r.출근,r.퇴근)*getWageFor(r.이름,r.업무)),0);
 }
 function bizExpenses(pr){
-  // 지출관리에서 '개인'으로 표시한 건은 경비에서 뺍니다
-  return expenses.filter(e=>inPeriod(e.날짜,pr)&&e.용도!=='개인');
+  // 사업용으로 정한 건만 경비로 봅니다.
+  // '개인'은 물론, 아직 사업·개인을 정하지 않은 건도 빼고 요약 위에 따로 알려 줍니다.
+  return expenses.filter(e=>inPeriod(e.날짜,pr)&&e.용도==='사업');
 }
 // 손익·세액을 한 번에 계산합니다
 function bizCalc(){
@@ -3132,14 +3171,64 @@ function renderBiz(){
     + row('총 부담세액',d.총부담세액,{b:1,bg:'#fff8e7',c:'#8e44ad'});
 
   renderReco(d);
-  renderExpenses(d.pr);
+  renderBizTodo(d);
+  const tc=document.getElementById('bizTaxCfg');
+  if(tc) tc.innerHTML=`인적공제 ${d.cfg.부양}명 · 연금 ${fmt(d.cfg.연금)} · 기타공제 ${fmt(d.cfg.기타공제)} · 세액공제 ${fmt(d.cfg.세액공제)}`
+    +` <a href="javascript:void(0)" onclick="setBizTab('설정')" style="color:#1b6fb8">설정에서 변경</a>`;
+  if(bizTab==='지출') renderExp();
+  updateExpBadge();
+}
+// 요약 위 할 일 알림 — 누르면 지출 탭의 해당 필터로 갑니다
+function renderBizTodo(d){
+  const el=document.getElementById('bizTodo');
+  if(!el) return;
+  const inP=expenses.filter(e=>inPeriod(e.날짜,d.pr));
+  const 미정=inP.filter(e=>!expUse(e));
+  const pg=inP.filter(e=>isPG(e)&&!e.실판매자&&expUse(e)!=='개인');
+  const 무증빙=inP.filter(e=>expUse(e)==='사업'&&!(e.영수증&&e.영수증.length));
+  const 엇=inP.filter(e=>!!expUse(e)&&!!e.국세청공제&&((e.국세청공제==='공제')!==!!e.부가세공제));
+  if(!inP.length){ el.innerHTML=''; return; }
+  if(!미정.length&&!pg.length){
+    el.innerHTML=`<div class="bz-todo ok">✅ ${d.pr.label} 지출 ${inP.length}건의 사업·개인 구분이 모두 끝났습니다.`
+      +(무증빙.length?` <button onclick="goExpFilter('무증빙')">📷 영수증 없음 ${무증빙.length}건</button>`:'')
+      +(엇.length?` <button onclick="goExpFilter('엇갈림')">🔀 국세청과 다름 ${엇.length}건</button>`:'')+'</div>';
+    return;
+  }
+  const 미정금액=미정.reduce((s,e)=>s+(+e.공급가액||0)+(+e.비과세||0),0);
+  el.innerHTML='<div class="bz-todo">⚠️ '
+    +(미정.length?`사업·개인을 정하지 않은 <b>${미정.length}건 ${fmt(미정금액)}원</b>이 경비에서 빠져 있습니다. 정리하면 순이익과 세금이 바뀝니다. `:'')
+    +(미정.length?`<button onclick="goExpFilter('확인')">⬜ 확인필요 ${미정.length}건</button>`:'')
+    +(pg.length?`<button onclick="goExpFilter('pg')">⚠️ 실판매자 확인 ${pg.length}건</button>`:'')
+    +(무증빙.length?`<button onclick="goExpFilter('무증빙')">📷 영수증 없음 ${무증빙.length}건</button>`:'')
+    +(엇.length?`<button onclick="goExpFilter('엇갈림')">🔀 국세청과 다름 ${엇.length}건</button>`:'')
+    +'</div>';
+}
+// ── 탭 ──
+let bizTab=(()=>{ try{ return localStorage.getItem('hm_biztab')||'요약'; }catch(e){ return '요약'; } })();
+function setBizTab(t){
+  bizTab=t;
+  try{ localStorage.setItem('hm_biztab',t); }catch(e){}
+  document.querySelectorAll('.bz-tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  document.querySelectorAll('.bz-pane').forEach(p=>p.classList.toggle('on',p.id==='bzp-'+t));
+  if(t==='지출'){ syncExpScope(); renderExp(); }
+  else renderBiz();
+}
+function onBizPeriod(){
+  if(bizTab==='지출') syncExpScope(true);
+  renderBiz();
+}
+function goExpFilter(f){
+  const el=document.getElementById('ex-월'); if(el) el.value='ALL';   // 기간 전체에서 봅니다
+  setBizTab('지출');
+  setExpFilter(f,document.querySelector(`.ex-fb[data-f="${f}"]`));
 }
 
 // ── 매출 대사 ──
 function updPos(ym,f,v){
   if(!posSales[ym]) posSales[ym]={};
   posSales[ym][f] = (f==='메모') ? v : (+v||0);
-  markBizDirty();
+  renderBiz();
+  bizSaveLater('pos-'+ym,()=>fbSet('posSales/'+ym,posSales[ym]));
 }
 function renderReco(d){
   const body=document.getElementById('bizRecoBody');
@@ -3200,65 +3289,26 @@ function renderReco(d){
       +' 사유를 메모에 남겨 두면 신고 때 근거가 됩니다.';
   }
 }
-// ── 매입·경비 입력 ──
-function renderExpenses(pr){
-  const body=document.getElementById('bizExpBody');
-  if(!body) return;
-  const list=expenses.map((e,i)=>({e,i})).filter(({e})=>inPeriod(e.날짜,pr))
-              .sort((a,b)=>(a.e.날짜||'').localeCompare(b.e.날짜||''));
-  const inp='padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px';
-  body.innerHTML=list.length?list.map(({e,i})=>`<tr>
-      <td><input type="date" value="${e.날짜||''}" style="${inp};width:104px" onchange="updExpense(${i},'날짜',this.value)"></td>
-      <td><select style="${inp};width:96px" onchange="updExpense(${i},'구분',this.value)">
-        ${EXP_TYPES.map(t=>`<option value="${t}"${e.구분===t?' selected':''}>${t}</option>`).join('')}</select></td>
-      <td><input type="text" value="${esc(e.항목||'')}" lang="ko" style="${inp};width:96%" onchange="updExpense(${i},'항목',this.value)"></td>
-      <td><input type="text" value="${esc(e.거래처||'')}" lang="ko" style="${inp};width:110px" onchange="updExpense(${i},'거래처',this.value)"></td>
-      <td><input type="number" value="${e.공급가액||0}" style="${inp};width:100px;text-align:right" onchange="updExpense(${i},'공급가액',this.value)"></td>
-      <td><input type="number" value="${e.부가세||0}" style="${inp};width:92px;text-align:right" onchange="updExpense(${i},'부가세',this.value)"></td>
-      <td><select style="${inp};width:88px" onchange="updExpense(${i},'증빙',this.value)">
-        ${PROOF_TYPES.map(t=>`<option value="${t}"${e.증빙===t?' selected':''}>${t}</option>`).join('')}</select></td>
-      <td><button class="btn btn-danger btn-sm" onclick="delExpense(${i})">삭제</button></td>
-    </tr>`).join('')
-    : '<tr><td colspan="8" style="padding:10px;color:#888;font-size:12px">이 기간에 입력된 매입·경비가 없습니다. [+ 행 추가]로 등록하십시오.</td></tr>';
-  const s=list.reduce((a,{e})=>a+(+e.공급가액||0),0);
-  const v=list.reduce((a,{e})=>a+(+e.부가세||0),0);
-  document.getElementById('bizExpTotal').innerHTML=
-    `<td colspan="4" style="text-align:right;padding-right:10px">합계 ${list.length}건</td>
-     <td style="text-align:right;padding-right:10px">${fmt(s)}원</td>
-     <td style="text-align:right;padding-right:10px">${fmt(v)}원</td><td colspan="2"></td>`;
+// ── 자동 저장 (설정·POS) ──
+// 입력이 멈추고 0.6초 뒤 한 번에 저장합니다. 저장 버튼은 없습니다.
+const _bizTimers={};
+function bizSaveLater(key,fn){
+  clearTimeout(_bizTimers[key]);
+  setBizSaved('저장 중…');
+  _bizTimers[key]=setTimeout(async()=>{
+    try{ await fn(); touchMeta('biz'); setBizSaved('✓ 자동 저장됨 '+new Date().toTimeString().slice(0,5)); }
+    catch(e){ setBizSaved('⚠ 저장 실패 — '+e.message,true); }
+  },600);
 }
-function addExpense(){
-  const pr=bizPeriod();
-  const mm=String(pr.from).padStart(2,'0');
-  expenses.push({id:Date.now().toString(),날짜:`${pr.y}-${mm}-01`,구분:'매입(상품)',
-                 항목:'',거래처:'',공급가액:0,부가세:0,증빙:'세금계산서'});
-  markBizDirty();
+function setBizSaved(t,err){
+  const el=document.getElementById('bizSaved');
+  if(!el) return;
+  el.textContent=t; el.classList.toggle('err',!!err);
 }
-function updExpense(i,f,v){
-  if(!expenses[i]) return;
-  expenses[i][f] = (f==='공급가액'||f==='부가세') ? (+v||0) : v;
-  markBizDirty();
-}
-function delExpense(i){
-  if(!confirm('이 항목을 삭제하시겠습니까?')) return;
-  expenses.splice(i,1);
-  markBizDirty();
-}
-async function saveBiz(){
-  showSaving(true);
-  try{
-    bizConfig=readBizConfig();
-    const obj={}; expenses.forEach(e=>obj[e.id]=e);
-    await fbSet('expenses',obj);
-    await fbSet('bizConfig',bizConfig);
-    await fbSet('posSales',posSales);
-    touchMeta('biz');
-    clearBizDirty();
-    renderBiz();
-    const d=bizCalc();
-    alert(`✅ 연말결산 저장 완료!\n\n${d.pr.label}\n매출 ${fmt(d.매출공급가)}원 · 순이익 ${fmt(d.영업이익)}원\n매입·경비 ${expenses.length}건\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
-  }catch(e){alert('저장 실패: '+e.message);}
-  finally{showSaving(false);}
+function onBizCfg(){
+  bizConfig=readBizConfig();
+  renderBiz();
+  bizSaveLater('cfg',()=>fbSet('bizConfig',bizConfig));
 }
 function exportBiz(){
   const d=bizCalc();
@@ -3739,12 +3789,22 @@ function basicItemsFor(cap){
   });
 }
 function openBasicSheet(){
-  const now=new Date();
-  document.getElementById('bs-날짜').value=todayStr();
+  // 날짜는 기본으로 비워 둡니다 (인쇄 후 손으로 적음). [금일 날짜]를 체크하면 오늘로 채웁니다.
+  const chk=document.getElementById('bs-날짜사용');
+  if(chk) chk.checked=false;
+  onBasicDateToggle();
   ['bs-분향실','bs-고인','bs-상주','bs-연락처'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   bsQty={};
   renderBasicSheet();
   document.getElementById('basicModal').classList.add('show');
+}
+function onBasicDateToggle(){
+  const on=!!document.getElementById('bs-날짜사용')?.checked;
+  const d=document.getElementById('bs-날짜');
+  if(!d) return;
+  d.disabled=!on;
+  d.value=on?(d.value||todayStr()):'';
+  d.style.background=on?'#fff':'#f0f2f5';
 }
 // 화면에서 고친 주문량을 담습니다 {품명:수량}
 let bsQty={};
@@ -3804,9 +3864,10 @@ function renderBasicSheet(){
 }
 function basicSheetHeader(){
   const g=id=>document.getElementById(id)?.value||'';
-  const d=g('bs-날짜');
+  const useDate=!!document.getElementById('bs-날짜사용')?.checked;
+  const d=useDate?g('bs-날짜'):'';
   const dStr=d?`${d.slice(0,4)}년 ${d.slice(5,7)}월 ${d.slice(8,10)}일`
-              :new Date().toLocaleDateString('ko-KR');
+              :`${todayStr().slice(0,4)}년 <span class="gap10"></span>월 <span class="gap10"></span>일`;
   return {cap:+g('bs-인원수')||150, dStr, 분향실:g('bs-분향실'),
           고인:g('bs-고인'), 상주:g('bs-상주'), 연락처:g('bs-연락처')};
 }
@@ -3840,6 +3901,9 @@ th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
 .ptotal td{font-weight:700;background:#f5f5f5;font-size:11pt}
 .pnote{font-size:9pt;margin-top:4px;text-align:center;color:#444}
 .psign{margin-top:14px;font-size:10.5pt;text-align:right;padding-right:6px}
+/* 손글씨 칸 — A4에 맞추려고 전체를 줄여도(zoom) 인쇄물에서 정확히 10mm·35mm가 되도록 보정합니다 */
+.gap10{display:inline-block;width:calc(10mm / var(--z,1))}
+.gap35{display:inline-block;width:calc(35mm / var(--z,1))}
 @media print{@page{margin:7mm;size:A4 portrait}}
 <\/style></head><body>
 <div class="ph1">기 본 매 점 거 래 장</div>
@@ -3847,7 +3911,7 @@ th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
 <table class="phead" style="margin-bottom:3px">
   <tr>
     <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${h.분향실}</td>
-    <td class="lbl" style="width:60px">고인</td><td>故 ${h.고인} 님</td>
+    <td class="lbl" style="width:60px">고인</td><td style="white-space:nowrap">故 ${h.고인?esc(h.고인):'<span class="gap35"></span>'} 님</td>
     <td style="text-align:right;font-weight:700;width:80px">혼길마트</td>
   </tr>
   <tr>
@@ -3869,14 +3933,16 @@ th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
     <td class="right">${fmt(total)}</td><td></td>
   </tr></tfoot>
 </table>
-<div class="pnote">※ 묶음포장 개봉시 반품이 안됩니다.&nbsp;&nbsp;&nbsp;<b style="color:#000">계좌번호 32-02-014675 제주은행</b> 예금주: 송미봉</div>
+<div class="pnote"><b style="font-size:10pt;color:#000">※ 묶음포장 개봉 시 반품이 불가합니다</b></div>
 <div class="psign">위 내용을 확인하였습니다. &nbsp;&nbsp; 상주 : ______________ (서명)</div>
 <script>
 window.onload=function(){
   var A4px=1054, bodyH=document.body.scrollHeight;
   if(bodyH>A4px){
     var ratio=A4px/bodyH; if(ratio<0.55) ratio=0.55;
-    document.body.style.zoom=Math.floor(ratio*100)+'%';
+    var z=Math.floor(ratio*100);
+    document.body.style.zoom=z+'%';
+    document.documentElement.style.setProperty('--z', z/100);
   }
   setTimeout(function(){window.print();setTimeout(function(){window.close();},1500);},400);
 };
@@ -3893,8 +3959,9 @@ function createJungFromBasic(){
   document.getElementById('nw-고인').value=h.고인;
   document.getElementById('nw-상주').value=h.상주;
   document.getElementById('nw-연락처').value=h.연락처;
-  const d=document.getElementById('bs-날짜').value;
-  document.getElementById('nw-날짜').value=d?d.slice(5,7)+d.slice(8,10):'';
+  // 날짜를 비워 두고 인쇄한 경우에도 정산서에는 날짜가 필요하므로 오늘로 넣습니다 (생성 창에서 고칠 수 있습니다)
+  const d=document.getElementById('bs-날짜').value||todayStr();
+  document.getElementById('nw-날짜').value=d.slice(5,7)+d.slice(8,10);
   document.getElementById('nw-발인시간').value='';
   newCap=h.cap;
   document.querySelectorAll('#newCapBtns .cap-btn').forEach(b=>{
@@ -5429,12 +5496,12 @@ async function savePrice(){
 
 // ══ 마트관리 ══
 function backupData(){
-  autoBackupToFile('수동');
-  alert(`백업 완료!\n정산서: ${jungs.length}건 / 결산서: ${results.length}건\n\n혼길마트_백업 폴더에 저장하세요.`);
+  autoBackupToFile('수동');      // 저장 위치는 화면 아래 알림으로 보여 줍니다
 }
 
 // ── 자동 백업 ──
 function startAutoBackup(){
+  loadBackupDir();               // 지정해 둔 백업 폴더를 불러옵니다
   const today=todayStr();
   const lastBackup=localStorage.getItem('hm_last_backup')||'';
 
@@ -5486,7 +5553,16 @@ function autoBackupToFile(label){
   const today=todayStr();
   const timeStr=new Date().toTimeString().slice(0,5).replace(':','');
   const filename=`혼길마트_${today}_${timeStr}_${label}.json`;
-  dl(JSON.stringify(data,null,2),filename,'application/json');
+  const json=JSON.stringify(data,null,2);
+  // 사람이 누른 백업(수동)일 때만 폴더 권한을 다시 물을 수 있습니다
+  saveBackupFile(json,filename,label==='수동').then(where=>{
+    console.log(`[자동백업] ${filename} → ${where}`);
+    if(label==='수동') expToast(where==='folder'
+      ? `💾 백업 폴더(${_bkDir.name})에 저장했습니다.`
+      : '💾 다운로드 폴더에 저장했습니다.');
+    else if(where==='download'&&_bkDir)
+      expToast('백업 폴더 권한이 꺼져 있어 다운로드 폴더에 저장했습니다. [💾 백업]을 한 번 눌러 허용하십시오.');
+  });
   localStorage.setItem('hm_last_backup',today);
   localStorage.setItem('hm_last_backup_time',new Date().toLocaleString('ko-KR'));
   updateBackupStatus();
@@ -5510,6 +5586,73 @@ function updateBackupStatus(){
   const lastTime=localStorage.getItem('hm_last_backup_time')||'-';
   const el=document.getElementById('ubBackup');
   if(el) el.textContent='💾 '+lastTime;
+  const dd=document.getElementById('bkDirDesc');
+  if(dd) dd.textContent=_bkDir?`📂 ${_bkDir.name} 에 저장`:'지정 안 됨 · 다운로드 폴더에 저장';
+}
+
+// ══ 백업 폴더 (크롬·엣지의 폴더 접근 기능) ══
+// 웹페이지는 C:\... 같은 경로를 직접 지정할 수 없어서, 처음 한 번 폴더를 골라 두면
+// 그 폴더 핸들을 이 컴퓨터의 브라우저(IndexedDB)에 보관해 두고 계속 씁니다.
+let _bkDir=null;
+function _bkDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('hm_fs',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('h');
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+async function _bkGet(){
+  try{ const db=await _bkDB();
+    return await new Promise(res=>{ const q=db.transaction('h').objectStore('h').get('backupDir');
+      q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); });
+  }catch(e){ return null; }
+}
+async function _bkPut(h){
+  const db=await _bkDB();
+  await new Promise((res,rej)=>{ const t=db.transaction('h','readwrite');
+    if(h) t.objectStore('h').put(h,'backupDir'); else t.objectStore('h').delete('backupDir');
+    t.oncomplete=res; t.onerror=()=>rej(t.error); });
+}
+async function loadBackupDir(){
+  if(!window.showDirectoryPicker) return;
+  _bkDir=await _bkGet();
+  updateBackupStatus();
+}
+async function pickBackupDir(){
+  if(!window.showDirectoryPicker){
+    alert('이 브라우저는 폴더 지정을 지원하지 않습니다.\n\nPC의 크롬 또는 엣지에서 지정하십시오. 휴대폰에서는 다운로드 폴더에 저장됩니다.');
+    return;
+  }
+  if(_bkDir&&!confirm(`지금 백업 폴더는 "${_bkDir.name}" 입니다.\n다른 폴더로 바꾸시겠습니까?`)) return;
+  alert('폴더 선택 창이 열립니다.\n\n바탕 화면 › 혼길마트관련 › 혼길마트_백업 폴더를 고른 뒤 [폴더 선택]을 누르고,\n이어서 나오는 "파일 수정 허용" 질문에 [허용]을 누르십시오.');
+  try{
+    const h=await window.showDirectoryPicker({id:'hongil-backup',mode:'readwrite',startIn:'desktop'});
+    if((await h.requestPermission({mode:'readwrite'}))!=='granted'){ alert('폴더 쓰기 권한이 없어 지정하지 못했습니다.'); return; }
+    _bkDir=h; updateBackupStatus();
+    try{ await _bkPut(h); }
+    catch(err){ alert('이번 접속 동안은 이 폴더에 저장합니다.\n다만 브라우저에 기억하지 못해 다음에 다시 지정해야 할 수 있습니다.\n('+err.message+')'); }
+    if(confirm(`백업 폴더를 "${h.name}" 로 지정했습니다.\n\n지금 바로 백업 파일을 하나 저장해 확인하시겠습니까?`)) autoBackupToFile('수동');
+  }catch(e){
+    if(e.name!=='AbortError') alert('폴더를 지정하지 못했습니다: '+e.message);
+  }
+}
+// 폴더에 쓰기 → 'folder' / 안 되면 내려받기 → 'download'
+async function saveBackupFile(text,filename,canAsk){
+  if(_bkDir){
+    try{
+      let perm=await _bkDir.queryPermission({mode:'readwrite'});
+      if(perm!=='granted'&&canAsk) perm=await _bkDir.requestPermission({mode:'readwrite'});
+      if(perm==='granted'){
+        const fh=await _bkDir.getFileHandle(filename,{create:true});
+        const w=await fh.createWritable();
+        await w.write(new Blob([text],{type:'application/json'}));
+        await w.close();
+        return 'folder';
+      }
+    }catch(e){ console.error('백업 폴더 저장 오류:',e); }
+  }
+  dl(text,filename,'application/json');
+  return 'download';
 }
 
 function restoreSnapshot(){
@@ -5657,10 +5800,40 @@ let impRows=[];            // 업로드 미리보기 대기 줄
 let eeId=null;             // 편집 중인 지출 id
 let eeDraft=null;
 
+// 지출 탭에서 보고 있는 범위 — 'ALL'(연말결산 기간 전체) 또는 'YYYY-MM'
 function expMonth(){
   const el=document.getElementById('ex-월');
   if(el&&el.value) return el.value;
   return todayStr().slice(0,7);
+}
+function expRealMonth(){ const m=expMonth(); return m==='ALL'?todayStr().slice(0,7):m; }
+function expScopeLabel(){ const m=expMonth(); return m==='ALL'?bizPeriod().label:`${m.slice(0,4)}년 ${+m.slice(5,7)}월`; }
+// 보고 있는 달이 연말결산 기간 밖이면 기간 안으로 맞춥니다
+function syncExpScope(){
+  const el=document.getElementById('ex-월'); if(!el) return;
+  const ms=bizMonths(bizPeriod());
+  if(el.value==='ALL'||ms.includes(el.value)) return;
+  const has=ms.filter(m=>expenses.some(e=>(e.날짜||'').slice(0,7)===m));
+  const cur=todayStr().slice(0,7);
+  el.value = has.length ? has[has.length-1] : (ms.includes(cur) ? cur : (ms.length>1?'ALL':ms[0]));
+}
+function expOfScope(){
+  const m=expMonth(), pr=bizPeriod();
+  return expenses.map((e,i)=>({e,i}))
+    .filter(({e})=> m==='ALL' ? inPeriod(e.날짜,pr) : (e.날짜||'').slice(0,7)===m)
+    .sort((a,b)=>(b.e.날짜||'').localeCompare(a.e.날짜||''));
+}
+// 기간 안의 달 버튼 — 건수와 함께
+function renderExpMonths(){
+  const box=document.getElementById('exMonths'); if(!box) return;
+  const pr=bizPeriod(), ms=bizMonths(pr), cur=expMonth();
+  const cnt={};
+  expenses.forEach(e=>{ const k=(e.날짜||'').slice(0,7); cnt[k]=(cnt[k]||0)+1; });
+  const all=ms.reduce((s,m)=>s+(cnt[m]||0),0);
+  box.innerHTML=(ms.length>1?`<button class="ex-mo all${cur==='ALL'?' on':''}" onclick="goExpMonth('ALL')">`
+      +`${pr.label.replace(/^\d+년\s*/,'')} 전체<span class="n">${all}</span></button>`:'')
+    +ms.map(m=>`<button class="ex-mo${cnt[m]?'':' empty'}${cur===m?' on':''}" onclick="goExpMonth('${m}')">`
+      +`${+m.slice(5,7)}월<span class="n">${cnt[m]||0}</span></button>`).join('');
 }
 // 사업자번호를 000-00-00000 꼴로 맞춥니다 (열쇠로 쓰므로 통일이 중요합니다)
 function normBn(v){
@@ -5908,9 +6081,11 @@ async function commitImport(){
     sel.forEach(r=>{ if(r.용도&&r.사업자번호&&!done[r.사업자번호]){ done[r.사업자번호]=1;
       saveVendor(r.사업자번호,{상호:r.거래처,용도:r.용도,계정:r.계정||'',부가세:!!r.부가세}); } });
     closeModal('impModal');
-    const m=(add[0].날짜||'').slice(0,7);
-    const el=document.getElementById('ex-월'); if(el&&m) el.value=m;
-    renderExp();
+    // 가장 많이 들어온 달로 이동합니다 (7월 말 승인분이 섞여 있어도 8월로)
+    const mc={}; add.forEach(e=>{ const k=(e.날짜||'').slice(0,7); mc[k]=(mc[k]||0)+1; });
+    const m=Object.entries(mc).sort((x,y)=>y[1]-x[1])[0][0];
+    if(bizTab!=='지출') setBizTab('지출');
+    goExpMonth(m);
     alert(`✅ ${add.length}건을 등록했습니다.\n\n용도를 정해야 하는 건이 ${add.filter(e=>!e.용도).length}건 남아 있습니다.`);
   }catch(e){ alert('등록 중 오류가 생겼습니다: '+e.message); }
   finally{ showSaving(false); }
@@ -5943,9 +6118,10 @@ function expMatchFilter(e,f){
 function renderExp(){
   const body=document.getElementById('exBody');
   if(!body) return;
+  syncExpScope();
   const m=expMonth();
-  const el=document.getElementById('ex-월'); if(el&&!el.value) el.value=m;
-  const all=expOfMonth(m);
+  renderExpMonths();
+  const all=expOfScope();
   const q=(document.getElementById('exSearch')?.value||'').trim();
   let list=all.filter(({e})=>expMatchFilter(e));
   if(q) list=list.filter(({e})=>(e.거래처||'').includes(q)||String(e.사업자번호||'').includes(q)||(e.메모||'').includes(q));
@@ -5974,8 +6150,8 @@ function renderExp(){
       <td style="text-align:center"><button class="ex-clip" onclick="openExpEdit('${e.id}')">✏️</button></td>
     </tr>`;
   }).join('')
-  : `<tr><td colspan="12" style="padding:22px;text-align:center;color:#9aa8b4">
-      ${all.length?'이 조건에 맞는 지출이 없습니다.':'이 달에 등록된 지출이 없습니다. [카드내역 업로드] 또는 [직접 입력]으로 시작하십시오.'}</td></tr>`;
+  : `<tr><td colspan="12" style="padding:22px;text-align:center;color:#9aa8b4;white-space:normal">
+      ${all.length?'이 조건에 맞는 지출이 없습니다.':`${expScopeLabel()}에 등록된 지출이 없습니다. [카드내역 업로드] 또는 [직접 입력]으로 시작하십시오.${expMonthChips(m==='ALL'?bizPeriod().y+'-01':m)}`}</td></tr>`;
 
   document.getElementById('exCount').textContent=`${list.length} / ${all.length}건`;
   // 필터 버튼마다 이 달 건수를 붙여 둡니다
@@ -5990,6 +6166,41 @@ function renderExp(){
   updateExpBadge();
   exDropInit();
 }
+// 자료가 있는 달과 건수 — 최근 달부터
+function expMonthsWithData(){
+  const c={};
+  expenses.forEach(e=>{ const k=(e.날짜||'').slice(0,7); if(/^\d{4}-\d{2}$/.test(k)) c[k]=(c[k]||0)+1; });
+  return Object.entries(c).sort((a,b)=>b[0].localeCompare(a[0])).map(([k,n])=>({m:k,n}));
+}
+function expMonthChips(cur){
+  const ms=expMonthsWithData();
+  if(!ms.length) return '';
+  const y=cur.slice(0,4);
+  return '<div style="margin-top:12px;color:#45627f;font-size:12px">자료가 있는 달 — 누르면 이동합니다</div>'
+    +'<div style="margin-top:7px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap">'
+    +ms.slice(0,12).map(x=>`<button class="ex-fb" onclick="goExpMonth('${x.m}')">`
+      +(x.m.slice(0,4)!==y?`${x.m.slice(2,4)}년 `:'')+`${+x.m.slice(5,7)}월 <span class="cnt">${x.n}건</span></button>`).join('')
+    +'</div>';
+}
+function goExpMonth(m){
+  const el=document.getElementById('ex-월');
+  if(el) el.value=m;
+  if(m!=='ALL'&&!inPeriod(m+'-01',bizPeriod())){
+    const ye=document.getElementById('bz-연도'); if(ye) ye.value=+m.slice(0,4);
+    const pe=document.getElementById('bz-기간'); if(pe&&pe.value!=='M') pe.value='year';
+    const me=document.getElementById('bz-월'); if(pe&&pe.value==='M'&&me) me.value=String(+m.slice(5,7));
+    renderBiz();          // 기간이 바뀌었으니 요약도 다시 계산합니다 (지출 탭이면 목록도 함께)
+    if(bizTab!=='지출') renderExp();
+    return;
+  }
+  renderExp();
+}
+function stepExpMonth(d){
+  const [y,mo]=expRealMonth().split('-').map(Number);
+  const dt=new Date(y,mo-1+d,1);
+  goExpMonth(`${dt.getFullYear()}-${_p2(dt.getMonth()+1)}`);
+}
+
 // 가맹점 이름 옆 — 실판매자와 메모를 이어서 보여 주고, 넘치면 …로 줄입니다
 function expSubLine(e){
   const sp=(e.실판매자||'').trim();
@@ -6024,11 +6235,12 @@ function renderExpTiles(list){
     `사업용 ${biz.length}건 중 영수증이 없는 건 ${미증빙}건입니다. 증빙은 신고기한으로부터 5년간 보관해야 합니다.`;
 }
 function updateExpBadge(){
-  const el=document.getElementById('expBadge');
-  if(!el) return;
-  const n=expenses.filter(e=>e.출처&&!expUse(e)).length;
-  el.textContent=n>99?'99+':String(n);
-  el.style.display=n?'':'none';
+  const n=expenses.filter(e=>!expUse(e)).length;
+  ['expBadge','bzCntExp'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.textContent=n>99?'99+':String(n);
+    el.style.display=n?'':'none';
+  });
 }
 // 실시간 동기화로 목록 순서가 바뀔 수 있으므로 행 번호가 아니라 id로 찾습니다
 function expById(id){ return expenses.find(x=>x.id===id)||null; }
@@ -6083,7 +6295,8 @@ function openExpEdit(id){
   eeId=id;
   const e=id?expenses.find(x=>x.id===id):null;
   eeDraft=e?JSON.parse(JSON.stringify(e)):{
-    id:'ex'+Date.now(), 출처:'manual', 날짜:expMonth()+'-'+_p2(new Date().getDate()),
+    id:'ex'+Date.now(), 출처:'manual',
+    날짜:(expRealMonth()===todayStr().slice(0,7)?todayStr():expRealMonth()+'-01'),
     구분:'매입(상품)', 거래처:'', 사업자번호:'', 공급가액:0, 부가세:0, 비과세:0, 합계:0,
     용도:'사업', 부가세공제:true, 증빙:'세금계산서', 수단:'계좌이체', 영수증:[], 메모:'',
     등록자:currentUser?.이름||'', 등록일:nowISO()
@@ -6342,9 +6555,9 @@ async function eeDelete(){
 
 // ── 세무사 전달용 인쇄 ──
 function printExp(){
-  const m=expMonth();
-  const list=expOfMonth(m).map(x=>x.e);
-  if(!list.length){ alert('이 달에 등록된 지출이 없습니다.'); return; }
+  const m=expScopeLabel();
+  const list=expOfScope().map(x=>x.e);
+  if(!list.length){ alert(m+'에 등록된 지출이 없습니다.'); return; }
   const biz=list.filter(e=>expUse(e)==='사업');
   const 확인=list.filter(e=>!expUse(e));
   const 엇=biz.filter(e=>!!e.국세청공제&&((e.국세청공제==='공제')!==!!e.부가세공제));   // 사업용으로 정한 건만
