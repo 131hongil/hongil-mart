@@ -1401,7 +1401,7 @@ body.login #mobileNav{display:none!important}
       <div class="mgmt-card" onclick="goTab('재고',2)"><div class="icon">📦</div><div class="name">재고관리장</div><div class="desc">월별 출고 현황</div></div>
       <div class="mgmt-card" onclick="goTab('원가',3)"><div class="icon">💰</div><div class="name">원가DB 관리</div><div class="desc">품목·단가 수정</div></div>
       <div class="mgmt-card" onclick="backupData()"><div class="icon">💾</div><div class="name">데이터 백업</div><div class="desc">JSON 파일로 저장</div></div>
-      <div class="mgmt-card" onclick="pickBackupDir()"><div class="icon">📁</div><div class="name">백업 폴더 지정</div><div class="desc" id="bkDirDesc">지정 안 됨 · 다운로드 폴더에 저장</div></div>
+      <div class="mgmt-card" onclick="pickBackupDir()"><div class="icon">📁</div><div class="name">백업 폴더 지정</div><div class="desc" id="bkDirDesc">눌러서 바탕 화면 › 혼길마트관련 › 혼길마트_백업 선택</div></div>
       <div class="mgmt-card" onclick="document.getElementById('restoreFile').click()"><div class="icon">📂</div><div class="name">데이터 복원</div><div class="desc">백업 파일 불러오기</div></div>
       <div class="mgmt-card" onclick="restoreSnapshot()"><div class="icon">↩</div><div class="name">스냅샷 복원</div><div class="desc">30분 단위 자동 저장본</div></div>
       <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(this)">
@@ -1956,7 +1956,7 @@ async function doLogin(){
     if(user.pw!==hashPw(pw)){showLoginErr('비밀번호가 올바르지 않습니다.');return;}
     currentUser={id:user.id,이름:user.이름,역할:user.역할};
     localStorage.setItem('hm_user',JSON.stringify(currentUser));
-    localStorage.setItem('hm_expire',Date.now()+12*60*60*1000);
+    localStorage.setItem('hm_expire',Date.now()+IDLE_LIMIT);   // 마지막으로 사용한 때부터 1시간
     fbSet('users/'+id+'/lastLogin',nowISO()).catch(()=>{});
     onLoginSuccess();
   }catch(e){showLoginErr('로그인 실패: '+e.message);}
@@ -1995,24 +1995,84 @@ async function onLoginSuccess(){
   setInterval(renderMiniCal, 60*60*1000);
   document.getElementById('ubSync').style.color='#f39c12';
   setInterval(()=>document.getElementById('ubTime').textContent=new Date().toLocaleTimeString('ko-KR'),1000);
-  setInterval(()=>{
-    const exp=+localStorage.getItem('hm_expire')||0;
-    if(currentUser&&Date.now()>=exp){alert('로그인 시간이 만료됐습니다.');doLogout();}
-  },60000);
+  startIdleWatch();                    // 1시간 동안 사용하지 않으면 자동 로그아웃
   await loadAllData();
   startAutoBackup();
 }
 function doLogout(){
   if(!confirm('로그아웃 하시겠습니까?'))return;
+  forceLogout('');
+}
+// 묻지 않고 바로 로그아웃합니다 (자동 로그아웃, 다른 창에서 로그아웃한 경우)
+function forceLogout(msg){
+  const lastId=currentUser?.id||'';
   localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
   currentUser=null;
+  hideIdleWarn();
+  document.querySelectorAll('.overlay.show').forEach(o=>o.classList.remove('show'));
+  const eo=document.getElementById('editOverlay'); if(eo) eo.style.display='none';
+  closeMore&&closeMore();
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('mainLayout').style.display='none';
   document.body.classList.add('login');
   document.getElementById('userBar').style.display='none';
   document.getElementById('li-pw').value='';
   document.getElementById('loginError').style.display='none';
+  if(msg){
+    if(lastId) document.getElementById('li-id').value=lastId;
+    showLoginErr(msg);
+    setTimeout(()=>document.getElementById('li-pw').focus(),50);
+  }
 }
+
+// ══ 자동 로그아웃 — 1시간 동안 사용하지 않으면 ══
+// 마우스·키보드·터치·스크롤이 있을 때마다 만료 시각을 1시간 뒤로 미룹니다.
+// 같은 컴퓨터의 다른 창(탭)에서 쓰고 있어도 함께 연장됩니다(localStorage 공유).
+const IDLE_LIMIT=60*60*1000;     // 1시간
+const IDLE_WARN =5*60*1000;      // 5분 전에 미리 알립니다
+let _idleBound=false, _idleLastWrite=0;
+function touchSession(force){
+  if(!currentUser) return;
+  const now=Date.now();
+  if(!force&&now-_idleLastWrite<20000) return;      // 20초에 한 번만 기록합니다
+  _idleLastWrite=now;
+  localStorage.setItem('hm_expire',now+IDLE_LIMIT);
+  hideIdleWarn();
+}
+function startIdleWatch(){
+  touchSession(true);
+  if(_idleBound) return;
+  _idleBound=true;
+  ['mousedown','mousemove','keydown','touchstart','wheel','scroll'].forEach(ev=>
+    window.addEventListener(ev,()=>touchSession(false),{passive:true,capture:true}));
+  // 잠자기·다른 창에 있다가 돌아왔을 때 바로 확인합니다
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkIdle(); });
+  // 다른 창에서 로그아웃하면 이 창도 함께 로그아웃합니다
+  window.addEventListener('storage',e=>{
+    if(e.key==='hm_user'&&!e.newValue&&currentUser) forceLogout('다른 창에서 로그아웃되어 함께 로그아웃했습니다.');
+  });
+  setInterval(checkIdle,15000);
+}
+function checkIdle(){
+  if(!currentUser) return;
+  const left=(+localStorage.getItem('hm_expire')||0)-Date.now();
+  if(left<=0){ forceLogout('1시간 동안 사용하지 않아 자동으로 로그아웃했습니다. 비밀번호를 다시 입력하십시오.'); return; }
+  if(left<=IDLE_WARN) showIdleWarn(left); else hideIdleWarn();
+}
+function showIdleWarn(left){
+  let el=document.getElementById('idleWarn');
+  if(!el){
+    el=document.createElement('div'); el.id='idleWarn';
+    el.style.cssText='position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:4000;'
+      +'background:#fff4e0;border:1px solid #e8a33a;color:#8a4b00;font-size:13px;font-weight:700;'
+      +'padding:9px 16px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);white-space:nowrap';
+    document.body.appendChild(el);
+  }
+  const m=Math.max(1,Math.ceil(left/60000));
+  el.textContent=`⏰ 약 ${m}분 뒤 자동으로 로그아웃됩니다. 계속 쓰시려면 아무 곳이나 누르십시오.`;
+  el.style.display='';
+}
+function hideIdleWarn(){ const el=document.getElementById('idleWarn'); if(el) el.style.display='none'; }
 
 // ── 데이터 로드 ──
 async function loadAllData(){
@@ -2164,7 +2224,7 @@ async function init(){
     const user=JSON.parse(savedUser);
     document.getElementById('li-id').value=user.id||'';
     localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
-    showLoginErr('로그인 시간이 만료됐습니다. 비밀번호를 다시 입력해 주세요.');
+    showLoginErr('1시간 동안 사용하지 않아 자동으로 로그아웃했습니다. 비밀번호를 다시 입력하십시오.');
     document.getElementById('li-pw').focus();
   }
 }
@@ -5587,7 +5647,8 @@ function updateBackupStatus(){
   const el=document.getElementById('ubBackup');
   if(el) el.textContent='💾 '+lastTime;
   const dd=document.getElementById('bkDirDesc');
-  if(dd) dd.textContent=_bkDir?`📂 ${_bkDir.name} 에 저장`:'지정 안 됨 · 다운로드 폴더에 저장';
+  if(dd) dd.textContent=_bkDir?`📂 ${_bkDir.name} 에 저장 · 누르면 바꿉니다`
+                              :'눌러서 바탕 화면 › 혼길마트관련 › 혼길마트_백업 선택';
 }
 
 // ══ 백업 폴더 (크롬·엣지의 폴더 접근 기능) ══
@@ -5618,23 +5679,32 @@ async function loadBackupDir(){
   _bkDir=await _bkGet();
   updateBackupStatus();
 }
+// 주의: 폴더 선택 창은 '누른 그 순간'에만 열립니다.
+// 그 전에 alert/confirm을 띄우면 크롬이 클릭이 끝난 것으로 보고 창을 막으므로, 안내는 카드 글자와 알림으로만 합니다.
 async function pickBackupDir(){
   if(!window.showDirectoryPicker){
     alert('이 브라우저는 폴더 지정을 지원하지 않습니다.\n\nPC의 크롬 또는 엣지에서 지정하십시오. 휴대폰에서는 다운로드 폴더에 저장됩니다.');
     return;
   }
-  if(_bkDir&&!confirm(`지금 백업 폴더는 "${_bkDir.name}" 입니다.\n다른 폴더로 바꾸시겠습니까?`)) return;
-  alert('폴더 선택 창이 열립니다.\n\n바탕 화면 › 혼길마트관련 › 혼길마트_백업 폴더를 고른 뒤 [폴더 선택]을 누르고,\n이어서 나오는 "파일 수정 허용" 질문에 [허용]을 누르십시오.');
+  let h;
   try{
-    const h=await window.showDirectoryPicker({id:'hongil-backup',mode:'readwrite',startIn:'desktop'});
-    if((await h.requestPermission({mode:'readwrite'}))!=='granted'){ alert('폴더 쓰기 권한이 없어 지정하지 못했습니다.'); return; }
-    _bkDir=h; updateBackupStatus();
-    try{ await _bkPut(h); }
-    catch(err){ alert('이번 접속 동안은 이 폴더에 저장합니다.\n다만 브라우저에 기억하지 못해 다음에 다시 지정해야 할 수 있습니다.\n('+err.message+')'); }
-    if(confirm(`백업 폴더를 "${h.name}" 로 지정했습니다.\n\n지금 바로 백업 파일을 하나 저장해 확인하시겠습니까?`)) autoBackupToFile('수동');
+    // 클릭하자마자 바로 엽니다 (이전에 고른 폴더가 있으면 그 위치에서 열립니다)
+    h=await window.showDirectoryPicker({id:'hongil-backup',mode:'readwrite',startIn:'desktop'});
   }catch(e){
     if(e.name!=='AbortError') alert('폴더를 지정하지 못했습니다: '+e.message);
+    return;                                   // 취소하면 기존 설정을 그대로 둡니다
   }
+  try{
+    let perm=await h.queryPermission({mode:'readwrite'});
+    if(perm!=='granted') perm=await h.requestPermission({mode:'readwrite'});
+    if(perm!=='granted'){ alert('폴더에 파일을 쓸 수 있는 권한을 받지 못했습니다.\n다시 지정하실 때 "파일 수정 허용"에서 [허용]을 누르십시오.'); return; }
+  }catch(e){ alert('폴더 권한을 확인하지 못했습니다: '+e.message); return; }
+  _bkDir=h; updateBackupStatus();
+  try{ await _bkPut(h); }
+  catch(err){ console.error('백업 폴더 기억 실패:',err);
+    expToast('이번 접속 동안은 이 폴더에 저장합니다. 다음에 다시 지정해야 할 수 있습니다.'); }
+  // 바로 하나 저장해서 제대로 되는지 보여 줍니다
+  autoBackupToFile('수동');
 }
 // 폴더에 쓰기 → 'folder' / 안 되면 내려받기 → 'download'
 async function saveBackupFile(text,filename,canAsk){
