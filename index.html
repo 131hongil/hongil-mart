@@ -129,6 +129,26 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .sum-box .val{font-size:15px;font-weight:700;color:#1b3a5c;margin-top:2px}
 .chart-box{background:#fff;border:1px solid #e0eaf5;border-radius:7px;padding:7px 12px;margin-bottom:9px}
 .chart-box h4{font-size:12px;color:#1b3a5c;margin-bottom:6px;display:flex;gap:14px;align-items:center}
+.chart-wrap{position:relative;height:180px;cursor:zoom-in}
+.chart-hint{margin-left:auto;font-size:11px;color:#6b7f92;font-weight:400}
+.ji-memo{display:none}
+#resultBody tr{cursor:pointer}
+#resultBody tr:hover td{background:#eef4fc}
+.rd-tbl{width:100%;border-collapse:collapse;font-size:14px}
+.rd-tbl th{width:96px;text-align:left;background:#f3f7fc;color:#45627f;font-weight:700;padding:9px 10px;border-bottom:1px solid #e3e9ef;font-size:13px}
+.rd-tbl td{padding:9px 10px;border-bottom:1px solid #e3e9ef;color:#22323f}
+.cb-tiles{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.cb-tile{flex:1 1 120px;background:#f0f5ff;border-left:4px solid #1b3a5c;border-radius:6px;padding:9px 11px}
+.cb-tile .lb{font-size:11px;color:#555}
+.cb-tile .vl{font-size:18px;font-weight:700;color:#1b3a5c;margin-top:2px}
+.cb-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.cb-tbl th{background:#1b3a5c;color:#fff;padding:7px 6px;font-size:12px;position:sticky;top:0}
+.cb-tbl td{padding:7px 6px;border-bottom:1px solid #eef2f7;text-align:right;font-variant-numeric:tabular-nums}
+.cb-tbl td:first-child{text-align:center;font-weight:700;color:#1b3a5c}
+.cb-tbl tr.has{cursor:pointer}
+.cb-tbl tr.has:hover td{background:#eef4fc}
+.cb-tbl tr.zero td{color:#b5c0ca}
+.cb-tbl tfoot td{font-weight:700;background:#f0f5ff;border-top:2px solid #1b3a5c}
 .chart-legend{display:flex;gap:14px;font-size:11px;color:#555;margin-left:auto}
 .chart-legend span{display:flex;align-items:center;gap:4px}
 .chart-legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
@@ -358,7 +378,30 @@ body.login #mobileNav{display:none!important}
   .ji-burial{margin-left:0;font-size:11px}
   .ji-gap{margin-left:0}
   .jung-item .btn-group{width:100%;margin-top:5px}
-  .jung-item .btn-group .btn{flex:1;justify-content:center}
+  .jung-item .btn-group .btn{flex:1;justify-content:center;white-space:nowrap;padding:8px 4px;font-size:13px;min-width:0}
+  .jung-item .btn-group{gap:5px}
+  /* 정산서 목록 — 버튼과 부가정보는 누른 정산서에서만 보입니다 */
+  .jung-item .btn-group,.jung-item .ji-sub{display:none}
+  .jung-item.sel .btn-group{display:flex}
+  .jung-item.sel .ji-sub{display:inline}
+  .jung-item.sel{border-color:#1b6fb8;box-shadow:0 0 0 2px rgba(27,111,184,.25)}
+  .jung-item.done.sel{border-color:#217a3c;box-shadow:0 0 0 2px rgba(33,122,60,.25)}
+  .jung-item .ji-memo{display:inline}
+  .jung-item.sel .ji-memo{display:none}
+  .chart-wrap{height:170px}
+  /* 작은 그래프에서는 범례를 빼고 '누르면 크게 봅니다' 안내만 둡니다 (크게 보기 창에 범례가 있습니다) */
+  .chart-box .chart-legend{display:none}
+  .chart-box h4{flex-wrap:nowrap;white-space:nowrap}
+  #page-진행중 .filter-btns .btn{white-space:nowrap}
+  /* 결산서 목록 — 발인일·정산액·결제만 */
+  #resultTbl th:nth-child(1),#resultTbl td:nth-child(1),
+  #resultTbl th:nth-child(2),#resultTbl td:nth-child(2),
+  #resultTbl th:nth-child(3),#resultTbl td:nth-child(3),
+  #resultTbl th:nth-child(7),#resultTbl td:nth-child(7),
+  #resultTbl th:nth-child(8),#resultTbl td:nth-child(8),
+  #resultTbl th:nth-child(9),#resultTbl td:nth-child(9){display:none}
+  #resultTbl td{padding:11px 8px;font-size:14px}
+  .cb-tbl .pay{display:none}
   .mm-list{max-height:50vh}
   .mm-meta{display:none}
   /* 지출관리 — 좁은 화면에서는 업종·공급가액·세액을 숨겨 표를 읽을 수 있게 합니다 */
@@ -856,6 +899,45 @@ body.login #mobileNav{display:none!important}
   </div>
 </div>
 
+<!-- ══ 결산서 그래프 크게 보기 ══ -->
+<div class="overlay" id="chartBigModal">
+  <div class="modal" style="max-width:900px;width:97%">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <h3 style="margin:0">📊 월별 정산 실적</h3>
+      <div style="display:flex;align-items:center;gap:4px;margin-left:6px">
+        <button class="btn btn-gray btn-sm" onclick="stepChartYear(-1)">◀</button>
+        <b id="cbYear" style="font-size:16px;color:#1b3a5c;min-width:62px;text-align:center"></b>
+        <button class="btn btn-gray btn-sm" onclick="stepChartYear(1)">▶</button>
+      </div>
+      <button class="btn btn-gray btn-sm" style="margin-left:auto" onclick="closeModal('chartBigModal')">닫기</button>
+    </div>
+    <div class="cb-tiles" id="cbTiles"></div>
+    <div style="position:relative;height:min(46vh,380px);margin-bottom:10px"><canvas id="chartBig"></canvas></div>
+    <div style="font-size:11px;color:#6b7f92;margin-bottom:5px">월을 누르면 그 달 결산서만 아래 목록에 보입니다.</div>
+    <div style="max-height:40vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+      <table class="cb-tbl">
+        <thead><tr><th>월</th><th>건수</th><th>정산액</th><th>건당 평균</th>
+          <th class="pay">카드</th><th class="pay">현금</th><th class="pay">현금영수증</th></tr></thead>
+        <tbody id="cbBody"></tbody>
+        <tfoot><tr id="cbFoot"></tr></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 결산서 한 건 상세 ══ -->
+<div class="overlay" id="resultModal">
+  <div class="modal" style="max-width:460px;width:96%">
+    <h3 id="rdTitle">결산서</h3>
+    <table class="rd-tbl"><tbody id="rdBody"></tbody></table>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-danger" id="rdDel">삭제</button>
+      <button class="btn btn-info" id="rdJung">📄 정산서 보기</button>
+      <button class="btn btn-gray" onclick="closeModal('resultModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ 메모장 ══ -->
 <div class="overlay" id="memoModal">
   <div class="modal" style="max-width:700px;width:96%">
@@ -1312,8 +1394,9 @@ body.login #mobileNav{display:none!important}
           <span><div class="bar-leg"></div> 정산액</span>
           <span><i style="background:#e8821a;height:3px"></i> 건수</span>
         </div>
+        <span class="chart-hint">🔍 누르면 크게 봅니다</span>
       </h4>
-      <canvas id="chartCombo" height="45"></canvas>
+      <div class="chart-wrap" onclick="openChartBig()"><canvas id="chartCombo"></canvas></div>
     </div>
     <div class="frow" style="margin-bottom:10px">
       <div class="fg"><label>월 필터</label><input type="month" id="filterMonth" onchange="renderResults()"></div>
@@ -1321,7 +1404,7 @@ body.login #mobileNav{display:none!important}
       <button class="btn btn-info btn-sm" onclick="exportCSV()">📥 CSV</button>
     </div>
     <div class="tbl-wrap" style="max-height:calc(100vh - 370px)">
-      <table class="dtbl">
+      <table class="dtbl" id="resultTbl">
         <thead><tr><th>NO</th><th>분향실</th><th>고인</th><th>발인일</th><th>정산액</th><th>결제</th><th>인원수</th><th>비고</th><th>삭제</th></tr></thead>
         <tbody id="resultBody"></tbody>
       </table>
@@ -2487,6 +2570,11 @@ function cmpJung(a,b,desc){
   if(desc) r = -r;
   return r || (a.분향실||'').localeCompare(b.분향실||'', 'ko', {numeric:true});
 }
+let jungSel=null;            // 휴대폰에서 버튼을 펼친 정산서
+function selectJung(id){
+  jungSel = jungSel===id ? null : id;
+  document.querySelectorAll('#jungList .jung-item').forEach(d=>d.classList.toggle('sel',d.dataset.id===jungSel));
+}
 function renderJungList(){
   const el=document.getElementById('jungList');
   let list=jungs;
@@ -2539,9 +2627,14 @@ function renderJungList(){
       },0);
     }
     const div=document.createElement('div');
-    div.className='jung-item'+(done?' done':'');
-    // 칸을 클릭하면 진행중은 편집, 완료는 보기로 엽니다
-    div.onclick=()=>{ done?openView(j.id):openEdit(j.id); };
+    div.className='jung-item'+(done?' done':'')+(isMobile()&&jungSel===j.id?' sel':'');
+    div.dataset.id=j.id;
+    // PC: 칸을 클릭하면 진행중은 편집, 완료는 보기로 엽니다
+    // 휴대폰: 누르면 그 정산서만 선택되어 버튼이 펼쳐지고, 다시 누르면 접힙니다
+    div.onclick=()=>{
+      if(isMobile()){ selectJung(j.id); return; }
+      done?openView(j.id):openEdit(j.id);
+    };
     div.title=done?'클릭하면 정산서를 엽니다':'클릭하면 편집 화면이 열립니다';
     div.innerHTML=`
       <span class="ji-cap">${j.인원수}명</span>
@@ -2550,6 +2643,7 @@ function renderJungList(){
       <span class="ji-sub ji-gap">생성 ${localDateOf(j.생성일)}</span>
       ${j.생성자?`<span class="ji-sub" style="color:#8a6d3b">작성 ${j.생성자id||j.생성자}</span>`:''}
       ${(j.수정자&&(j.수정자!==j.생성자||j.수정일))?`<span class="ji-sub" style="color:#e8821a">최종수정 ${j.수정자id||j.수정자}</span>`:''}
+      ${j.메모?'<span class="ji-memo" title="메모 있음">📝</span>':''}
       <span style="margin-left:auto;font-weight:700;color:#1b3a5c;white-space:nowrap">${fmt(total)}원</span>
       ${done?`
         ${(()=>{
@@ -4924,13 +5018,41 @@ function renderResults(){
   const body=document.getElementById('resultBody');body.innerHTML='';
   list.slice().reverse().forEach((r,i)=>{
     const idx=results.indexOf(r);const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${results.length-idx}</td><td>${r.분향실}</td><td class="left">${r.고인}</td><td>${r.날짜}</td>
+    tr.onclick=()=>openResultDetail(idx);
+    tr.innerHTML=`<td>${results.length-idx}</td><td>${esc(r.분향실||'')}</td><td class="left">${esc(r.고인||'')}</td><td>${r.날짜}</td>
       <td style="text-align:right">${fmt(r.금액||0)}</td>
       <td><span class="badge badge-${r.결제==='카드결제'?'card':r.결제==='현금결제'?'cash':'rcpt'}">${r.결제||''}</span></td>
       <td>${r.인원수||''}명</td><td>${r.비고||''}</td>
-      <td>${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="delResult(${idx})">삭제</button>`:'-'}</td>`;
+      <td>${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delResult(${idx})">삭제</button>`:'-'}</td>`;
     body.appendChild(tr);
   });
+}
+// 결산서 한 건 전체 보기
+function openResultDetail(idx){
+  const r=results[idx]; if(!r) return;
+  const pay=r.결제||'';
+  const row=(k,v)=>`<tr><th>${k}</th><td>${v}</td></tr>`;
+  document.getElementById('rdTitle').textContent=`결산서 ${results.length-idx}번`;
+  document.getElementById('rdBody').innerHTML=
+      row('발인일', esc(r.날짜||'-'))
+    + row('분향실', esc(r.분향실||'-'))
+    + row('고인', r.고인?`故 ${esc(r.고인)} 님`:'-')
+    + row('상주', esc(r.상주||'-'))
+    + row('연락처', r.연락처?`<a href="tel:${esc(String(r.연락처).replace(/[^0-9]/g,''))}">${esc(r.연락처)}</a>`:'-')
+    + row('인원수', r.인원수?`${esc(String(r.인원수))}명`:'-')
+    + row('정산액', `<b style="font-size:17px;color:#1b3a5c">${fmt(r.금액||0)}원</b>`)
+    + row('결제', pay?`<span class="badge badge-${pay==='카드결제'?'card':pay==='현금결제'?'cash':'rcpt'}">${esc(pay)}</span>`:'-')
+    + row('비고', esc(r.비고||'-'))
+    + (r.time?row('정산 시각', esc(localDateTimeOf(r.time))):'');
+  // 같은 고인·발인일의 완료 정산서가 있으면 바로 열 수 있게 합니다
+  const j=jungs.find(x=>x.상태==='완료'&&x.고인===r.고인&&x.날짜===r.날짜);
+  const bj=document.getElementById('rdJung');
+  bj.style.display=j?'':'none';
+  bj.onclick=()=>{ closeModal('resultModal'); openView(j.id); };
+  const bd=document.getElementById('rdDel');
+  bd.style.display=isAdmin()?'':'none';
+  bd.onclick=()=>{ closeModal('resultModal'); delResult(idx); };
+  document.getElementById('resultModal').classList.add('show');
 }
 async function delResult(idx){
   const r=results[idx];if(!r)return;
@@ -4949,79 +5071,93 @@ function exportCSV(){
 }
 
 // ── 월별 차트 ──
-function buildCharts(){
-  // 올해 전체 월별 데이터
-  const yr=new Date().getFullYear();
-  const months=[];
-  for(let i=1;i<=12;i++) months.push(`${yr}-${String(i).padStart(2,'0')}`);
-  const labels=months.map(m=>parseInt(m.split('-')[1])+'월');
-  const counts=months.map(m=>results.filter(r=>r.날짜.startsWith(m)).length);
-  const amounts=months.map(m=>results.filter(r=>r.날짜.startsWith(m)).reduce((s,r)=>s+(r.금액||0),0));
-
-  if(chartCombo) chartCombo.destroy();
-  chartCombo=new Chart(document.getElementById('chartCombo'),{
+// 한 해의 월별 건수·정산액·결제별 금액
+function monthStats(yr){
+  return Array.from({length:12},(_,i)=>{
+    const ym=`${yr}-${String(i+1).padStart(2,'0')}`;
+    const rs=results.filter(r=>(r.날짜||'').startsWith(ym));
+    const sum=k=>rs.filter(r=>r.결제===k).reduce((s,r)=>s+(+r.금액||0),0);
+    const amt=rs.reduce((s,r)=>s+(+r.금액||0),0);
+    return {ym,m:i+1,n:rs.length,amt,avg:rs.length?Math.round(amt/rs.length):0,
+            card:sum('카드결제'),cash:sum('현금결제'),rcpt:sum('현금영수증')};
+  });
+}
+function comboChartConfig(st,big){
+  const fs=big?13:10;
+  return {
     data:{
-      labels,
+      labels:st.map(x=>x.m+'월'),
       datasets:[
-        {
-          type:'bar',
-          label:'정산액',
-          data:amounts,
-          backgroundColor:'rgba(68,114,196,0.85)',
-          borderColor:'#2d5a9e',
-          borderWidth:1,
-          yAxisID:'yAmt',
-          order:2
-        },
-        {
-          type:'line',
-          label:'건수',
-          data:counts,
-          borderColor:'#e8821a',
-          backgroundColor:'rgba(232,130,26,0)',
-          pointBackgroundColor:'#e8821a',
-          pointRadius:5,
-          pointHoverRadius:7,
-          tension:0.3,
-          borderWidth:2.5,
-          yAxisID:'yCnt',
-          order:1,
-          datalabels:{
-            anchor:'end',align:'top',
-            color:'#c0580a',font:{weight:'bold',size:11},
-            formatter:v=>v>0?v+' 건':''
-          }
-        }
+        {type:'bar',label:'정산액',data:st.map(x=>x.amt),
+         backgroundColor:'rgba(68,114,196,0.85)',borderColor:'#2d5a9e',borderWidth:1,yAxisID:'yAmt',order:2},
+        {type:'line',label:'건수',data:st.map(x=>x.n),
+         borderColor:'#e8821a',backgroundColor:'rgba(232,130,26,0)',pointBackgroundColor:'#e8821a',
+         pointRadius:big?6:4,pointHoverRadius:big?8:6,tension:0.3,borderWidth:big?3:2.5,yAxisID:'yCnt',order:1}
       ]
     },
     options:{
-      responsive:true,
+      responsive:true, maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
       plugins:{
-        legend:{display:false},
-        tooltip:{
-          callbacks:{
-            label:ctx=>{
-              if(ctx.dataset.label==='정산액') return ' 정산액: '+fmt(ctx.raw)+'원';
-              return ' 건수: '+ctx.raw+'건';
-            }
-          }
-        }
+        legend:{display:!!big,labels:{font:{size:fs}}},
+        tooltip:{titleFont:{size:fs+1},bodyFont:{size:fs+1},
+          callbacks:{label:ctx=>ctx.dataset.label==='정산액'?' 정산액: '+fmt(ctx.raw)+'원':' 건수: '+ctx.raw+'건'}}
       },
       scales:{
-        yAmt:{
-          type:'linear',position:'left',beginAtZero:true,
-          ticks:{callback:v=>fmt(v)+'원',font:{size:10}},
-          grid:{color:'rgba(0,0,0,.06)'}
-        },
-        yCnt:{
-          type:'linear',position:'right',beginAtZero:true,
-          ticks:{stepSize:1,font:{size:10}},
-          grid:{display:false}
-        }
+        x:{ticks:{font:{size:fs}}},
+        yAmt:{type:'linear',position:'left',beginAtZero:true,
+          ticks:{font:{size:fs},callback:v=>v>=10000?fmt(Math.round(v/10000))+'만':fmt(v)},
+          grid:{color:'rgba(0,0,0,.06)'}},
+        yCnt:{type:'linear',position:'right',beginAtZero:true,ticks:{stepSize:1,font:{size:fs}},grid:{display:false}}
       }
     }
-  });
+  };
+}
+function buildCharts(){
+  const el=document.getElementById('chartCombo');
+  if(!el||typeof Chart==='undefined') return;
+  if(chartCombo) chartCombo.destroy();
+  chartCombo=new Chart(el,comboChartConfig(monthStats(new Date().getFullYear()),false));
+}
+
+// ── 그래프 크게 보기 ──
+let chartBig=null, chartBigYear=new Date().getFullYear();
+function openChartBig(){
+  chartBigYear=new Date().getFullYear();
+  document.getElementById('chartBigModal').classList.add('show');
+  renderChartBig();
+}
+function stepChartYear(d){ chartBigYear+=d; renderChartBig(); }
+function renderChartBig(){
+  const yr=chartBigYear, st=monthStats(yr);
+  document.getElementById('cbYear').textContent=yr+'년';
+  const tn=st.reduce((s,x)=>s+x.n,0), ta=st.reduce((s,x)=>s+x.amt,0);
+  const best=st.reduce((b,x)=>x.amt>b.amt?x:b,st[0]);
+  const tile=(lb,vl)=>`<div class="cb-tile"><div class="lb">${lb}</div><div class="vl">${vl}</div></div>`;
+  document.getElementById('cbTiles').innerHTML=
+      tile('연간 건수',fmt(tn)+'건')
+    + tile('연간 정산액',fmt(ta)+'원')
+    + tile('건당 평균',tn?fmt(Math.round(ta/tn))+'원':'-')
+    + tile('가장 많은 달',best&&best.amt?`${best.m}월 · ${fmt(best.amt)}원`:'-');
+  document.getElementById('cbBody').innerHTML=st.map(x=>`<tr class="${x.n?'has':'zero'}"${x.n?` onclick="pickResultMonth('${x.ym}')"`:''}>
+      <td>${x.m}월</td><td>${x.n}건</td><td><b>${fmt(x.amt)}</b></td><td>${x.n?fmt(x.avg):'-'}</td>
+      <td class="pay">${fmt(x.card)}</td><td class="pay">${fmt(x.cash)}</td><td class="pay">${fmt(x.rcpt)}</td></tr>`).join('');
+  const sum=k=>st.reduce((s,x)=>s+x[k],0);
+  document.getElementById('cbFoot').innerHTML=`<td>합계</td><td>${tn}건</td><td>${fmt(ta)}</td>
+    <td>${tn?fmt(Math.round(ta/tn)):'-'}</td><td class="pay">${fmt(sum('card'))}</td>
+    <td class="pay">${fmt(sum('cash'))}</td><td class="pay">${fmt(sum('rcpt'))}</td>`;
+  if(typeof Chart==='undefined') return;
+  if(chartBig) chartBig.destroy();
+  const cfg=comboChartConfig(st,true);
+  cfg.options.onClick=(ev,els)=>{ if(els&&els.length){ const x=st[els[0].index]; if(x.n) pickResultMonth(x.ym); } };
+  chartBig=new Chart(document.getElementById('chartBig'),cfg);
+}
+// 그 달 결산서만 목록에 보이게 하고 팝업을 닫습니다
+function pickResultMonth(ym){
+  const fm=document.getElementById('filterMonth'); if(fm) fm.value=ym;
+  closeModal('chartBigModal');
+  renderResults();
+  document.getElementById('resultTbl')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 // ══ 재고관리 ══
