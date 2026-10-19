@@ -1871,11 +1871,12 @@ let _stLib=null;   // Storage 함수 모음 (필요할 때 한 번만 불러옵�
 // Firebase 초기화
 async function initFirebase(){
   const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-  const {getDatabase,ref,set,get,remove,update,onValue}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+  const {getDatabase,ref,set,get,remove,update,onValue,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
   FB=initializeApp(FB_CONFIG);
   DB=getDatabase(FB);
   window._fbRef=ref; window._fbSet=set; window._fbGet=get;
   window._fbRemove=remove; window._fbUpdate=update; window._fbOnValue=onValue;
+  window._fbIncrement=increment;     // 재고 수량을 서버에서 더하고 빼는 데 씁니다 (동시에 저장해도 서로 지우지 않음)
 }
 
 // ── 영수증 저장소 (Firebase Storage) ──
@@ -1959,38 +1960,63 @@ async function fbRemove(path){return window._fbRemove(fbRef(path));}
 
 // 실시간 동기화 리스너 (jungs가 변경되면 즉시 화면 갱신)
 let _syncPause=false; // 내가 직접 삭제 시 동기화 일시 중단
+// 동기화를 잠깐 멈춘 동안 들어온 변경은 버리지 않고, 경로마다 가장 최근 것만 맡아 두었다가 멈춤이 끝나면 적용합니다
+const _syncMissed=new Map();
+function onSync(path,fn){
+  window._fbOnValue(fbRef(path),snap=>{
+    if(_syncPause){ _syncMissed.set(path,()=>fn(snap)); return; }
+    fn(snap);
+  });
+}
+let _rtStarted=false;
 function startRealtimeSync(){
   if(!window._fbOnValue)return;
-  window._fbOnValue(fbRef('jungs'),snap=>{
-    if(_syncPause)return;
+  if(_rtStarted)return;            // 다시 로그인해도 실시간 수신을 겹쳐 걸지 않습니다
+  _rtStarted=true;
+  onSync('jungs',snap=>{
     const data=snap.exists()?snap.val():null;
-    jungs=data?Object.values(data).map(normalizeJung):[];
+    jungs=data?Object.entries(data).map(([k,j])=>normalizeJung({...j,id:j.id||k})):[];
     renderJungList();
   });
-  window._fbOnValue(fbRef('results'),snap=>{
-    if(_syncPause)return;
+  onSync('results',snap=>{
     const data=snap.exists()?snap.val():null;
-    results=data?Object.values(data).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
+    results=data?Object.entries(data).map(([k,r])=>({...r,id:String(r.id||k),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
     renderResults();
     if(typeof buildCharts==='function')buildCharts();
   });
+  // 재고 — 다른 컴퓨터에서 정산을 완료하면 재고관리장에 바로 반영됩니다
+  window._fbOnValue(fbRef('stockData'),snap=>{
+    stockData=snap.exists()?decodeStockData(snap.val()||{}):{};
+    // 이 화면에서 고치고 아직 저장하지 않은 칸은 지우지 않고 다시 얹습니다
+    Object.entries(_stockDirty).forEach(([pth,v])=>{
+      const [,ym,key,field]=pth.split('/');
+      stockItem(ym,fromFbKey(key))[field]=v;
+    });
+    const pg=document.getElementById('page-재고');
+    const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#page-재고 .stbl');
+    if(pg&&pg.classList.contains('on')&&!typing) renderStock();
+  });
+  // 알바 근무기록 — 관리자가 승인·취소하면 알바 화면(달력·내 근무시간)에도 바로 반영됩니다
+  window._fbOnValue(fbRef('albaWorkLog'),snap=>{
+    albaWorkLog=snap.exists()?normalizeWorkLog(snap.val()):{};
+    syncWorkLogToAlba();
+    renderMiniCal();
+    if(document.getElementById('myWorkModal')?.classList.contains('show')) renderMyWork();
+  });
   // 지출·거래처도 함께 받습니다 (다른 직원이 분류한 내용이 바로 보입니다)
-  window._fbOnValue(fbRef('expenses'),snap=>{
-    if(_syncPause)return;
+  onSync('expenses',snap=>{
     const d=snap.exists()?snap.val():null;
-    expenses=d?Object.values(d).map(normalizeExp):[];
+    expenses=d?Object.entries(d).map(([k,e])=>normalizeExp({...e,id:e&&e.id||k})):[];
     const open=document.getElementById('page-경영')?.classList.contains('on');
     const typing=document.activeElement&&document.activeElement.closest
       &&document.activeElement.closest('#expEditModal,#impModal,#page-경영 input,#page-경영 select');
     if(open&&!typing) renderBiz(); else updateExpBadge();
   });
-  window._fbOnValue(fbRef('vendors'),snap=>{
-    if(_syncPause)return;
+  onSync('vendors',snap=>{
     vendors=snap.exists()?(snap.val()||{}):{};
   });
   // 메모장도 함께 실시간으로 받습니다
-  window._fbOnValue(fbRef('memos'),snap=>{
-    if(_syncPause)return;
+  onSync('memos',snap=>{
     memos=snap.exists()?(snap.val()||{}):{};
     updateMemoBadge();
     const open=document.getElementById('memoModal')?.classList.contains('show');
@@ -2002,7 +2028,12 @@ function startRealtimeSync(){
 // 삭제 시 동기화 잠깐 멈추기 (2초)
 function pauseSync(){
   _syncPause=true;
-  setTimeout(()=>{_syncPause=false;},2000);
+  clearTimeout(pauseSync._t);         // 연달아 지우면 마지막 삭제부터 2초를 셉니다
+  pauseSync._t=setTimeout(()=>{
+    _syncPause=false;
+    const q=[..._syncMissed.values()]; _syncMissed.clear();
+    q.forEach(f=>{ try{ f(); }catch(e){ console.error('동기화 적용 오류:',e); } });
+  },2000);
 }
 
 // song 아이디는 admin과 동일 권한
@@ -2165,8 +2196,8 @@ async function loadAllData(){
     const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData,moData,vnData]=await Promise.all([
       fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta'),fbGet('expenses'),fbGet('bizConfig'),fbGet('posSales'),fbGet('stockClose'),fbGet('memos'),fbGet('vendors')
     ]);
-    jungs    =jData?Object.values(jData).map(normalizeJung):[];
-    results  =rData?Object.values(rData).map(r=>({...r,id:String(r.id||''),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
+    jungs    =jData?Object.entries(jData).map(([k,j])=>normalizeJung({...j,id:j.id||k})):[];
+    results  =rData?Object.entries(rData).map(([k,r])=>({...r,id:String(r.id||k),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
     if(sData){
       const mg=migrateStockKeys(decodeStockData(sData));
       stockData=mg.data;
@@ -2179,7 +2210,7 @@ async function loadAllData(){
     priceDB  =pData?Object.values(pData):DEF_PRICE;
     albaData =aData?Object.values(aData):[];
     albaWorkLog=wData?normalizeWorkLog(wData):{};
-    expenses=eData?Object.values(eData).map(normalizeExp):[];
+    expenses=eData?Object.entries(eData).map(([k,e])=>normalizeExp({...e,id:e&&e.id||k})):[];
     if(bData) bizConfig=Object.assign(bizConfig,bData);
     posSales=psData||{};
     stockClose=scData||{};
@@ -2276,8 +2307,24 @@ async function jungs_save(j){
   fbSet('jungs/'+j.id,j).catch(e=>console.error('jung 저장 오류:',e));
 }
 async function results_save(){}
-async function stock_save(){
-  fbSet('stockData',encodeStockData(stockData)).catch(e=>console.error('재고 저장 오류:',e));
+// ══ 재고 — 바뀐 칸만 저장 ══
+// 예전에는 재고 전체를 통째로 다시 써서, 두 사람이 다른 컴퓨터에서 정산을 완료하면
+// 나중 사람의 옛 재고가 먼저 사람의 출고 기록을 지웠습니다.
+// 이제 더하기·빼기는 서버에서 원자적으로(increment) 처리하고, 직접 고친 칸만 따로 씁니다.
+const _stockDirty={};                         // 재고표에서 고치고 아직 [저장] 안 한 칸 {경로:값}
+function stockCellPath(ym,품명,field){ return `stockData/${ym}/${toFbKey(품명)}/${field}`; }
+function stockItem(ym,품명){
+  if(!stockData[ym]) stockData[ym]={};
+  if(!stockData[ym][품명]) stockData[ym][품명]={};
+  return stockData[ym][품명];
+}
+function stockInc(n){
+  if(!window._fbIncrement) throw new Error('재고 서버 연산을 불러오지 못했습니다. 새로고침 후 다시 시도하십시오.');
+  return window._fbIncrement(n);
+}
+async function stockUpdate(map){
+  if(!Object.keys(map).length) return;
+  await window._fbUpdate(window._fbRef(DB),map);      // 여러 칸을 한 번에, 다른 칸은 건드리지 않고 씁니다
 }
 async function price_save(){
   const obj={};priceDB.forEach((p,i)=>obj[i]=p);
@@ -2477,6 +2524,19 @@ function parseTel(val){
   if(d.length===9&&d.startsWith('02')) return '02-'+d.slice(2,5)+'-'+d.slice(5);
   return d;
 }
+// MMDD → YYYY-MM-DD. 연말·연초를 넘길 때 연도를 맞춥니다
+// (예: 12월 30일에 '0102' 입력 → 내년 1월 2일, 1월 2일에 '1230' 입력 → 작년 12월 30일)
+function mmddToDate(mm,dd){
+  const m=+mm, d=+dd;
+  if(!(m>=1&&m<=12)) return '';
+  const now=new Date(); let y=now.getFullYear();
+  const today=new Date(y,now.getMonth(),now.getDate());
+  let cand=new Date(y,m-1,d);
+  const diff=(cand-today)/86400000;
+  if(diff<-180) y++; else if(diff>180) y--;
+  if(d<1||d>new Date(y,m,0).getDate()) return '';          // 2월 30일 같은 날짜는 받지 않습니다
+  return `${y}-${_p2(m)}-${_p2(d)}`;
+}
 async function createJungsan(){
   filterHangul(document.getElementById('nw-고인'));
   filterHangul(document.getElementById('nw-상주'));
@@ -2489,9 +2549,9 @@ async function createJungsan(){
   if(!분향실||!고인||!날짜str){alert('분향실·고인·발인일(MMDD)은 필수입니다.');return;}
   if(날짜str.length!==4||isNaN(날짜str)){alert('발인일은 MMDD 4자리 숫자로 입력하세요.\n예) 9월 1일 → 0901');return;}
   const 연락처=parseTel(연락처raw);
-  const year=new Date().getFullYear();
   const mm=날짜str.slice(0,2),dd=날짜str.slice(2,4);
-  const 날짜full=`${year}-${mm}-${dd}`;
+  const 날짜full=mmddToDate(mm,dd);
+  if(!날짜full){alert(`${+mm}월 ${+dd}일은 없는 날짜입니다. 발인일을 다시 확인하십시오.`);return;}
   const 파일명=`최종정산서(${newCap})-${분향실}-${고인}-${날짜str}`;
   const items=BASIC
     .filter(b=>{
@@ -2516,13 +2576,13 @@ async function createJungsan(){
     생성일:nowISO(),완료일:'',생성자:currentUser?.이름||'',생성자id:currentUser?.id||''
   };
 
-  // 1. 창 먼저 닫기 + 로컬에 추가 → 진행중 목록에 즉시 표시
+  // 1. 창 먼저 닫기 + 로컬에 추가
   closeModal('newModal');
   jungs.push(jung);
-  renderJungList();
-
-  // 2. Firebase 저장 (청크 불필요 - 크기 제한 없음)
-  fbSet('jungs/'+jung.id, jung)
+  // 2. 저장을 먼저 시작하고 목록을 그립니다 (목록 그리기에서 문제가 생겨도 저장되도록)
+  const saving=fbSet('jungs/'+jung.id, jung);
+  try{ renderJungList(); }catch(e){ console.error('목록 갱신 오류:',e); }
+  saving
     .then(()=>{
       addLog(currentUser?.이름||'','정산서생성',파일명);
       alert(`✅ 정산서 생성 완료!\n\n📋 ${파일명}\n진행중 목록에서 확인하세요.`);
@@ -2638,11 +2698,11 @@ function renderJungList(){
     div.title=done?'클릭하면 정산서를 엽니다':'클릭하면 편집 화면이 열립니다';
     div.innerHTML=`
       <span class="ji-cap">${j.인원수}명</span>
-      <span class="ji-name">${j.파일명}</span>
+      <span class="ji-name">${esc(j.파일명)}</span>
       <span class="ji-burial">발인 ${burialText(j)}</span>
       <span class="ji-sub ji-gap">생성 ${localDateOf(j.생성일)}</span>
-      ${j.생성자?`<span class="ji-sub" style="color:#8a6d3b">작성 ${j.생성자id||j.생성자}</span>`:''}
-      ${(j.수정자&&(j.수정자!==j.생성자||j.수정일))?`<span class="ji-sub" style="color:#e8821a">최종수정 ${j.수정자id||j.수정자}</span>`:''}
+      ${j.생성자?`<span class="ji-sub" style="color:#8a6d3b">작성 ${esc(j.생성자id||j.생성자)}</span>`:''}
+      ${(j.수정자&&(j.수정자!==j.생성자||j.수정일))?`<span class="ji-sub" style="color:#e8821a">최종수정 ${esc(j.수정자id||j.수정자)}</span>`:''}
       ${j.메모?'<span class="ji-memo" title="메모 있음">📝</span>':''}
       <span style="margin-left:auto;font-weight:700;color:#1b3a5c;white-space:nowrap">${fmt(total)}원</span>
       ${done?`
@@ -2765,8 +2825,8 @@ function buildTable(j,readOnly){
     } else {
       tr.innerHTML=`
         <td>${bNo++}</td>
-        <td class="nm">${item.품명}</td>
-        <td>${item.단위}</td><td>${fmt(item.단가)}</td>
+        <td class="nm">${esc(item.품명)}</td>
+        <td>${esc(item.단위)}</td><td>${fmt(item.단가)}</td>
         <td data-l="주문량">${qc(item.주문량,idx,'주문량',readOnly)}</td>
         <td data-l="추가 주문량">${qc(item.추가,idx,'추가',readOnly)}</td>
         <td data-l="반품량">${qc(item.반품,idx,'반품',readOnly)}</td>
@@ -2896,6 +2956,8 @@ function closeEditOverlay(){
 async function saveEditing(){
   if(!editingId)return;
   const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  const v=id=>(document.getElementById(id).value||'').trim();
+  if(!v('e-분향실')||!v('e-고인')||!v('e-날짜')){ alert('분향실·고인·발인일은 비워 둘 수 없습니다.'); return; }
   j.날짜=document.getElementById('e-날짜').value;
   j.분향실=document.getElementById('e-분향실').value;
   j.고인=document.getElementById('e-고인').value;
@@ -2908,12 +2970,11 @@ async function saveEditing(){
   j.수정자id=currentUser?.id||'';
   j.수정일=nowISO();
 
-  // 화면 즉시 갱신 + 메시지 바로 표시
-  renderJungList();
+  // 저장을 먼저 시작하고 화면을 갱신합니다
+  fbSet('jungs/'+j.id,j).then(()=>addLog(currentUser?.이름||'','정산서저장',j.파일명))
+    .catch(e=>{ console.error('저장 오류:',e); alert('⚠️ 저장 중 오류가 생겼습니다: '+e.message); });
+  try{ renderJungList(); }catch(e){ console.error('목록 갱신 오류:',e); }
   alert(`✅ 저장 완료!\n\n📋 ${j.파일명}\n정산액: ${fmt(calcTotal(j.items))}원\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
-
-  // 서버 저장 백그라운드
-  fbSet('jungs/'+j.id,j).then(()=>addLog(currentUser?.이름||'','정산서저장',j.파일명)).catch(e=>console.error('저장 오류:',e));
 }
 // ── 메모 ──
 function openMemo(id){
@@ -2958,8 +3019,8 @@ function doPrint(){
     const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
     rows+=`<tr>
       <td>${no++}</td>
-      <td class="pnm">${it.품명}</td>
-      <td style="white-space:nowrap">${it.단위}</td>
+      <td class="pnm">${esc(it.품명)}</td>
+      <td style="white-space:nowrap">${esc(it.단위)}</td>
       <td class="right">${it.단가?fmt(it.단가):''}</td>
       <td>${it.주문량||0}</td>
       <td>${it.추가||''}</td>
@@ -2995,13 +3056,13 @@ th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
 <div class="ph2">${dStr}${j.결제?' &nbsp;&nbsp; <span style="background:#333;color:#fff;padding:2px 10px;border-radius:10px;font-size:10pt;font-weight:700">'+j.결제+'</span>':''}</div>
 <table class="phead" style="margin-bottom:3px">
   <tr>
-    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${j.분향실}</td>
-    <td class="lbl" style="width:60px">고인</td><td>故 ${j.고인} 님</td>
+    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${esc(j.분향실)}</td>
+    <td class="lbl" style="width:60px">고인</td><td>故 ${esc(j.고인)} 님</td>
     <td style="text-align:right;font-weight:700;width:80px">혼길마트</td>
   </tr>
   <tr>
-    <td class="lbl" style="width:60px">상주</td><td style="width:140px">${j.상주?j.상주+' 님':''}</td>
-    <td class="lbl" style="width:60px">연락처</td><td>${j.연락처||''}</td>
+    <td class="lbl" style="width:60px">상주</td><td style="width:140px">${j.상주?esc(j.상주)+' 님':''}</td>
+    <td class="lbl" style="width:60px">연락처</td><td>${esc(j.연락처||'')}</td>
     <td style="text-align:right;width:80px">742-0077</td>
   </tr>
 </table>
@@ -3482,7 +3543,7 @@ function exportBiz(){
   });
   csv+='\n날짜,구분,항목,거래처,공급가액,부가세,증빙\n';
   bizExpenses(d.pr).forEach(e=>{
-    csv+=`${e.날짜},${e.구분},${e.항목||''},${e.거래처||''},${e.공급가액||0},${e.부가세||0},${e.증빙||''}\n`;
+    csv+=[e.날짜,e.구분,e.항목||e.메모||'',e.거래처||'',e.공급가액||0,e.부가세||0,e.증빙||''].map(csvCell).join(',')+'\n';
   });
   dl(csv,`연말결산_${d.pr.label.replace(/[^0-9가-힣]/g,'')}.csv`,'text/csv');
 }
@@ -3625,7 +3686,7 @@ function renderMyWork(){
     if(r.승인) apprH+=h;
     return `<tr${r.승인?'':' style="background:#fffdf0"'}>
       <td>${r.날짜}</td>
-      <td>${r.회차}회차${r.업무?`<br><span style="font-size:10px;color:#8a6d3b">${r.업무}</span>`:''}</td>
+      <td>${r.회차}회차${r.업무?`<br><span style="font-size:10px;color:#8a6d3b">${esc(r.업무)}</span>`:''}</td>
       <td>${r.출근}</td><td>${r.퇴근}</td>
       <td style="font-weight:700;color:#1b3a5c">${h.toFixed(1)}h</td>
       <td><button onclick="editMyWorkSlot('${r.날짜}',${r.회차-1})"
@@ -3648,15 +3709,17 @@ function renderMyWork(){
     + card('승인 완료',apprH.toFixed(1)+'시간','#2a5298')
     + card('승인 대기',(hrs-apprH).toFixed(1)+'시간','#e8821a');
 }
-// 내 근무 회차의 출퇴근 시간을 수정합니다
-function editMyWorkSlot(dateKey,slotIdx){
-  const me=currentUser?.이름||'';
-  const slots=getWorkSlots(dateKey,me);
+// 근무 회차의 출퇴근 시간을 수정합니다. 이름을 넘기면(관리자) 그 사람의 기록을 고칩니다.
+async function editMyWorkSlot(dateKey,slotIdx,who){
+  const me=who||currentUser?.이름||'';
+  const slots=await freshWorkSlots(dateKey,me);   // 관리자가 방금 승인을 취소했어도 바로 반영됩니다
   const s=slots[slotIdx];
   if(!s){alert('해당 근무 기록을 찾지 못했습니다.\n화면을 새로고침한 뒤 다시 시도하십시오.');return;}
   if(s.승인){
     alert(`이미 승인된 근무입니다.\n\n${dateKey} ${slotIdx+1}회차 (${s.출근}~${s.퇴근})\n\n`
-      +`승인된 근무는 수정할 수 없습니다.\n수정이 필요하면 관리자에게 승인 취소를 요청하십시오.`);
+      +(who?'먼저 [↩ 취소]로 승인을 취소한 뒤 수정하십시오.'
+           :'승인된 근무는 수정할 수 없습니다.\n수정이 필요하면 관리자에게 승인 취소를 요청하십시오.'));
+    renderMiniCal(); if(document.getElementById('myWorkModal')?.classList.contains('show')) renderMyWork();
     return;
   }
   const old=document.getElementById('mwEditPop'); if(old) old.remove();
@@ -3668,7 +3731,7 @@ function editMyWorkSlot(dateKey,slotIdx){
   const [y,m,d]=dateKey.split('-');
   pop.innerHTML=`
     <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:4px">✏️ 근무시간 수정</div>
-    <div style="font-size:12px;color:#555;margin-bottom:10px">${+m}월 ${+d}일 · ${slotIdx+1}회차</div>
+    <div style="font-size:12px;color:#555;margin-bottom:10px">${who?`<b>${esc(me)}</b> · `:''}${+m}월 ${+d}일 · ${slotIdx+1}회차</div>
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <div style="flex:1"><label style="font-size:11px;color:#555">출근</label>
         <input type="time" id="mwStart" value="${s.출근||''}"
@@ -3678,7 +3741,7 @@ function editMyWorkSlot(dateKey,slotIdx){
           style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px"></div>
     </div>
     <div style="display:flex;gap:6px">
-      <button onclick="saveMyWorkSlot('${dateKey}',${slotIdx})"
+      <button onclick="saveMyWorkSlot('${dateKey}',${slotIdx},${who?`'${esc(who)}'`:'null'})"
         style="flex:1;background:#217a3c;color:#fff;border:none;border-radius:5px;padding:7px;
         cursor:pointer;font-weight:700;font-family:inherit;font-size:12px">✅ 저장</button>
       <button onclick="document.getElementById('mwEditPop').remove()"
@@ -3688,20 +3751,20 @@ function editMyWorkSlot(dateKey,slotIdx){
   document.body.appendChild(pop);
   document.getElementById('mwStart').focus();
 }
-async function saveMyWorkSlot(dateKey,slotIdx){
-  const me=currentUser?.이름||'';
+async function saveMyWorkSlot(dateKey,slotIdx,who){
+  const me=who||currentUser?.이름||'';
   const start=document.getElementById('mwStart').value;
   const end=document.getElementById('mwEnd').value;
   if(!start||!end){alert('출퇴근 시간을 모두 입력하십시오.');return;}
   if(start===end){alert('출근과 퇴근 시간이 같습니다.');return;}
   if(start>end && !confirm(`퇴근(${end})이 출근(${start})보다 이릅니다.\n\n`
     +`익일 퇴근(야간근무)으로 처리하면 ${calcHours(start,end).toFixed(1)}시간이 됩니다.\n계속하시겠습니까?`)) return;
-  const slots=getWorkSlots(dateKey,me);
+  const slots=await freshWorkSlots(dateKey,me);     // 저장 직전에 최신 기록으로 다시 확인
   const s=slots[slotIdx];
   if(!s){alert('해당 근무 기록을 찾지 못했습니다.');return;}
-  if(s.승인){alert('이미 승인된 근무라 수정할 수 없습니다.');return;}   // 저장 직전 재확인
+  if(s.승인){alert('그사이 승인된 근무라 수정할 수 없습니다.');document.getElementById('mwEditPop')?.remove();return;}
   s.출근=start; s.퇴근=end;
-  s.수정일=nowISO();
+  s.수정일=nowISO(); s.수정자=currentUser?.이름||'';
   try{
     await writeWorkSlots(dateKey,me,slots);
     document.getElementById('mwEditPop')?.remove();
@@ -3721,7 +3784,7 @@ function printMyWork(){
     const h=calcHours(r.출근,r.퇴근);
     hrs+=h;
     return `<tr><td>${i+1}</td><td>${r.날짜}</td><td>${r.회차}</td>
-      <td class="l">${r.업무||''}</td><td>${r.출근}</td><td>${r.퇴근}</td>
+      <td class="l">${esc(r.업무||'')}</td><td>${r.출근}</td><td>${r.퇴근}</td>
       <td class="r">${h.toFixed(1)}</td>
       <td>${r.승인?'승인':'대기'}</td></tr>`;
   }).join('');
@@ -3851,9 +3914,9 @@ async function confirmStockClose(){
     +`차이 ${diffs.length}개 품목\n`
     +`${ymLabel(nxt)}의 이월량이 새로 설정됩니다. 계속하시겠습니까?`)) return;
 
-  if(!stockData[ym]) stockData[ym]={};
-  if(!stockData[nxt]) stockData[nxt]={};
-  const 항목={};
+  // ※ 예전 코드는 차이가 있는 품목의 그 달 출고 기록을 통째로 지우는 버그가 있었습니다
+  //   (저장용 이름과 원래 이름이 같으면 '옛 이름 지우기'가 방금 고친 기록을 지움). 칸 단위로 바꿨습니다.
+  const 항목={}, closeMap={};
   rows.forEach(r=>{
     const has=scCount[r.품명]!==undefined&&scCount[r.품명]!=='';
     const 실사=has?+scCount[r.품명]:r.장부;
@@ -3861,15 +3924,13 @@ async function confirmStockClose(){
     const k=toFbKey(r.품명);
     // 차이가 있으면 이번 달에 조정으로 남겨 장부와 실사를 맞춥니다
     if(diff!==0){
-      if(!stockData[ym][k]) stockData[ym][k]=stockData[ym][r.품명]||{};
-      const cur=+(stockData[ym][k]['조정']||0);
-      stockData[ym][k]['조정']=cur+diff;
-      delete stockData[ym][r.품명];
-      stockData[ym][k]=stockData[ym][k];
+      const item=stockItem(ym,r.품명);
+      item['조정']=(+item['조정']||0)+diff;
+      closeMap[stockCellPath(ym,r.품명,'조정')]=stockInc(diff);
     }
     // 다음 달 이월량 = 실사(없으면 장부)
-    if(!stockData[nxt][k]) stockData[nxt][k]={};
-    stockData[nxt][k]['이월']=실사;
+    stockItem(nxt,r.품명)['이월']=실사;
+    closeMap[stockCellPath(nxt,r.품명,'이월')]=실사;
     항목[k]={장부:r.장부, 실사, 차이:diff, 사유:(scReason[r.품명]||'')};
   });
   const rec={확정자:currentUser?.id||'', 확정일:nowISO(), 항목};
@@ -3877,7 +3938,7 @@ async function confirmStockClose(){
 
   showSaving(true);
   try{
-    await fbSet('stockData',encodeStockData(stockData));
+    await stockUpdate(closeMap);
     await fbSet('stockClose/'+ym,rec);
     touchMeta('stock');
     closeModal('stockCloseModal');
@@ -4002,8 +4063,8 @@ function renderBasicSheet(){
     const changed=it.수량!==base[it.품명];                 // 고친 항목은 노란 배경
     return `<tr>
       <td>${i+1}</td>
-      <td class="nm">${it.품명}</td>
-      <td>${it.단위}</td>
+      <td class="nm">${esc(it.품명)}</td>
+      <td>${esc(it.단위)}</td>
       <td>${fmt(it.단가)}</td>
       <td><input class="bq" type="number" min="0" value="${it.수량}"
         data-p="${esc(it.품명)}" data-u="${it.단가}" onchange="onBasicQty(this)"
@@ -4031,8 +4092,8 @@ function printBasicSheet(){
   let total=0,rows='';
   items.forEach((it,i)=>{
     const amt=it.수량*it.단가; total+=amt;
-    rows+=`<tr><td>${i+1}</td><td class="pnm">${it.품명}</td>
-      <td style="white-space:nowrap">${it.단위}</td>
+    rows+=`<tr><td>${i+1}</td><td class="pnm">${esc(it.품명)}</td>
+      <td style="white-space:nowrap">${esc(it.단위)}</td>
       <td class="right">${fmt(it.단가)}</td>
       <td>${it.수량}</td>
       <td class="right">${fmt(amt)}</td>
@@ -4064,13 +4125,13 @@ th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
 <div class="ph2">(${h.cap}명 기준) &nbsp; ${h.dStr}</div>
 <table class="phead" style="margin-bottom:3px">
   <tr>
-    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${h.분향실}</td>
+    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${esc(h.분향실)}</td>
     <td class="lbl" style="width:60px">고인</td><td style="white-space:nowrap">故 ${h.고인?esc(h.고인):'<span class="gap35"></span>'} 님</td>
     <td style="text-align:right;font-weight:700;width:80px">혼길마트</td>
   </tr>
   <tr>
-    <td class="lbl" style="width:60px">상주</td><td>${h.상주?h.상주+' 님':''}</td>
-    <td class="lbl" style="width:60px">연락처</td><td>${h.연락처}</td>
+    <td class="lbl" style="width:60px">상주</td><td>${h.상주?esc(h.상주)+' 님':''}</td>
+    <td class="lbl" style="width:60px">연락처</td><td>${esc(h.연락처)}</td>
     <td style="text-align:right;width:80px">742-0077</td>
   </tr>
 </table>
@@ -4161,27 +4222,31 @@ async function confirmPay(){
   const newResult={id:Date.now().toString(),분향실:j.분향실,고인:j.고인,날짜:j.날짜,금액:total,결제:pay,인원수:j.인원수,상주:j.상주||'',연락처:j.연락처||'',비고:'',time:nowISO()};
   results.push(newResult);
   const ym=ymOfDate(j.날짜), d=+(j.날짜||'').slice(8,10);
-  if(!stockData[ym])stockData[ym]={};
+  const stockMap={}, sum={};
   j.items.forEach(it=>{
     const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
-    if(it.품명&&f>0){
-      if(!stockData[ym][it.품명])stockData[ym][it.품명]={};
-      stockData[ym][it.품명][d]=(stockData[ym][it.품명][d]||0)+f;
-    }
+    if(it.품명&&f>0) sum[it.품명]=(sum[it.품명]||0)+f;      // 같은 품목이 여러 줄이면 합칩니다
+  });
+  Object.entries(sum).forEach(([품명,f])=>{
+    const item=stockItem(ym,품명);
+    item[d]=(+item[d]||0)+f;
+    stockMap[stockCellPath(ym,품명,d)]=stockInc(f);
   });
 
-  // 2. 화면 즉시 갱신 + 완료 메시지 바로 표시
-  document.getElementById('edit-stamp').style.display='';
-  document.getElementById('edit-pay').textContent='/ '+pay+' 완료!';
-  loadForm(j,true);renderJungList();renderResults();
-  alert(`정산 완료!\n\n분향실: ${j.분향실} / ${j.고인}\n정산액: ${fmt(total)}원\n결제: ${pay}`);
+  // 2. 서버 저장을 먼저 시작합니다 (화면 그리기에서 문제가 생겨도 저장은 반드시 되도록)
+  const saveErr=e=>{ console.error('정산완료 저장 오류:',e); alert('⚠️ 정산완료 저장 중 오류가 생겼습니다: '+e.message+'\n새로고침 후 정산서 상태를 확인하십시오.'); };
+  fbSet('jungs/'+j.id,j).catch(saveErr);
+  fbSet('results/'+newResult.id,newResult).catch(saveErr);
+  stockUpdate(stockMap).catch(e=>{ console.error('재고 저장:',e); alert('⚠️ 재고 반영 중 오류가 생겼습니다: '+e.message+'\n재고관리장을 확인하십시오.'); });
+  try{ touchMeta('results'); addLog(currentUser?.이름||'','정산완료',j.파일명); }catch(e){ console.error(e); }
 
-  // 3. 서버 저장은 백그라운드로 (메시지 확인 후 처리)
-  fbSet('jungs/'+j.id,j).catch(e=>console.error('정산완료 jung 저장:',e));
-  fbSet('results/'+newResult.id,newResult).catch(e=>console.error('결산서 저장:',e));
-  touchMeta('results');
-  fbSet('stockData',encodeStockData(stockData)).catch(e=>console.error('재고 저장:',e));
-  addLog(currentUser?.이름||'','정산완료',j.파일명);
+  // 3. 화면 갱신 + 완료 메시지
+  try{
+    document.getElementById('edit-stamp').style.display='';
+    document.getElementById('edit-pay').textContent='/ '+pay+' 완료!';
+    loadForm(j,true);renderJungList();renderResults();
+  }catch(e){ console.error('정산완료 화면 갱신 오류:',e); }
+  alert(`정산 완료!\n\n분향실: ${j.분향실} / ${j.고인}\n정산액: ${fmt(total)}원\n결제: ${pay}`);
 }
 
 // ══ 정산취소 ══
@@ -4203,28 +4268,30 @@ async function 정산취소(){
   // 2. 재고관리장 수량 원복
   const ym=ymOfDate(j.날짜);
   const d=+(j.날짜||'').slice(8,10);
-  if(stockData[ym]){
-    j.items.forEach(it=>{
-      const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
-      if(it.품명&&f>0&&stockData[ym][it.품명]){
-        stockData[ym][it.품명][d]=Math.max(0,(stockData[ym][it.품명][d]||0)-f);
-      }
-    });
-  }
+  const stockMap={}, sum={};
+  j.items.forEach(it=>{
+    const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
+    if(it.품명&&f>0) sum[it.품명]=(sum[it.품명]||0)+f;
+  });
+  Object.entries(sum).forEach(([품명,f])=>{
+    const item=stockItem(ym,품명);
+    item[d]=(+item[d]||0)-f;                                 // 서버와 같게 그대로 뺍니다
+    stockMap[stockCellPath(ym,품명,d)]=stockInc(-f);
+  });
 
   // 3. 정산서 상태 → 진행중
   j.상태='진행중';j.결제='';j.완료일='';
 
-  // 4. 화면 즉시 갱신 + 메시지 바로 표시
-  renderJungList();renderResults();
-  loadForm(j,false);
-  alert(`🔄 정산 취소 완료!\n\n결산서 ${removed}건 삭제\n재고 수량 원복 완료\n\n이제 정산서를 수정할 수 있습니다.`);
+  // 4. 서버 저장을 먼저 시작합니다
+  pauseSync();
+  fbSet('jungs/'+j.id,j).catch(e=>{ console.error('정산취소 jung:',e); alert('⚠️ 정산취소 저장 중 오류가 생겼습니다: '+e.message); });
+  stockUpdate(stockMap).catch(e=>{ console.error('정산취소 재고:',e); alert('⚠️ 재고 원복 중 오류가 생겼습니다: '+e.message+'\n재고관리장을 확인하십시오.'); });
+  removedIds.forEach(id=>fbRemove('results/'+id).catch(e=>console.error('정산취소 결산서:',e)));
+  try{ addLog(currentUser?.이름||'','정산취소',j.파일명); }catch(e){ console.error(e); }
 
-  // 5. 서버 저장 백그라운드
-  fbSet('jungs/'+j.id,j).catch(e=>console.error('정산취소 jung:',e));
-  fbSet('stockData',encodeStockData(stockData)).catch(e=>console.error('정산취소 재고:',e));
-  removedIds.forEach(id=>fbRemove('results/'+id).catch(()=>{}));
-  addLog(currentUser?.이름||'','정산취소',j.파일명);
+  // 5. 화면 갱신 + 메시지
+  try{ renderJungList();renderResults(); loadForm(j,false); }catch(e){ console.error('정산취소 화면 갱신 오류:',e); }
+  alert(`🔄 정산 취소 완료!\n\n결산서 ${removed}건 삭제\n재고 수량 원복 완료\n\n이제 정산서를 수정할 수 있습니다.`);
 }
 
 // ══ 알바 관리 ══
@@ -4306,7 +4373,7 @@ function openCalInput(dateKey,td){
     <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #eee">
       <span style="font-size:11px;color:#888;width:40px">${i+1}회차</span>
       <span style="font-size:12px;font-weight:700;color:#1b3a5c">${l.출근}~${l.퇴근}</span>
-      ${l.업무?`<span style="font-size:10px;color:#8a6d3b">${l.업무}</span>`:''}
+      ${l.업무?`<span style="font-size:10px;color:#8a6d3b">${esc(l.업무)}</span>`:''}
       <span style="font-size:10px;color:${l.승인?'#2a5298':'#888'};margin-left:auto">${l.승인?'✅승인':'⏳'}</span>
       ${!l.승인?`<button onclick="delCalInputSlot('${dateKey}',${i})" style="background:#c0392b;color:#fff;border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:11px">✕</button>`:''}
     </div>`).join('');
@@ -4360,13 +4427,11 @@ async function saveCalInput(dateKey){
   if(start>end && !confirm(`퇴근(${end})이 출근(${start})보다 이릅니다.\n\n`
     +`익일 퇴근(야간근무)으로 처리하면 ${calcHours(start,end).toFixed(1)}시간이 됩니다.\n계속하시겠습니까?`)) return;
   const myName=currentUser?.이름||'';
-  if(!albaWorkLog[dateKey])albaWorkLog[dateKey]={};
-  // 배열로 관리
-  let logs=getWorkSlots(dateKey,myName);
   const job=document.getElementById('calJob')?.value||'';
+  // 다른 기기에서 그사이 승인·추가된 회차를 지우지 않도록 최신 기록에 이어 붙입니다
+  const logs=await freshWorkSlots(dateKey,myName);
   logs.push({출근:start,퇴근:end,업무:job,승인:false,입력자:myName,입력일:nowISO()});
-  albaWorkLog[dateKey][myName]=logs;
-  fbSet('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName),logs).catch(e=>console.error(e));
+  await writeWorkSlots(dateKey,myName,logs);
   document.getElementById('calPopup').remove();
   renderMiniCal();
   syncWorkLogToAlba();
@@ -4376,15 +4441,10 @@ async function saveCalInput(dateKey){
 async function delCalInputSlot(dateKey,slotIdx){
   if(!confirm('이 회차를 삭제하시겠습니까?'))return;
   const myName=currentUser?.이름||'';
-  let logs=Array.isArray(albaWorkLog[dateKey]?.[myName])?albaWorkLog[dateKey][myName]:[];
+  const logs=await freshWorkSlots(dateKey,myName);
+  if(logs[slotIdx]?.승인){ alert('그사이 승인된 회차라 삭제할 수 없습니다.'); document.getElementById('calPopup')?.remove(); renderMiniCal(); return; }
   logs.splice(slotIdx,1);
-  if(logs.length===0){
-    delete albaWorkLog[dateKey][myName];
-    fbRemove('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName)).catch(e=>console.error(e));
-  } else {
-    albaWorkLog[dateKey][myName]=logs;
-    fbSet('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName),logs).catch(e=>console.error(e));
-  }
+  await writeWorkSlots(dateKey,myName,logs);
   document.getElementById('calPopup').remove();
   renderMiniCal();
   syncWorkLogToAlba();
@@ -4393,8 +4453,10 @@ async function delCalInputSlot(dateKey,slotIdx){
 async function delCalInput(dateKey){
   if(!confirm('이 날의 모든 근무 입력을 삭제하시겠습니까?'))return;
   const myName=currentUser?.이름||'';
-  if(albaWorkLog[dateKey]) delete albaWorkLog[dateKey][myName];
-  fbRemove('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(myName)).catch(e=>console.error(e));
+  const logs=await freshWorkSlots(dateKey,myName);
+  const keep=logs.filter(l=>l.승인);                 // 승인된 회차는 남깁니다
+  await writeWorkSlots(dateKey,myName,keep);
+  if(keep.length) alert(`승인된 ${keep.length}개 회차는 지우지 않고 남겼습니다.`);
   document.getElementById('calPopup').remove();
   renderMiniCal();
   syncWorkLogToAlba();
@@ -4640,7 +4702,7 @@ function hasWageRule(이름,업무){
 function getAlbaNames(){
   const set=new Set();
   albaData.forEach(r=>{ if(r.이름) set.add(r.이름); });
-  (albaConfig.wages||[]).forEach(w=>{ if((w.이름||'').trim()) set.add(w.이름.trim()); });
+  (albaConfig.wages||[]).forEach(w=>{ if(String(w.이름||'').trim()) set.add(String(w.이름).trim()); });
   return [...set].sort((a,b)=>a.localeCompare(b,'ko'));
 }
 // 알바 선택 목록을 다시 채웁니다
@@ -4656,7 +4718,7 @@ function refreshAlbaPersonList(){
 // 등록된 업무종류 목록
 function getJobTypes(){
   const set=new Set();
-  (albaConfig.wages||[]).forEach(w=>{ if((w.업무||'').trim()) set.add(w.업무.trim()); });
+  (albaConfig.wages||[]).forEach(w=>{ if(String(w.업무||'').trim()) set.add(String(w.업무).trim()); });
   return [...set];
 }
 
@@ -4799,7 +4861,8 @@ function renderAlba(){
           :'<td><span style="background:#2a5298;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">✅승인</span></td>';
       } else {
         statusCell=isAdmin()
-          ?`<td><button class="btn btn-sm" style="background:#e8821a;color:#fff;font-size:10px" onclick="approveAlba(${args})">승인</button></td>`
+          ?`<td style="white-space:nowrap"><button class="btn btn-sm" style="background:#e8821a;color:#fff;font-size:10px" onclick="approveAlba(${args})">승인</button>`
+            +`<button class="btn btn-sm" style="background:#1b6fb8;color:#fff;font-size:10px;margin-left:3px" title="출퇴근 시간 수정" onclick="editMyWorkSlot('${r.날짜}',${si},'${r.이름}')">✏️ 수정</button></td>`
           :'<td><span style="background:#888;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">⏳대기</span></td>';
       }
     }
@@ -4807,8 +4870,8 @@ function renderAlba(){
     tr.style.background=isApproved?'#f0f5ff':isFromLog?'#fffdf0':'';
     tr.title=isFromLog&&!isApproved?'미승인 - 관리자 승인 필요':'';
     tr.innerHTML=`<td>${i+1}</td>
-      <td style="font-weight:700">${r.이름}</td>
-      <td style="font-size:11px;color:#6b4c00">${r.업무||'-'}</td>
+      <td style="font-weight:700">${esc(r.이름)}</td>
+      <td style="font-size:11px;color:#6b4c00">${esc(r.업무||'-')}</td>
       <td>${r.날짜}</td>
       <td>${r.출근}</td><td>${r.퇴근}</td>
       <td style="color:#1b3a5c;font-weight:700">${hrs.toFixed(1)}h</td>
@@ -4903,6 +4966,20 @@ function normalizeWorkLog(raw){
 function getWorkSlots(dateKey,이름){
   return normalizeSlots(albaWorkLog[dateKey]?.[이름]);
 }
+// 저장·승인 직전에는 이 기기의 기억 대신 Firebase의 최신 기록을 다시 읽습니다.
+// (다른 기기에서 승인·취소·추가한 내용을 덮어쓰지 않기 위해서입니다)
+async function freshWorkSlots(dateKey,이름){
+  try{
+    const v=await fbGet('albaWorkLog/'+toFbKey(dateKey)+'/'+toFbKey(이름));
+    const slots=normalizeSlots(v);
+    if(slots.length){ if(!albaWorkLog[dateKey]) albaWorkLog[dateKey]={}; albaWorkLog[dateKey][이름]=slots; }
+    else if(albaWorkLog[dateKey]) delete albaWorkLog[dateKey][이름];
+    return slots;
+  }catch(e){
+    console.error('근무기록 다시 읽기 오류:',e);
+    return getWorkSlots(dateKey,이름);          // 인터넷이 끊겼으면 이 기기의 기록으로
+  }
+}
 function writeWorkSlots(dateKey,이름,slots){
   const dk=toFbKey(dateKey), nk=toFbKey(이름);
   if(slots.length===0){
@@ -4915,7 +4992,7 @@ function writeWorkSlots(dateKey,이름,slots){
 }
 
 async function approveAlba(id,dateKey,이름,slotIdx){
-  const slots=getWorkSlots(dateKey,이름);
+  const slots=await freshWorkSlots(dateKey,이름);
   const s=slots[slotIdx];
   if(!s){alert('해당 근무 기록을 찾지 못했습니다.');return;}
   if(!confirm(`${이름} / ${dateKey} / ${slotIdx+1}회차 (${s.출근}~${s.퇴근})\n\n이 근무를 승인하시겠습니까?\n승인하면 알바 본인은 수정·삭제할 수 없습니다.`))return;
@@ -4928,7 +5005,7 @@ async function approveAlba(id,dateKey,이름,slotIdx){
 }
 
 async function cancelApproveAlba(id,dateKey,이름,slotIdx){
-  const slots=getWorkSlots(dateKey,이름);
+  const slots=await freshWorkSlots(dateKey,이름);
   const s=slots[slotIdx];
   if(!s){alert('해당 근무 기록을 찾지 못했습니다.');return;}
   if(!confirm(`${이름} / ${dateKey} / ${slotIdx+1}회차 (${s.출근}~${s.퇴근})\n\n승인을 취소하시겠습니까?\n취소하면 다시 대기 상태가 되고 수정·삭제가 가능해집니다.`))return;
@@ -4937,13 +5014,13 @@ async function cancelApproveAlba(id,dateKey,이름,slotIdx){
   await writeWorkSlots(dateKey,이름,slots);
   syncWorkLogToAlba();
   renderMiniCal();
-  alert(`↩️ 승인을 취소했습니다.\n${이름} / ${dateKey} / ${slotIdx+1}회차`);
+  alert(`↩️ 승인을 취소했습니다.\n${이름} / ${dateKey} / ${slotIdx+1}회차\n\n이제 ✏️ 수정으로 시간을 고칠 수 있습니다.`);
 }
 
 async function delAlba(id,dateKey,이름,slotIdx){
   if(!confirm('이 근무 기록을 삭제하시겠습니까?'))return;
   if(dateKey&&이름&&slotIdx>=0){
-    const slots=getWorkSlots(dateKey,이름);
+    const slots=await freshWorkSlots(dateKey,이름);
     if(slots[slotIdx]?.승인){alert('승인된 기록입니다. 먼저 승인을 취소하십시오.');return;}
     slots.splice(slotIdx,1);
     await writeWorkSlots(dateKey,이름,slots);
@@ -4998,7 +5075,7 @@ function exportAlba(){
     const hrs=calcHours(r.출근,r.퇴근);
     const w=getWageFor(r.이름,r.업무), pay=pays[i];
     const ins=calcInsurance(pay,rates).total, tax=taxes[i]||0;
-    csv+=`${r.이름},${r.업무||''},${r.날짜},${r.출근},${r.퇴근},${hrs.toFixed(1)},${w},${pay},${ins},${tax},${pay-ins-tax},${r.승인?'승인':'대기'}\n`;
+    csv+=[r.이름,r.업무||'',r.날짜,r.출근,r.퇴근,hrs.toFixed(1),w,pay,ins,tax,pay-ins-tax,r.승인?'승인':'대기'].map(csvCell).join(',')+'\n';
   });
   dl(csv,'알바근무_'+(month||'전체')+(person?'_'+person:'')+'.csv','text/csv');
 }
@@ -5018,17 +5095,18 @@ function renderResults(){
   const body=document.getElementById('resultBody');body.innerHTML='';
   list.slice().reverse().forEach((r,i)=>{
     const idx=results.indexOf(r);const tr=document.createElement('tr');
-    tr.onclick=()=>openResultDetail(idx);
+    tr.onclick=()=>openResultDetail(r.id);   // 실시간 갱신으로 순서가 바뀌어도 같은 건을 열도록 id로 찾습니다
     tr.innerHTML=`<td>${results.length-idx}</td><td>${esc(r.분향실||'')}</td><td class="left">${esc(r.고인||'')}</td><td>${r.날짜}</td>
       <td style="text-align:right">${fmt(r.금액||0)}</td>
       <td><span class="badge badge-${r.결제==='카드결제'?'card':r.결제==='현금결제'?'cash':'rcpt'}">${r.결제||''}</span></td>
-      <td>${r.인원수||''}명</td><td>${r.비고||''}</td>
-      <td>${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delResult(${idx})">삭제</button>`:'-'}</td>`;
+      <td>${r.인원수||''}명</td><td>${esc(r.비고||'')}</td>
+      <td>${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delResult('${esc(r.id)}')">삭제</button>`:'-'}</td>`;
     body.appendChild(tr);
   });
 }
 // 결산서 한 건 전체 보기
-function openResultDetail(idx){
+function openResultDetail(id){
+  const idx=results.findIndex(x=>String(x.id)===String(id));
   const r=results[idx]; if(!r) return;
   const pay=r.결제||'';
   const row=(k,v)=>`<tr><th>${k}</th><td>${v}</td></tr>`;
@@ -5051,13 +5129,13 @@ function openResultDetail(idx){
   bj.onclick=()=>{ closeModal('resultModal'); openView(j.id); };
   const bd=document.getElementById('rdDel');
   bd.style.display=isAdmin()?'':'none';
-  bd.onclick=()=>{ closeModal('resultModal'); delResult(idx); };
+  bd.onclick=()=>{ closeModal('resultModal'); delResult(r.id); };
   document.getElementById('resultModal').classList.add('show');
 }
-async function delResult(idx){
-  const r=results[idx];if(!r)return;
+async function delResult(id){
+  const idx=results.findIndex(x=>String(x.id)===String(id));   // 누른 순간의 목록 순서가 아니라 id로 찾습니다
+  const r=results[idx];if(!r){alert('해당 결산서를 찾지 못했습니다. 이미 삭제됐을 수 있습니다.');return;}
   if(!confirm('이 결산서를 삭제하시겠습니까?'))return;
-  const id=r.id;
   pauseSync(); // 동기화 일시 중단
   results.splice(idx,1);
   renderResults();buildCharts();
@@ -5066,7 +5144,7 @@ async function delResult(idx){
 }
 function exportCSV(){
   let csv='NO,분향실,고인,발인일,정산액,결제방식,인원수,상주,연락처,비고\n';
-  results.forEach((r,i)=>{csv+=`${i+1},${r.분향실},${r.고인},${r.날짜},${r.금액||0},${r.결제||''},${r.인원수||''},${r.상주||''},${r.연락처||''},${r.비고||''}\n`;});
+  results.forEach((r,i)=>{csv+=[i+1,r.분향실,r.고인,r.날짜,r.금액||0,r.결제||'',r.인원수||'',r.상주||'',r.연락처||'',r.비고||''].map(csvCell).join(',')+'\n';});
   dl('\uFEFF'+csv,'결산서_'+todayStr()+'.csv','text/csv');
 }
 
@@ -5423,6 +5501,7 @@ function updStock(inp){
     (stockData[ym][toFbKey(품명)]!==undefined?toFbKey(품명):품명);
   if(!stockData[ym][key])stockData[ym][key]={};
   stockData[ym][key][d]=+inp.value||0;
+  _stockDirty[stockCellPath(ym,fromFbKey(key),d)]=+inp.value||0;   // [저장] 때 이 칸만 씁니다
   // 현재재고 셀도 갱신
   const 이월=stockData[ym][key]['이월']||0;
   const 조정=+(stockData[ym][key]['조정']||0);
@@ -5499,6 +5578,7 @@ async function saveStockEdit(){
 
   if(!stockData[ym])stockData[ym]={};
   let changed=0;
+  const seMap={};
   document.querySelectorAll('.se-row').forEach(row=>{
     const sels=row.querySelectorAll('select');
     const numInp=row.querySelector('input[type=number]');
@@ -5506,23 +5586,24 @@ async function saveStockEdit(){
     const qty=+numInp?.value||0;
     const mode=sels[1]?.value||'in';
     if(!품명||qty===0) return;
-    if(!stockData[ym][품명])stockData[ym][품명]={};
-    const cur=stockData[ym][품명][d]||0;
+    const item=stockItem(ym,품명);
+    const cur=+item[d]||0;
+    const pth=stockCellPath(ym,품명,d);
     if(mode==='in'){
       // 입고: 재고 증가 → 표에 음수(-값)로 기록 (출고 반대)
-      stockData[ym][품명][d]=cur - qty;
+      item[d]=cur - qty; seMap[pth]=stockInc(-qty);
     } else if(mode==='out'){
       // 출고: 재고 감소 → 표에 양수(+값)로 기록
-      stockData[ym][품명][d]=cur + qty;
+      item[d]=cur + qty; seMap[pth]=stockInc(qty);
     } else {
       // 설정: 해당 칸을 직접 지정
-      stockData[ym][품명][d]=qty;
+      item[d]=qty; seMap[pth]=qty;
     }
     changed++;
   });
   if(changed===0){alert('수정할 물품과 수량을 입력해 주세요.');return;}
   showSaving(true);
-  try{await fbSet('stockData',encodeStockData(stockData));touchMeta('stock');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  try{await stockUpdate(seMap);touchMeta('stock');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
   closeModal('stockEditModal');
   const curYM=stockYM();
@@ -5607,13 +5688,16 @@ function decodeStockData(data){
 }
 
 async function saveStock(){
+  const n=Object.keys(_stockDirty).length;
+  if(!n){ alert('바뀐 칸이 없습니다.'); return; }
   showSaving(true);
   try{
-    await fbSet('stockData',encodeStockData(stockData));
+    await stockUpdate(Object.assign({},_stockDirty));     // 고친 칸만 씁니다
+    Object.keys(_stockDirty).forEach(k=>delete _stockDirty[k]);
     touchMeta('stock');
   }catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
-  alert(`✅ 재고 저장 완료!\n\n${ymLabel(stockYM())} 재고관리장\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+  alert(`✅ 재고 저장 완료!\n\n${ymLabel(stockYM())} 재고관리장 · ${n}칸\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
 }
 function exportStock(){
   const m=+document.getElementById('stockMonth').value;
@@ -5640,7 +5724,7 @@ function renderPrice(){
   const search=document.getElementById('priceSearch').value.toLowerCase();
   const filter=document.getElementById('priceFilter').value;
   const body=document.getElementById('priceBody');body.innerHTML='';
-  priceDB.filter(p=>(!filter||p.구분===filter)&&(!search||p.품명.toLowerCase().includes(search)))
+  priceDB.filter(p=>(!filter||p.구분===filter)&&(!search||String(p.품명||'').toLowerCase().includes(search)))
   .forEach(p=>{
     const idx=priceDB.indexOf(p);
     const CATS=['기본물품','답례품','장지품','음료수','잡화','주 류'];
@@ -7080,7 +7164,9 @@ function localDateTimeOf(iso){
   if(isNaN(d)) return String(iso).slice(0,16).replace('T',' ');
   return `${d.getFullYear()}-${_p2(d.getMonth()+1)}-${_p2(d.getDate())} ${_p2(d.getHours())}:${_p2(d.getMinutes())}`;
 }
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');}
+// CSV 한 칸 — 쉼표·따옴표·줄바꿈이 있으면 따옴표로 감쌉니다 (엑셀에서 칸이 밀리지 않게)
+function csvCell(v){ const t=String(v==null?'':v); return /[",\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; }
 function dl(c,name,type){const b=new Blob([c],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 
