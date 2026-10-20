@@ -172,6 +172,16 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .ptbl input,.ptbl select{width:100%;padding:2px 4px;border:1px solid transparent;background:transparent;font-size:12px;font-family:inherit}
 .ptbl input:focus,.ptbl select:focus{border-color:#4da6ff;background:#fff;border-radius:3px;outline:none}
 .ptbl input[type=number]{text-align:right}
+.ptbl tr.pnew td{background:#fff6d6!important;transition:background 1.5s}
+.ptbl .m-only{display:none}
+@media (max-width:860px){
+  .ptbl .pc-only{display:none}
+  .ptbl .m-only{display:table-cell}
+  #priceBody tr{cursor:pointer}
+  #priceBody td{padding:9px 6px;font-size:13px}
+  #priceBody td.pr{text-align:right;white-space:nowrap;font-weight:600}
+  #priceBody td.pc{white-space:nowrap;color:#666;font-size:12px}
+}
 
 /* ── 모달 ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-start;justify-content:center;overflow-y:auto}
@@ -926,6 +936,24 @@ body.login #mobileNav{display:none!important}
 </div>
 
 <!-- ══ 결산서 한 건 상세 ══ -->
+<div class="overlay" id="priceModal">
+  <div class="modal" style="max-width:420px;width:96%">
+    <h3 id="pmTitle">품목 추가</h3>
+    <div class="fg" style="margin-bottom:8px"><label>구분</label><select id="pm-구분" style="width:100%"></select></div>
+    <div class="fg" style="margin-bottom:8px"><label>품목명</label><input type="text" id="pm-품명" style="width:100%" placeholder="예) 삼다수 500ml"></div>
+    <div class="fg" style="margin-bottom:8px"><label>단위</label><input type="text" id="pm-단위" style="width:100%" placeholder="예) 병, 팩, 박스"></div>
+    <div style="display:flex;gap:8px">
+      <div class="fg" style="flex:1"><label>판매가 (원)</label><input type="number" inputmode="numeric" id="pm-가격" style="width:100%;text-align:right"></div>
+      <div class="fg" style="flex:1"><label>원가 (원)</label><input type="number" inputmode="numeric" id="pm-원가" style="width:100%;text-align:right"></div>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-danger" id="pmDel" style="margin-right:auto">삭제</button>
+      <button class="btn btn-gray" onclick="closeModal('priceModal')">취소</button>
+      <button class="btn btn-success" id="pmSave" onclick="savePriceEdit()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="resultModal">
   <div class="modal" style="max-width:460px;width:96%">
     <h3 id="rdTitle">결산서</h3>
@@ -1451,7 +1479,7 @@ body.login #mobileNav{display:none!important}
           <option>음료수</option><option>잡화</option><option>주 류</option>
         </select>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="addPriceItem()">+ 추가</button>
+      <button class="btn btn-primary btn-sm" onclick="openPriceEdit(-1)">+ 추가</button>
       <button class="btn btn-success btn-sm" onclick="savePrice()">💾 저장</button>
     </div>
     <div class="tbl-wrap">
@@ -1459,10 +1487,10 @@ body.login #mobileNav{display:none!important}
         <thead><tr>
           <th style="width:90px">구분</th>
           <th>품목명</th>
-          <th style="width:80px">단위</th>
+          <th class="pc-only" style="width:80px">단위</th>
           <th style="width:90px">판매가</th>
-          <th style="width:90px">원가</th>
-          <th style="width:60px">삭제</th>
+          <th class="pc-only" style="width:90px">원가</th>
+          <th class="pc-only" style="width:60px">삭제</th>
         </tr></thead>
         <tbody id="priceBody"></tbody>
       </table>
@@ -5720,47 +5748,110 @@ function exportStock(){
 }
 
 // ══ 원가DB ══
+const PRICE_CATS=['기본물품','답례품','장지품','음료수','잡화','주 류'];
+let _priceEditIdx=-1, _priceFlash=null;
 function renderPrice(){
   const search=document.getElementById('priceSearch').value.toLowerCase();
   const filter=document.getElementById('priceFilter').value;
   const body=document.getElementById('priceBody');body.innerHTML='';
-  priceDB.filter(p=>(!filter||p.구분===filter)&&(!search||String(p.품명||'').toLowerCase().includes(search)))
-  .forEach(p=>{
-    const idx=priceDB.indexOf(p);
-    const CATS=['기본물품','답례품','장지품','음료수','잡화','주 류'];
+  priceDB=priceDB.filter(p=>p&&typeof p==='object');   // 빈 칸이 섞여 있어도 목록이 끊기지 않게 합니다
+  priceDB.forEach((p,idx)=>{
+    if(filter&&p.구분!==filter) return;
+    if(search&&!String(p.품명||'').toLowerCase().includes(search)) return;
     const tr=document.createElement('tr');
+    tr.dataset.idx=idx;
+    if(_priceFlash===p) tr.className='pnew';
     tr.innerHTML=`
-      <td><select onchange="priceDB[${idx}].구분=this.value" style="border:none;background:transparent;width:100%;font-size:12px">${CATS.map(c=>`<option${p.구분===c?' selected':''}>${c}</option>`).join('')}</select></td>
-      <td><input value="${esc(p.품명)}" onchange="priceDB[${idx}].품명=this.value"></td>
-      <td><input value="${esc(p.단위)}" onchange="priceDB[${idx}].단위=this.value"></td>
-      <td><input type="number" value="${p.가격||0}" onchange="priceDB[${idx}].가격=+this.value||0"></td>
-      <td><input type="number" value="${p.원가||0}" onchange="priceDB[${idx}].원가=+this.value||0"></td>
-      <td><button class="btn btn-danger btn-sm" onclick="delPrice(${idx})">삭제</button></td>`;
+      <td class="pc-only"><select onchange="priceDB[${idx}].구분=this.value" style="border:none;background:transparent;width:100%;font-size:12px">${PRICE_CATS.map(c=>`<option${p.구분===c?' selected':''}>${c}</option>`).join('')}${PRICE_CATS.includes(p.구분)?'':`<option selected>${esc(p.구분||'')}</option>`}</select></td>
+      <td class="pc-only"><input value="${esc(p.품명)}" onchange="priceDB[${idx}].품명=this.value"></td>
+      <td class="pc-only"><input value="${esc(p.단위)}" onchange="priceDB[${idx}].단위=this.value"></td>
+      <td class="pc-only"><input type="number" value="${p.가격||0}" onchange="priceDB[${idx}].가격=+this.value||0"></td>
+      <td class="pc-only"><input type="number" value="${p.원가||0}" onchange="priceDB[${idx}].원가=+this.value||0"></td>
+      <td class="pc-only"><button class="btn btn-danger btn-sm" onclick="delPrice(${idx})">삭제</button></td>
+      <td class="m-only pc">${esc(p.구분||'')}</td>
+      <td class="m-only">${esc(p.품명||'')}${p.단위?` <span style="color:#999;font-size:11px">${esc(p.단위)}</span>`:''}</td>
+      <td class="m-only pr">${fmt(p.가격||0)}</td>`;
+    tr.addEventListener('click',e=>{ if(isMobile()&&!e.target.closest('input,select,button')) openPriceEdit(idx); });
     body.appendChild(tr);
   });
+  if(_priceFlash){
+    const row=body.querySelector('tr.pnew');
+    if(row){ row.scrollIntoView({block:'center',behavior:'smooth'}); setTimeout(()=>row.classList.remove('pnew'),2500); }
+    _priceFlash=null;
+  }
 }
-function addPriceItem(){priceDB.push({구분:'기본물품',품명:'새 품목',단위:'개',가격:0,원가:0});renderPrice();}
-function delPrice(idx){if(!confirm('삭제?'))return;priceDB.splice(idx,1);price_save();renderPrice();}
-async function savePrice(){
+function openPriceEdit(idx){
+  _priceEditIdx=idx;
+  const p=idx>=0?priceDB[idx]:null;
+  const filter=document.getElementById('priceFilter').value;
+  const cat=p?p.구분:(filter||'기본물품');
+  const sel=document.getElementById('pm-구분');
+  sel.innerHTML=PRICE_CATS.map(c=>`<option${c===cat?' selected':''}>${c}</option>`).join('')+(PRICE_CATS.includes(cat)?'':`<option selected>${esc(cat||'')}</option>`);
+  document.getElementById('pmTitle').textContent=p?'품목 수정':'품목 추가';
+  document.getElementById('pm-품명').value=p?(p.품명||''):'';
+  document.getElementById('pm-단위').value=p?(p.단위||''):'개';
+  document.getElementById('pm-가격').value=p?(p.가격||0):'';
+  document.getElementById('pm-원가').value=p?(p.원가||0):'';
+  const bd=document.getElementById('pmDel');
+  bd.style.display=p?'':'none';
+  bd.onclick=()=>{ closeModal('priceModal'); delPrice(idx); };
+  document.getElementById('priceModal').classList.add('show');
+  if(!p) setTimeout(()=>document.getElementById('pm-품명').focus(),50);
+}
+async function savePriceEdit(){
+  const 품명=document.getElementById('pm-품명').value.trim();
+  if(!품명){ alert('품목명을 입력하십시오.'); document.getElementById('pm-품명').focus(); return; }
+  const dup=priceDB.findIndex((p,i)=>i!==_priceEditIdx&&String(p.품명||'').trim()===품명);
+  if(dup>=0){ alert(`"${품명}" 품목이 이미 있습니다. (${priceDB[dup].구분})\n다른 이름을 입력하십시오.`); return; }
+  const item={
+    구분:document.getElementById('pm-구분').value,
+    품명,
+    단위:document.getElementById('pm-단위').value.trim(),
+    가격:+document.getElementById('pm-가격').value||0,
+    원가:+document.getElementById('pm-원가').value||0
+  };
+  let target;
+  if(_priceEditIdx>=0&&priceDB[_priceEditIdx]){ target=Object.assign(priceDB[_priceEditIdx],item); }
+  else { target=item; priceDB.push(item); }
+  // 추가한 품목이 지금 검색·구분 조건에 가려지지 않게 조건을 풉니다
+  const f=document.getElementById('priceFilter'), sr=document.getElementById('priceSearch');
+  if(f.value&&f.value!==item.구분) f.value='';
+  if(sr.value&&!품명.toLowerCase().includes(sr.value.toLowerCase())) sr.value='';
+  _priceFlash=target;
+  const btn=document.getElementById('pmSave'); btn.disabled=true;
+  try{
+    const ok=await savePrice({quiet:true});
+    if(ok!==false) closeModal('priceModal');
+  }finally{ btn.disabled=false; }
+}
+function addPriceItem(){ openPriceEdit(-1); }
+function delPrice(idx){
+  const p=priceDB[idx]; if(!p) return;
+  if(!confirm(`"${p.품명||''}" 품목을 삭제하시겠습니까?`))return;
+  priceDB.splice(idx,1);price_save();touchMeta('price');renderPrice();
+}
+async function savePrice(opt){
+  const quiet=opt&&opt.quiet;
   showSaving(true);
-  try{const obj={};priceDB.forEach((p,i)=>obj[i]=p);await fbSet('priceDB',obj);touchMeta('price');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
+  try{const obj={};priceDB.forEach((p,i)=>obj[i]=p);await fbSet('priceDB',obj);touchMeta('price');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return false;}
   showSaving(false);
 
   // 진행중 정산서의 단가를 priceDB 최신값으로 자동 업데이트
   let updated=0;
   jungs.filter(j=>j.상태==='진행중').forEach(j=>{
-    j.items.forEach(it=>{
+    let changed=false;
+    (j.items||[]).forEach(it=>{
       if(!it.isAdd){
         const dbItem=priceDB.find(p=>p.품명===it.품명);
         if(dbItem&&(it.단가!==dbItem.가격||it.단위!==dbItem.단위)){
           it.단가=dbItem.가격;
           it.단위=dbItem.단위;
-          updated++;
+          updated++; changed=true;
         }
       }
     });
-    // 변경된 정산서 Firebase에 저장
-    fbSet('jungs/'+j.id,j).catch(e=>console.error(e));
+    // 단가가 바뀐 정산서만 저장합니다 (다른 사람이 편집 중인 정산서를 덮어쓰지 않게)
+    if(changed) fbSet('jungs/'+j.id,j).catch(e=>console.error(e));
   });
 
   // 화면 즉시 갱신
@@ -5771,6 +5862,7 @@ async function savePrice(){
     if(j&&j.상태==='진행중'){ buildTable(j,false); updTotal(); }
   }
 
+  if(quiet){ expToast(`✅ 저장했습니다${updated>0?` · 진행중 정산서 ${updated}개 품목 단가 반영`:''}`); return true; }
   alert(`✅ 원가DB 저장 완료!\n\n총 ${priceDB.length}개 품목${updated>0?`\n진행중 정산서 ${updated}개 품목 단가 자동 업데이트`:''}\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
 }
 
