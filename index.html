@@ -172,6 +172,12 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .ptbl input,.ptbl select{width:100%;padding:2px 4px;border:1px solid transparent;background:transparent;font-size:12px;font-family:inherit}
 .ptbl input:focus,.ptbl select:focus{border-color:#4da6ff;background:#fff;border-radius:3px;outline:none}
 .ptbl input[type=number]{text-align:right}
+.ko-in{ime-mode:active}
+.ko-wrap{position:relative;display:block}
+.ko-wrap>input{padding-right:30px!important}
+.ko-tg{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:1px solid #c9d6e6;background:#eef4fc;color:#1b3a5c;
+  font-size:11px;font-weight:700;line-height:1;padding:3px 5px;border-radius:4px;cursor:pointer;font-family:inherit}
+.ko-tg.en{background:#f3f3f3;color:#888;border-color:#ddd}
 .ptbl tr.pnew td{background:#fff6d6!important;transition:background 1.5s}
 .ptbl .m-only{display:none}
 @media (max-width:860px){
@@ -940,8 +946,8 @@ body.login #mobileNav{display:none!important}
   <div class="modal" style="max-width:420px;width:96%">
     <h3 id="pmTitle">품목 추가</h3>
     <div class="fg" style="margin-bottom:8px"><label>구분</label><select id="pm-구분" style="width:100%"></select></div>
-    <div class="fg" style="margin-bottom:8px"><label>품목명</label><input type="text" id="pm-품명" style="width:100%" placeholder="예) 삼다수 500ml"></div>
-    <div class="fg" style="margin-bottom:8px"><label>단위</label><input type="text" id="pm-단위" style="width:100%" placeholder="예) 병, 팩, 박스"></div>
+    <div class="fg" style="margin-bottom:8px"><label>품목명</label><input type="text" id="pm-품명" class="ko-in" lang="ko" style="width:100%" placeholder="예) 삼다수 500ml"></div>
+    <div class="fg" style="margin-bottom:8px"><label>단위</label><input type="text" id="pm-단위" class="ko-in" lang="ko" style="width:100%" placeholder="예) 병, 팩, 박스"></div>
     <div style="display:flex;gap:8px">
       <div class="fg" style="flex:1"><label>판매가 (원)</label><input type="number" inputmode="numeric" id="pm-가격" style="width:100%;text-align:right"></div>
       <div class="fg" style="flex:1"><label>원가 (원)</label><input type="number" inputmode="numeric" id="pm-원가" style="width:100%;text-align:right"></div>
@@ -1471,7 +1477,7 @@ body.login #mobileNav{display:none!important}
   <div class="card">
     <div class="card-title">💰 원가 DB <span class="meta-by" id="meta-price"></span></div>
     <div class="frow" style="margin-bottom:10px">
-      <div class="fg"><label>검색</label><input type="text" id="priceSearch" placeholder="품목명..." onkeyup="renderPrice()" style="width:140px"></div>
+      <div class="fg"><label>검색</label><input type="text" id="priceSearch" class="ko-in" lang="ko" placeholder="품목명..." oninput="renderPrice()" style="width:140px"></div>
       <div class="fg"><label>구분</label>
         <select id="priceFilter" onchange="renderPrice()">
           <option value="">전체</option>
@@ -5747,10 +5753,77 @@ function exportStock(){
   dl('\uFEFF'+csv,`재고_${ym}.csv`,'text/csv');
 }
 
+
+// ══ 한글 우선 입력 ══
+// 웹페이지는 Windows의 한/영 상태를 바꿀 수 없으므로, 영문 상태로 친 글자를 두벌식 자판 기준 한글로 바꿔 줍니다.
+// (한글 입력기가 켜져 있으면 그대로 두고, 칸 오른쪽 [한]을 눌러 [A]로 바꾸면 영문 그대로 입력됩니다.)
+const KO_KEY={q:'ㅂ',w:'ㅈ',e:'ㄷ',r:'ㄱ',t:'ㅅ',y:'ㅛ',u:'ㅕ',i:'ㅑ',o:'ㅐ',p:'ㅔ',a:'ㅁ',s:'ㄴ',d:'ㅇ',f:'ㄹ',g:'ㅎ',h:'ㅗ',j:'ㅓ',k:'ㅏ',l:'ㅣ',
+  z:'ㅋ',x:'ㅌ',c:'ㅊ',v:'ㅍ',b:'ㅠ',n:'ㅜ',m:'ㅡ',Q:'ㅃ',W:'ㅉ',E:'ㄸ',R:'ㄲ',T:'ㅆ',O:'ㅒ',P:'ㅖ'};
+const KO_CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ', KO_JUNG='ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
+const KO_JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const KO_VC={'ㅗㅏ':'ㅘ','ㅗㅐ':'ㅙ','ㅗㅣ':'ㅚ','ㅜㅓ':'ㅝ','ㅜㅔ':'ㅞ','ㅜㅣ':'ㅟ','ㅡㅣ':'ㅢ'};
+const KO_JC={'ㄱㅅ':'ㄳ','ㄴㅈ':'ㄵ','ㄴㅎ':'ㄶ','ㄹㄱ':'ㄺ','ㄹㅁ':'ㄻ','ㄹㅂ':'ㄼ','ㄹㅅ':'ㄽ','ㄹㅌ':'ㄾ','ㄹㅍ':'ㄿ','ㄹㅎ':'ㅀ','ㅂㅅ':'ㅄ'};
+const KO_JS=Object.fromEntries(Object.entries(KO_JC).map(([k,v])=>[v,[k[0],k[1]]]));
+function engToKor(str){
+  let out='',cho='',jung='',jong='';
+  const syl=(c,v,j)=>String.fromCharCode(0xAC00+(KO_CHO.indexOf(c)*21+KO_JUNG.indexOf(v))*28+KO_JONG.indexOf(j));
+  const flush=()=>{ out+=(cho&&jung)?syl(cho,jung,jong):(cho+jung); cho=jung=jong=''; };
+  for(const ch of String(str)){
+    const k=KO_KEY[ch]||(/[A-Z]/.test(ch)?KO_KEY[ch.toLowerCase()]:null);
+    if(!k){ flush(); out+=ch; continue; }
+    if(KO_JUNG.includes(k)){
+      if(cho&&jung&&jong){
+        let stay='',move=jong; if(KO_JS[jong]){ stay=KO_JS[jong][0]; move=KO_JS[jong][1]; }
+        out+=syl(cho,jung,stay); cho=move; jung=k; jong='';
+      } else if(jung){
+        if(KO_VC[jung+k]) jung=KO_VC[jung+k]; else { flush(); jung=k; }
+      } else jung=k;
+    } else {
+      if(cho&&jung&&!jong&&KO_JONG.includes(k)) jong=k;
+      else if(cho&&jung&&jong&&KO_JC[jong+k]) jong=KO_JC[jong+k];
+      else { flush(); cho=k; }
+    }
+  }
+  flush(); return out;
+}
+function koInputInit(el){
+  if(!el||el._ko) return; el._ko=true;
+  if(!window.matchMedia('(pointer:fine)').matches) return;   // 휴대폰은 자판에서 바로 한글을 고르므로 건드리지 않습니다
+  el.lang='ko';
+  const wrap=document.createElement('span'); wrap.className='ko-wrap';
+  if(el.style.width) { wrap.style.width=el.style.width; el.style.width='100%'; }
+  el.parentNode.insertBefore(wrap,el); wrap.appendChild(el);
+  const tg=document.createElement('button'); tg.type='button'; tg.className='ko-tg'; tg.tabIndex=-1;
+  tg.title='한글/영문 전환 — [A]로 두면 영문 그대로 입력됩니다'; wrap.appendChild(tg);
+  let mode='ko', prefix='', raw='', disp='';
+  const reset=()=>{ prefix=el.value; raw=''; disp=el.value; };
+  const paint=()=>{ tg.textContent=mode==='ko'?'한':'A'; tg.classList.toggle('en',mode!=='ko'); };
+  tg.addEventListener('mousedown',e=>e.preventDefault());       // 칸의 커서를 잃지 않게 합니다
+  tg.addEventListener('click',()=>{
+    mode=mode==='ko'?'en':'ko'; reset(); paint(); el.focus();
+  });
+  el.addEventListener('focus',reset);
+  el.addEventListener('compositionend',()=>setTimeout(reset,0));
+  el.addEventListener('input',e=>{
+    if(mode!=='ko'||e.isComposing||e.inputType==='insertCompositionText'||e._ko) { if(!e._ko) disp=el.value; return; }
+    const v=el.value, atEnd=el.selectionStart===v.length&&el.selectionEnd===v.length;
+    if(atEnd&&v.length>disp.length&&v.startsWith(disp)&&/^[A-Za-z0-9 .,\-\/()*+%&#]+$/.test(v.slice(disp.length))){
+      raw+=v.slice(disp.length);
+    } else if(atEnd&&e.inputType==='deleteContentBackward'&&raw&&disp.startsWith(v)&&v.length===disp.length-1){
+      raw=raw.slice(0,-1);
+    } else { reset(); return; }
+    disp=prefix+engToKor(raw);
+    if(disp!==v){ el.value=disp; el.setSelectionRange(disp.length,disp.length); }
+  },true);
+  paint();
+}
+function koInputInitAll(){ document.querySelectorAll('input.ko-in').forEach(koInputInit); }
+
 // ══ 원가DB ══
 const PRICE_CATS=['기본물품','답례품','장지품','음료수','잡화','주 류'];
 let _priceEditIdx=-1, _priceFlash=null;
 function renderPrice(){
+  koInputInitAll();
   const search=document.getElementById('priceSearch').value.toLowerCase();
   const filter=document.getElementById('priceFilter').value;
   const body=document.getElementById('priceBody');body.innerHTML='';
@@ -5796,6 +5869,8 @@ function openPriceEdit(idx){
   bd.style.display=p?'':'none';
   bd.onclick=()=>{ closeModal('priceModal'); delPrice(idx); };
   document.getElementById('priceModal').classList.add('show');
+  koInputInitAll();
+  ['pm-품명','pm-단위'].forEach(id=>document.getElementById(id).dispatchEvent(new Event('focus')));
   if(!p) setTimeout(()=>document.getElementById('pm-품명').focus(),50);
 }
 async function savePriceEdit(){
