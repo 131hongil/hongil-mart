@@ -2889,37 +2889,54 @@ function qc(v,idx,f,ro){
     onchange="onQ(this)"
     onwheel="event.preventDefault()"
     onfocus="this.select()"
-    onkeydown="onQKey(event,this)"
     style="background:${color};color:${tcolor};font-weight:${v>0?'700':'400'}">`;
 }
 
-// 정산서 입력칸 키보드 네비게이션
-function onQKey(e,inp){
-  const allInputs=[...document.querySelectorAll('#editBody input.q, #editBody select.as')];
-  const idx=allInputs.indexOf(inp);
-  if(e.key==='Enter'||e.key==='ArrowDown'){
-    e.preventDefault();
-    const next=allInputs[idx+1];
-    if(next){next.focus();if(next.select)next.select();}
-  } else if(e.key==='ArrowUp'){
-    e.preventDefault();
-    const prev=allInputs[idx-1];
-    if(prev){prev.focus();if(prev.select)prev.select();}
-  } else if(e.key==='ArrowRight'){
-    // 커서가 끝에 있을 때만 다음 칸으로
-    if(inp.selectionStart===String(inp.value).length){
-      e.preventDefault();
-      const next=allInputs[idx+1];
-      if(next){next.focus();if(next.select)next.select();}
-    }
-  } else if(e.key==='ArrowLeft'){
-    if(inp.selectionStart===0){
-      e.preventDefault();
-      const prev=allInputs[idx-1];
-      if(prev){prev.focus();if(prev.select)prev.select();}
-    }
+// 정산서 입력칸 키보드 이동 (엑셀처럼)
+//  Enter·↓ = 아래 칸, Shift+Enter·↑ = 위 칸, ←→ = 옆 칸, Tab = 오른쪽(줄 끝이면 다음 줄 첫 칸), Shift+Tab = 반대
+const NAV_SEL='input.q, select.as, input[data-f="단위"], input[data-f="단가"]';
+function navCells(){ return [...document.querySelectorAll('#editBody tr')].map(tr=>[...tr.querySelectorAll(NAV_SEL)].filter(el=>el.offsetParent!==null)); }
+function navFocus(el){ if(!el) return false; el.focus(); if(el.select&&el.type!=='select-one') el.select(); return true; }
+function navColOf(el){ return el.closest('td').cellIndex; }
+function navVert(el,dir){
+  const rows=navCells(), tr=el.closest('tr'), col=navColOf(el);
+  let r=rows.findIndex(cs=>cs.includes(el)); if(r<0) return false;
+  for(r+=dir; r>=0&&r<rows.length; r+=dir){
+    const hit=rows[r].find(c=>navColOf(c)===col);
+    if(hit) return navFocus(hit);
   }
+  return false;
 }
+function navHorz(el,dir,wrap){
+  const rows=navCells();
+  const r=rows.findIndex(cs=>cs.includes(el)); if(r<0) return false;
+  const i=rows[r].indexOf(el)+dir;
+  if(i>=0&&i<rows[r].length) return navFocus(rows[r][i]);
+  if(!wrap) return true;               // 줄 끝에서 ←→는 그 자리에 머뭅니다
+  for(let k=r+dir;k>=0&&k<rows.length;k+=dir){
+    if(rows[k].length) return navFocus(dir>0?rows[k][0]:rows[k][rows[k].length-1]);
+  }
+  return false;                        // 표의 맨 끝에서 Tab은 원래대로 다음 버튼으로 넘어갑니다
+}
+function onQKey(e){
+  const el=e.target; if(!el.matches||!el.matches(NAV_SEL)) return;
+  if(e.isComposing||e.altKey||e.ctrlKey||e.metaKey) return;
+  const isText=el.tagName==='INPUT'&&el.type==='text';
+  // 글자를 고치는 중인 텍스트 칸은 커서가 끝에 있을 때만 옆 칸으로 넘어갑니다 (숫자칸은 들어가면 전체 선택되므로 바로 이동)
+  const atStart=!isText||(el.selectionStart===0&&el.selectionEnd===0)||(el.selectionStart===0&&el.selectionEnd===el.value.length);
+  const atEnd=!isText||(el.selectionStart===el.value.length)||(el.selectionStart===0&&el.selectionEnd===el.value.length);
+  let done=null;
+  switch(e.key){
+    case 'Enter':     done=navVert(el,e.shiftKey?-1:1)||true; break;
+    case 'ArrowDown': done=navVert(el,1)||true; break;
+    case 'ArrowUp':   done=navVert(el,-1)||true; break;
+    case 'ArrowRight': if(atEnd) done=navHorz(el,1,false); break;
+    case 'ArrowLeft':  if(atStart) done=navHorz(el,-1,false); break;
+    case 'Tab':        done=navHorz(el,e.shiftKey?-1:1,true); break;
+  }
+  if(done) e.preventDefault();
+}
+document.addEventListener('keydown',e=>{ if(e.target&&e.target.closest&&e.target.closest('#editBody')) onQKey(e); },true);
 // 기타물품 단위·단가 직접 입력
 function onQExtra(inp){
   const idx=+inp.dataset.i, f=inp.dataset.f;
@@ -2941,6 +2958,10 @@ function onSel(sel){
   const opt=sel.options[sel.selectedIndex];
   j.items[idx].품명=opt.value;j.items[idx].단위=opt.dataset.u||'';j.items[idx].단가=+opt.dataset.p||0;
   buildTable(j,false);
+  // 표를 다시 그려도 같은 줄의 주문량 칸으로 이어서 입력할 수 있게 합니다
+  const row=document.querySelector(`#editBody select.as[data-i="${idx}"]`);
+  const q=row&&row.closest('tr').querySelector('input.q[data-f="주문량"]');
+  if(q&&!isMobile()) navFocus(q);
   // 저장은 💾 저장 버튼 클릭 시 처리
 }
 function onQ(inp){
