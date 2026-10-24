@@ -109,6 +109,15 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .jtbl td{padding:3px 3px;border-bottom:1px solid #f0f0f0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jtbl tr.br td{background:#fafbfc}.jtbl tr.br:hover td{background:#f0f5ff}
 .jtbl tr.ar td{background:#fffde7}.jtbl tr.ar:hover td{background:#fff8c0}
+/* 입력 칸이 있는 줄(키보드로 옮긴 줄 포함)도 마우스를 올린 것과 같은 색으로 강조합니다 */
+.jtbl tr.br:focus-within td{background:#f0f5ff}
+.jtbl tr.ar:focus-within td{background:#fff8c0}
+.jtbl tr.br:focus-within td:first-child,.jtbl tr.ar:focus-within td:first-child{box-shadow:inset 3px 0 0 #4da6ff}
+/* 키보드로 움직이는 동안에는 마우스가 놓인 줄의 강조를 끄고 지금 줄만 보이게 합니다 */
+.kbnav .jtbl tr.br:hover td{background:#fafbfc}
+.kbnav .jtbl tr.ar:hover td{background:#fffde7}
+.kbnav .jtbl tr.br:hover:focus-within td{background:#f0f5ff}
+.kbnav .jtbl tr.ar:hover:focus-within td{background:#fff8c0}
 .jtbl tr.tr td{background:#e8f4fd;font-weight:700;font-size:13px;border-top:2px solid #1b3a5c}
 .jtbl td.nm{text-align:left;padding-left:5px;white-space:normal}
 .jtbl input.q{width:50px;padding:2px 3px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:12px}
@@ -162,6 +171,32 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .stbl input.sv{width:52px;padding:2px 3px;border:1px solid #ddd;border-radius:2px;text-align:center;font-size:12px}
 .stbl td.snm{text-align:left;padding-left:6px;white-space:normal;min-width:120px}
 .stbl td.scat{color:#555;font-size:11px}
+/* 실제 재고(실사) */
+.stbl th.sa-h{background:#7a4b00;min-width:96px}
+.stbl td.sa-td{background:#fffaf0!important;white-space:nowrap;padding:2px 5px}
+.stbl input.sa-in{width:40px;padding:3px 2px;border:1px solid #d9b77a;border-radius:3px;text-align:center;font-size:12px;font-family:inherit;background:#fff}
+.stbl input.sa-in:focus{border-color:#e8821a;outline:none;box-shadow:0 0 0 2px rgba(232,130,26,.2)}
+.stbl input.sa-s{width:52px}
+.stbl .sa-u{font-size:11px;color:#8a6d3b;margin:0 3px 0 1px}
+.stbl td.sa-diff{min-width:72px;font-weight:700;background:#fffaf0!important;line-height:1.25}
+.stbl .sa-none{color:#ccc;font-weight:400}
+.stbl .sa-ok{color:#1e8449;font-size:12px}
+.stbl .sa-plus{color:#217a3c}.stbl .sa-minus{color:#c0392b}
+.stbl .sa-pk{font-size:10px;font-weight:400;color:#8a6d3b}
+.stbl td.sa-saved{animation:saflash 1.2s}
+@keyframes saflash{0%{background:#d6f5df}100%{background:#fffaf0}}
+.stbl tr:focus-within td{background:#eef4ff!important}
+.stbl tr:focus-within td.sa-td,.stbl tr:focus-within td.sa-diff{background:#ffefd6!important}
+.stbl.hide-days .dcol{display:none}
+/* 품명 칸은 왼쪽에 붙여 두어 오른쪽(실제 재고)으로 넘겨도 무슨 품목인지 보이게 합니다 */
+.stbl td.snm{position:sticky;left:0;z-index:2;background:#fff;box-shadow:inset -1px 0 0 #e3e8ef}
+.stbl thead th:nth-child(2){position:sticky;left:0;z-index:12}
+@media (max-width:860px){
+  .stbl td.scat,.stbl thead th:first-child{display:none}
+  .stbl td.snm{min-width:104px;max-width:130px;font-size:12px}
+}
+.sa-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-2px 0 8px;font-size:12px;color:#666}
+.sa-bar b{color:#1b3a5c}
 .tbl-wrap{overflow-x:auto;max-height:calc(100vh - 200px);overflow-y:auto}
 
 /* ── 원가DB ── */
@@ -192,6 +227,83 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 /* ── 모달 ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-start;justify-content:center;overflow-y:auto}
 .overlay.show{display:flex}
+/* 일정관리 */
+.sch-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.sch-title{font-size:16px;color:#1b3a5c;min-width:118px;text-align:center}
+.sch-tg{font-size:12px;color:#555;display:flex;align-items:center;gap:4px;margin-left:6px;cursor:pointer}
+.sch-add{margin-left:auto}
+.sch-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:#dfe6ee;border:1px solid #dfe6ee;border-radius:6px;overflow:hidden}
+.sch-h{background:#f3f6fa;text-align:center;font-size:12px;font-weight:700;color:#555;padding:5px 0}
+.sch-h.sun,.sch-d.sun{color:#e74c3c}.sch-h.sat,.sch-d.sat{color:#2d7dd2}
+.sch-cell{background:#fff;min-height:96px;padding:4px 5px;cursor:pointer;overflow:hidden;transition:background .1s}
+.sch-cell:hover{background:#f5f9ff}
+.sch-cell.out{background:#fafbfc}.sch-cell.out .sch-d{opacity:.4}.sch-cell.out .sch-chip{opacity:.55}
+.sch-cell.today{background:#fff8ec;box-shadow:inset 0 0 0 2px #e8a33a}
+.sch-d{font-size:12.5px;font-weight:700;color:#333;display:flex;align-items:center;gap:4px}
+.sch-n{display:none;background:#1b6fb8;color:#fff;font-size:10px;border-radius:9px;padding:0 6px;line-height:16px}
+.sch-n.soon{background:#e8821a}
+.sch-chip{font-size:11px;line-height:1.35;padding:2px 5px;border-radius:4px;background:#e8f0fb;color:#1b3a5c;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sch-chip .t{color:#6b7f92;font-weight:700}
+.sch-chip.soon{background:#fff1dc;color:#8a4b00}
+.sch-chip.done{background:#f1f1f1;color:#999;text-decoration:line-through}
+.sch-more{font-size:10.5px;color:#888;margin-top:2px}
+.sch-up{display:flex;align-items:flex-start;gap:10px;padding:8px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer}
+.sch-up:hover{background:#f7faff}
+.sch-dd{display:inline-block;min-width:44px;text-align:center;font-size:11px;font-weight:700;border-radius:10px;padding:2px 7px;background:#e8f0fb;color:#1b3a5c;white-space:nowrap}
+.sch-dd.d0{background:#e74c3c;color:#fff}.sch-dd.d1{background:#e8821a;color:#fff}.sch-dd.d2{background:#f5c04a;color:#5a3d00}
+.sch-up-m{flex:1;min-width:0}
+.sch-up-t{font-size:13px;font-weight:700;color:#1b3a5c;word-break:break-all}
+.sch-up-s{font-size:11.5px;color:#777;margin-top:1px}
+.sch-memo{font-size:12px;color:#666;white-space:pre-wrap;word-break:break-all;margin-top:2px}
+.sch-row{display:flex;align-items:flex-start;gap:8px;padding:8px 6px;border:1px solid #e6ecf3;border-radius:7px;margin-bottom:6px;background:#fbfcfe}
+.sch-row.done .sch-row-t{text-decoration:line-through;color:#999}
+.sch-row input[type=checkbox]{margin-top:3px;width:17px;height:17px;flex:none;cursor:pointer}
+.sch-row-m{flex:1;min-width:0}
+.sch-row-t{font-size:13.5px;font-weight:700;color:#1b3a5c;word-break:break-all}
+.sch-row-b{font-size:11px;color:#999;margin-top:2px}
+.sch-row-a{display:flex;gap:4px;flex:none}
+.sch-empty{color:#999;font-size:12.5px;text-align:center;padding:12px 0}
+.sch-form{background:#f6f9fd;border:1px solid #dfe8f2;border-radius:8px;padding:10px}
+.sch-lbl{font-size:11px;color:#666;display:block;margin-bottom:2px}
+.sch-in{padding:7px 9px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit;box-sizing:border-box;background:#fff}
+.sch-al{border:1px solid #f0d9b5;background:#fffaf2;border-radius:8px;padding:9px 11px;margin-bottom:7px}
+.sch-al.d0{border-color:#f3b4ab;background:#fff5f4}
+.sch-al-h{font-size:12px;color:#555;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sch-al-t{font-size:14.5px;font-weight:700;color:#1b3a5c;margin-top:4px;word-break:break-all}
+.sch-al-f{display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:11px;color:#999}
+.sch-seen{font-size:10px;color:#999;border:1px solid #ddd;border-radius:8px;padding:0 6px}
+.mn-badge{display:inline-block;background:#e74c3c;color:#fff;font-size:10px;border-radius:9px;padding:0 6px;margin-left:4px;line-height:16px;vertical-align:1px}
+@media (max-width:860px){
+  .sch-cell{min-height:54px;padding:3px}
+  .sch-chips{display:none}
+  .sch-n{display:inline-block}
+  .sch-d{flex-direction:column;align-items:flex-start;gap:2px}
+  .sch-title{min-width:96px;font-size:15px}
+  .sch-tg{margin-left:0}
+  .sch-row-a .btn{padding:4px 8px}
+}
+/* 계정 목록 · 보안 전환 */
+.um-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.um-tbl th{background:#f3f6fa;color:#1b3a5c;padding:5px 6px;text-align:left;font-weight:700;border-bottom:1px solid #dde4ee}
+.um-tbl td{padding:6px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+.um-tbl select{padding:2px 4px;font-size:12px;border:1px solid #ccc;border-radius:4px;font-family:inherit}
+.um-tbl .um-act{white-space:nowrap;text-align:right}
+.um-last{font-size:10px;color:#999;font-weight:400}
+.um-st{font-size:11px;font-weight:700;white-space:nowrap}
+.um-st.ok{color:#1e8449}.um-st.wait{color:#b9770e}.um-st.bad{color:#c0392b}
+.sec-step{border:1px solid #e3e8ef;border-radius:8px;padding:10px 12px;margin-bottom:9px;background:#fbfcfe}
+.sec-h{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#1b3a5c}
+.sec-b{margin-left:auto;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:10px;white-space:nowrap}
+.sec-b.ok{background:#e3f6ea;color:#1e8449}.sec-b.ng{background:#fff1dc;color:#a35a00}.sec-b.unk{background:#eee;color:#777}
+.sec-d{font-size:12.5px;color:#444;line-height:1.7;margin-top:6px}
+.sec-ol{margin:4px 0 8px;padding-left:20px}
+.sec-ol li{margin-bottom:2px}
+.sec-warn{background:#fff6e5;border:1px solid #f0c27a;color:#8a4b00;border-radius:6px;padding:6px 9px;font-size:12px;margin:6px 0}
+.sec-done{background:#e3f6ea;border:1px solid #9fd8b1;color:#1e6b39;border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;margin-bottom:10px}
+.sec-rules{margin-top:6px;font-size:12px;color:#555}
+.sec-rules summary{cursor:pointer;color:#2d5580;font-weight:700}
+.sec-rules textarea{width:100%;height:220px;font-family:Consolas,monospace;font-size:11px;border:1px solid #ccc;border-radius:5px;padding:6px;box-sizing:border-box}
+@media (max-width:860px){ .um-tbl .um-last{display:none} .um-tbl th:nth-child(2),.um-tbl td:nth-child(2){display:none} }
 .modal{background:#fff;border-radius:10px;padding:20px;min-width:320px;max-width:97%;max-height:92vh;overflow-y:auto}
 .modal h3{margin-bottom:13px;color:#1b3a5c}
 .radio-group{display:flex;flex-direction:column;gap:10px;margin:10px 0}
@@ -344,6 +456,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 /* ── 인쇄 ── */
 /* ══════════ 모바일 대응 ══════════ */
 #mobileNav{display:none}
+#moreSheet{display:none}
 body.login #mobileNav{display:none!important}
 @media (max-width:860px){
   body{font-size:14px}
@@ -516,7 +629,7 @@ body.login #mobileNav{display:none!important}
              font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;pointer-events:all">
       로그인
     </button>
-    <div style="font-size:11px;color:#aaa;margin-top:14px">초기 계정: admin / 1234</div>
+    <div style="font-size:11px;color:#aaa;margin-top:14px">🔒 보안 로그인</div>
   </div>
 </div>
 
@@ -530,9 +643,11 @@ body.login #mobileNav{display:none!important}
   <span id="ubBackup" style="color:#52be80;font-size:10px" class="hide-sm" title="마지막 자동백업 날짜"></span>
   <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
     <span id="ubSaving" style="color:#f39c12;display:none">⏳ 저장중...</span>
+    <button id="ubSec" onclick="openSecPanel()" style="display:none;background:#e8a33a;color:#fff;border:none;
+      border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:700" title="보안 전환 단계 보기">🔒 보안 전환 중</button>
     <button class="hide-sm" onclick="autoBackupToFile('수동')" style="background:#217a3c;color:#fff;border:none;
       border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit" title="지금 백업">💾 백업</button>
-    <button onclick="restoreSnapshot()" style="background:#2d5580;color:#9bbcd4;border:none;
+    <button id="ubRestore" onclick="restoreSnapshot()" style="background:#2d5580;color:#9bbcd4;border:none;
       border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit" title="스냅샷으로 복원">↩ 복원</button>
     <button onclick="openUserMgmt()" style="background:#2d5580;color:#9bbcd4;border:none;
       border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit">⚙ 계정</button>
@@ -543,7 +658,7 @@ body.login #mobileNav{display:none!important}
 
 <!-- ══ 계정 관리 모달 ══ -->
 <div class="overlay" id="userMgmtModal">
-  <div class="modal" style="max-width:420px">
+  <div class="modal" style="max-width:560px;width:96%">
     <h3>⚙ 계정 관리</h3>
     <div style="font-size:13px;color:#555;margin-bottom:14px">
       현재 로그인: <strong id="umCurUser"></strong>
@@ -556,37 +671,81 @@ body.login #mobileNav{display:none!important}
       <div style="display:flex;flex-direction:column;gap:7px">
         <input id="um-oldpw" type="password" placeholder="현재 비밀번호"
           style="padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
-        <input id="um-newpw" type="password" placeholder="새 비밀번호"
+        <input id="um-newpw" type="password" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password"
           style="padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+        <input id="um-newpw2" type="password" placeholder="새 비밀번호 확인" autocomplete="new-password"
+          style="padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit"
+          onkeydown="if(event.key==='Enter')changePass()">
         <button onclick="changePass()" class="btn btn-info btn-sm">변경</button>
       </div>
     </div>
 
     <div id="adminSection" style="border-top:1px solid #eee;padding-top:12px;display:none">
-      <div style="font-weight:700;color:#1b3a5c;font-size:12px;margin-bottom:8px">👥 계정 추가 (관리자)</div>
+      <div style="display:flex;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;color:#1b3a5c;font-size:12px">👥 계정 목록 (관리자)</div>
+        <button class="btn btn-gray btn-sm" style="margin-left:auto" onclick="openSecPanel()">🔒 보안 전환 현황</button>
+      </div>
+      <div id="umList" style="margin-bottom:14px"></div>
+      <div style="font-weight:700;color:#1b3a5c;font-size:12px;margin-bottom:8px">➕ 계정 추가</div>
       <div style="display:flex;flex-direction:column;gap:7px">
         <div style="display:flex;gap:6px">
-          <input id="um-newid" type="text" placeholder="아이디" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
-          <input id="um-newname" type="text" placeholder="이름" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+          <input id="um-newid" type="text" placeholder="아이디" style="min-width:0;flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+          <input id="um-newname" type="text" placeholder="이름" style="min-width:0;flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
         </div>
         <div style="display:flex;gap:6px">
-          <input id="um-newinpw" type="password" placeholder="비밀번호" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
+          <input id="um-newinpw" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="new-password" style="min-width:0;flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
           <select id="um-role" style="width:90px;padding:7px;border:1px solid #ccc;border-radius:5px;font-size:13px;font-family:inherit">
             <option value="user">일반</option>
             <option value="admin">관리자</option>
           </select>
         </div>
-        <button onclick="addUser()" class="btn btn-success btn-sm">계정 추가</button>
+        <button onclick="addUser()" id="umAddBtn" class="btn btn-success btn-sm">계정 추가</button>
       </div>
     </div>
 
-    <div style="border-top:1px solid #eee;padding-top:12px;margin-top:4px" id="logSection" style="display:none">
+    <div style="border-top:1px solid #eee;padding-top:12px;margin-top:14px;display:none" id="logSection">
       <div style="font-weight:700;color:#1b3a5c;font-size:12px;margin-bottom:8px">📋 최근 작업 로그</div>
       <div id="logList" style="max-height:180px;overflow-y:auto;font-size:11px"></div>
     </div>
 
     <div class="btn-group" style="justify-content:flex-end;margin-top:14px">
       <button class="btn btn-gray" onclick="closeModal('userMgmtModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 비밀번호 입력 (약한 비밀번호 변경·재발급) ══ -->
+<div class="overlay" id="pwModal" style="z-index:3500">
+  <div class="modal" style="max-width:400px;width:96%;margin-top:9vh">
+    <h3 id="pwTitle">🔑 비밀번호</h3>
+    <div id="pwDesc" style="font-size:12.5px;color:#555;line-height:1.65;margin-bottom:12px"></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <input type="password" id="pw-new" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password"
+        style="padding:9px 11px;border:1px solid #ccc;border-radius:6px;font-size:14px;font-family:inherit"
+        onkeydown="if(event.key==='Enter')document.getElementById('pw-new2').focus()">
+      <input type="password" id="pw-new2" placeholder="새 비밀번호 확인" autocomplete="new-password"
+        style="padding:9px 11px;border:1px solid #ccc;border-radius:6px;font-size:14px;font-family:inherit"
+        onkeydown="if(event.key==='Enter')pwModalOk()">
+    </div>
+    <div id="pwErr" style="color:#c0392b;font-size:12px;min-height:17px;margin-top:7px"></div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-gray" id="pwLater" onclick="pwModalLater()">나중에</button>
+      <button class="btn btn-success" id="pwOk" onclick="pwModalOk()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 보안 전환 (관리자) ══ -->
+<div class="overlay" id="secModal">
+  <div class="modal" style="max-width:620px;width:97%">
+    <h3>🔒 보안 전환</h3>
+    <div style="font-size:12px;color:#666;line-height:1.6;margin-bottom:10px">
+      아래 네 단계를 마치면 로그인한 직원만 자료를 볼 수 있고, 연말결산·계정관리는 관리자만 쓸 수 있습니다.
+    </div>
+    <div id="secBody"></div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-info" onclick="renderSecPanel()">🔄 다시 확인</button>
+      <button class="btn btn-gray" onclick="closeModal('secModal')">닫기</button>
     </div>
   </div>
 </div>
@@ -628,6 +787,7 @@ body.login #mobileNav{display:none!important}
     <button class="ntab" data-pg="재고" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
     <button class="ntab" data-pg="원가" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
     <button class="ntab" id="tab-메모" style="position:relative" onclick="openMemoPad()"><span class="ti">📝</span>메모장<span class="memo-badge" id="memoBadge" style="display:none">0</span></button>
+    <button class="ntab" id="tab-일정" data-pg="일정" style="position:relative" onclick="showPage('일정',this)"><span class="ti">📅</span>일정<br>관리<span class="memo-badge" id="schBadge" style="display:none" title="이틀 안에 다가오는 일정">0</span></button>
     <button class="ntab on" data-pg="관리" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
     <!-- 캘린더 + 시간계산 버튼 - 마트관리 바로 아래 -->
     <div style="padding:5px 4px;border-top:1px solid #2d5580;margin-top:4px">
@@ -968,6 +1128,48 @@ body.login #mobileNav{display:none!important}
       <button class="btn btn-danger" id="rdDel">삭제</button>
       <button class="btn btn-info" id="rdJung">📄 정산서 보기</button>
       <button class="btn btn-gray" onclick="closeModal('resultModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 일정 (날짜별) ══ -->
+<div class="overlay" id="schModal">
+  <div class="modal" style="max-width:520px;width:96%">
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="btn btn-gray btn-sm" onclick="schDayStep(-1)" title="전날">◀</button>
+      <h3 id="schDayTitle" style="margin:0;flex:1;text-align:center"></h3>
+      <button class="btn btn-gray btn-sm" onclick="schDayStep(1)" title="다음날">▶</button>
+    </div>
+    <div id="schDayList" style="margin:12px 0 10px"></div>
+    <div class="sch-form">
+      <div id="schFormTitle" style="font-weight:700;font-size:12.5px;color:#1b3a5c;margin-bottom:7px">➕ 새 일정</div>
+      <input type="text" id="sch-제목" class="ko-in sch-in" lang="ko" maxlength="60" placeholder="일정 제목 (예: 음료 납품, 부가세 신고)" style="width:100%"
+        onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();saveSchedule();}">
+      <div style="display:flex;gap:8px;margin-top:7px">
+        <div style="flex:1"><label class="sch-lbl">날짜</label><input type="date" id="sch-날짜" class="sch-in" style="width:100%"></div>
+        <div style="flex:1"><label class="sch-lbl">시간 (선택)</label><input type="time" id="sch-시간" class="sch-in" style="width:100%"></div>
+      </div>
+      <textarea id="sch-메모" class="sch-in" rows="2" lang="ko" maxlength="500" placeholder="메모 (선택)" style="width:100%;margin-top:7px;resize:vertical"></textarea>
+      <div class="btn-group" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-gray btn-sm" id="schFormReset" onclick="schFormNew()" style="display:none">새로 쓰기</button>
+        <button class="btn btn-success btn-sm" id="schSaveBtn" onclick="saveSchedule()">💾 저장</button>
+      </div>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-gray" onclick="closeModal('schModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 일정 알림 (이틀 전부터) ══ -->
+<div class="overlay" id="schAlertModal" style="z-index:3200">
+  <div class="modal" style="max-width:440px;width:96%;margin-top:8vh">
+    <h3 style="margin-bottom:4px">⏰ 다가오는 일정</h3>
+    <div style="font-size:12px;color:#666;margin-bottom:10px">오늘부터 이틀 안에 있는 일정입니다. 끝난 일정은 [완료]를 누르면 더 알리지 않습니다.</div>
+    <div id="schAlertList"></div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:12px;flex-wrap:wrap">
+      <button class="btn btn-info" onclick="schAlertOpen()">📅 일정관리 열기</button>
+      <button class="btn btn-primary" onclick="schAlertOk()">확인</button>
     </div>
   </div>
 </div>
@@ -1466,8 +1668,13 @@ body.login #mobileNav{display:none!important}
       <button class="btn btn-info btn-sm" onclick="exportStock()">📥 CSV</button>
       <span id="stockCloseInfo" style="font-size:11px;color:#888;align-self:center">📌 이월량 직접 입력 후 저장</span>
     </div>
-    <div class="tbl-wrap">
-      <table class="stbl"><thead id="stockHead"></thead><tbody id="stockBody"></tbody></table>
+    <div class="sa-bar">
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="stockHideDays" onchange="toggleStockDays(this.checked)"> 일별 출고 숨기기</label>
+      <span id="stockCountInfo">📋 실제 재고는 맨 오른쪽 칸에 넣으면 바로 저장되고 현재재고와의 차이가 보입니다.</span>
+      <button class="btn btn-gray btn-sm" id="saClearBtn" onclick="clearStockCount()" style="display:none">실제 재고 지우기</button>
+    </div>
+    <div class="tbl-wrap" id="stockWrap">
+      <table class="stbl" id="stockTbl"><thead id="stockHead"></thead><tbody id="stockBody"></tbody></table>
     </div>
   </div>
 </div>
@@ -1504,6 +1711,26 @@ body.login #mobileNav{display:none!important}
   </div>
 </div>
 
+<!-- ══ 일정관리 ══ -->
+<div id="page-일정" class="page">
+  <div class="card">
+    <div class="card-title">📅 일정관리 <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px">날짜를 누르면 일정을 넣을 수 있습니다 · 이틀 전부터 알림</span></div>
+    <div class="sch-head">
+      <button class="btn btn-gray btn-sm" onclick="schMove(-1)" title="이전 달">◀</button>
+      <b id="schTitle" class="sch-title"></b>
+      <button class="btn btn-gray btn-sm" onclick="schMove(1)" title="다음 달">▶</button>
+      <button class="btn btn-info btn-sm" onclick="schToday()">오늘</button>
+      <label class="sch-tg"><input type="checkbox" id="schShowDone" onchange="renderSchedule()"> 완료한 일정도 보기</label>
+      <button class="btn btn-primary btn-sm sch-add" onclick="openSchDay(schYM&&schYM!==todayStr().slice(0,7)?schYM+'-01':todayStr(),true)">+ 일정 추가</button>
+    </div>
+    <div class="sch-grid" id="schGrid"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">⏰ 다가오는 일정 <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px">오늘부터 30일 · 완료하지 않은 일정</span></div>
+    <div id="schUpcoming"></div>
+  </div>
+</div>
+
 <!-- ══ 마트관리 ══ -->
 <div id="page-관리" class="page on">
   <div class="card">
@@ -1514,13 +1741,15 @@ body.login #mobileNav{display:none!important}
       <div class="mgmt-card" id="mgmt-결산" style="display:none" onclick="goTab('결산',1)"><div class="icon">📊</div><div class="name">결산서</div><div class="desc">전체 정산 내역</div></div>
       <div class="mgmt-card" id="mgmt-경영" style="display:none" onclick="showPage('경영',document.getElementById('tab-경영'))"><div class="icon">📒</div><div class="name">연말결산</div><div class="desc">손익·부가세·종합소득세</div></div>
       <div class="mgmt-card" id="mgmt-지출" style="display:none" onclick="showPage('지출')"><div class="icon">💳</div><div class="name">지출관리</div><div class="desc">연말결산 › 지출 탭</div></div>
+      <div class="mgmt-card" id="mgmt-보안" style="display:none" onclick="openSecPanel()"><div class="icon">🔒</div><div class="name">보안 설정</div><div class="desc">로그인 인증·규칙 잠금</div></div>
       <div class="mgmt-card" id="mgmt-저장소" style="display:none" onclick="testStorage()"><div class="icon">🗄️</div><div class="name">저장소 연결 확인</div><div class="desc">영수증 사진 업로드 점검</div></div>
       <div class="mgmt-card" onclick="goTab('재고',2)"><div class="icon">📦</div><div class="name">재고관리장</div><div class="desc">월별 출고 현황</div></div>
       <div class="mgmt-card" onclick="goTab('원가',3)"><div class="icon">💰</div><div class="name">원가DB 관리</div><div class="desc">품목·단가 수정</div></div>
+      <div class="mgmt-card" onclick="showPage('일정',ntabOf('일정'))"><div class="icon">📅</div><div class="name">일정관리</div><div class="desc">달력·이틀 전 알림</div></div>
       <div class="mgmt-card" onclick="backupData()"><div class="icon">💾</div><div class="name">데이터 백업</div><div class="desc">JSON 파일로 저장</div></div>
       <div class="mgmt-card" onclick="pickBackupDir()"><div class="icon">📁</div><div class="name">백업 폴더 지정</div><div class="desc" id="bkDirDesc">눌러서 바탕 화면 › 혼길마트관련 › 혼길마트_백업 선택</div></div>
-      <div class="mgmt-card" onclick="document.getElementById('restoreFile').click()"><div class="icon">📂</div><div class="name">데이터 복원</div><div class="desc">백업 파일 불러오기</div></div>
-      <div class="mgmt-card" onclick="restoreSnapshot()"><div class="icon">↩</div><div class="name">스냅샷 복원</div><div class="desc">30분 단위 자동 저장본</div></div>
+      <div class="mgmt-card" id="mgmt-복원" style="display:none" onclick="document.getElementById('restoreFile').click()"><div class="icon">📂</div><div class="name">데이터 복원</div><div class="desc">백업 파일 불러오기</div></div>
+      <div class="mgmt-card" id="mgmt-스냅샷" style="display:none" onclick="restoreSnapshot()"><div class="icon">↩</div><div class="name">스냅샷 복원</div><div class="desc">30분 단위 자동 저장본</div></div>
       <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(this)">
     </div>
   </div>
@@ -1887,7 +2116,7 @@ const STOCK_EXTRA=[
 ];
 
 
-// ══ Firebase Realtime Database 연동 ══
+// ══ Firebase 연동 (실시간 데이터베이스 + 로그인 인증) ══
 const FB_CONFIG={
   apiKey:"AIzaSyDoloODoAZ6T_lSSi0gl9aQu91VFQRZmPo",
   databaseURL:"https://hongil-mart-default-rtdb.firebaseio.com",
@@ -1898,19 +2127,145 @@ const FB_CONFIG={
   // 예전에 만든 프로젝트는 hongil-mart.appspot.com 일 수 있습니다.
   storageBucket:"hongil-mart.firebasestorage.app"
 };
-let FB=null, DB=null, ST=null;
+const FB_VER='10.12.0';
+function fbModUrl(m){ return `https://www.gstatic.com/firebasejs/${FB_VER}/firebase-${m}.js`; }
+let FB=null, DB=null, ST=null, AUTH=null, _au=null;
 let currentUser=null;
 let _stLib=null;   // Storage 함수 모음 (필요할 때 한 번만 불러옵니다)
+let _fbInitP=null;
 
-// Firebase 초기화
-async function initFirebase(){
-  const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-  const {getDatabase,ref,set,get,remove,update,onValue,increment}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-  FB=initializeApp(FB_CONFIG);
-  DB=getDatabase(FB);
-  window._fbRef=ref; window._fbSet=set; window._fbGet=get;
-  window._fbRemove=remove; window._fbUpdate=update; window._fbOnValue=onValue;
-  window._fbIncrement=increment;     // 재고 수량을 서버에서 더하고 빼는 데 씁니다 (동시에 저장해도 서로 지우지 않음)
+// Firebase 초기화 — 여러 곳에서 동시에 불러도 한 번만 합니다
+function initFirebase(){
+  if(!_fbInitP) _fbInitP=(async()=>{
+    const [appM,dbM,authM]=await Promise.all([import(fbModUrl('app')),import(fbModUrl('database')),import(fbModUrl('auth'))]);
+    FB=appM.initializeApp(FB_CONFIG);
+    DB=dbM.getDatabase(FB);
+    window._fbApp=appM; window._fbDb=dbM;
+    window._fbRef=dbM.ref; window._fbSet=dbM.set; window._fbGet=dbM.get;
+    window._fbRemove=dbM.remove; window._fbUpdate=dbM.update; window._fbOnValue=dbM.onValue;
+    window._fbIncrement=dbM.increment;     // 재고 수량을 서버에서 더하고 빼는 데 씁니다 (동시에 저장해도 서로 지우지 않음)
+    // 로그인 인증 — 이메일/비밀번호 방식만 씁니다 (팝업·리디렉션 기능은 불러오지 않습니다)
+    _au=authM; window._au=authM;
+    AUTH=authM.initializeAuth(FB,{persistence:[authM.indexedDBLocalPersistence,authM.browserLocalPersistence]});
+    if(window.__AUTH_EMU) authM.connectAuthEmulator(AUTH,window.__AUTH_EMU,{disableWarnings:true});   // 시험용
+  })().catch(e=>{ _fbInitP=null; throw e; });
+  return _fbInitP;
+}
+
+// ══ 로그인 인증 (Firebase Authentication) ══
+// 직원은 지금처럼 아이디·비밀번호만 입력합니다. 안에서는 아이디마다 정해 둔 별칭 주소
+// (…@example.com — 메일이 절대 가지 않는 예약 도메인)로 Firebase에 로그인합니다.
+// 비밀번호는 데이터베이스에 남기지 않고 Google이 보관합니다.
+const AUTH_MAIL_DOMAIN='example.com';
+let _legacyMode=false;     // Firebase 인증을 아직 켜지 않아 예전 방식으로 들어온 경우
+let _authIssue='';         // 인증 전환 중 생긴 문제 (관리자 안내용)
+let _auth2=null;           // 관리자가 다른 직원 계정을 만들 때 쓰는 보조 인증 (관리자 로그인은 그대로 둡니다)
+async function sha256hex(s){
+  if(!window.crypto||!crypto.subtle) throw new Error('보안 연결(https)에서만 로그인할 수 있습니다. 주소가 https://로 시작하는지 확인하십시오.');
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+// 공개 별칭표의 열쇠 — 아이디를 그대로 드러내지 않습니다
+async function idKey(id){ return (await sha256hex('hongil-mart:id:'+id)).slice(0,40); }
+// Firebase에 넘기는 비밀번호 — 아이디와 섞어 늘 6자 이상·대소문자·숫자·특수문자가 들어가게 합니다
+async function derivePw(id,pw){ return 'Hm1!'+await sha256hex('hongil-mart:pw:'+id+':'+pw); }
+function newAlias(){ const a=new Uint8Array(14); crypto.getRandomValues(a); return 'hm-'+[...a].map(x=>(x%36).toString(36)).join(''); }
+function aliasEmail(alias){ return alias+'@'+AUTH_MAIL_DOMAIN; }
+function badIdChars(id){ return !id||/[.#$\[\]\/]/.test(id); }
+function validNewId(id){ return /^[A-Za-z0-9_\-가-힣]{1,20}$/.test(id); }
+function isPermErr(e){ return /permission/i.test(String((e&&e.code)||'')+' '+String((e&&e.message)||'')); }
+function isAuthSetupErr(e){ return /operation-not-allowed|configuration-not-found|admin-restricted-operation/.test(String(e&&e.code||'')); }
+// 인증이 아직 꺼져 있고 규칙도 잠그지 않았을 때만 예전 방식으로 계정을 만듭니다
+async function canLegacyFallback(e){
+  if(!/operation-not-allowed|configuration-not-found/.test(String(e&&e.code||''))) return false;
+  return (await probeDbLock())!=='locked';
+}
+function authSetupMsg(e){
+  if(/admin-restricted-operation/.test(String(e&&e.code||''))) return 'Firebase 콘솔 › Authentication › 설정 › 사용자 작업에서 [생성(가입) 사용]을 켠 뒤 다시 시도하십시오.';
+  return 'Firebase 콘솔에서 이메일/비밀번호 로그인을 켠 뒤 다시 시도하십시오.';
+}
+function authErrMsg(e){
+  const c=String(e&&e.code||'');
+  if(/invalid-credential|wrong-password|user-not-found|invalid-email|invalid-login/.test(c)) return '아이디 또는 비밀번호가 올바르지 않습니다.';
+  if(/too-many-requests/.test(c)) return '비밀번호를 여러 번 틀려 잠시 막혔습니다. 몇 분 뒤 다시 시도하십시오.';
+  if(/network-request-failed/.test(c)) return '인터넷 연결을 확인한 뒤 다시 시도하십시오.';
+  if(/user-disabled/.test(c)) return '사용이 중지된 계정입니다. 관리자에게 문의하십시오.';
+  if(isAuthSetupErr(e)) return 'Firebase 콘솔에서 이메일/비밀번호 로그인이 꺼져 있습니다. 관리자에게 알려 주십시오.';
+  return '처리하지 못했습니다: '+(c||(e&&e.message)||e);
+}
+function withTimeout(pr,ms){
+  return Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
+}
+// 새로 정하는 비밀번호 규칙
+const WEAK_PW=['123456','1234567','12345678','123456789','1234567890','654321','password','qwerty','qwerty1','111111','000000',
+  'abc123','abcd1234','admin1','admin123','admin1234','1q2w3e','1q2w3e4r','asdf1234','qwer1234','q1w2e3r4','hongil','hongil1','123123'];
+function isSeqPw(pw){
+  const c=[...pw.toLowerCase()].map(ch=>ch.charCodeAt(0));
+  const up=c.every((v,i)=>i===0||v===c[i-1]+1), down=c.every((v,i)=>i===0||v===c[i-1]-1);
+  return up||down;
+}
+function pwPolicyMsg(pw,id){
+  if(!pw||pw.length<6) return '비밀번호는 6자 이상으로 정하십시오.';
+  if(/^(.)\1+$/.test(pw)) return '같은 글자만 반복한 비밀번호는 쓸 수 없습니다.';
+  if(isSeqPw(pw)) return '123456·abcdef처럼 이어지는 글자는 쓸 수 없습니다.';
+  if(id&&pw.toLowerCase()===String(id).toLowerCase()) return '아이디와 같은 비밀번호는 쓸 수 없습니다.';
+  if(WEAK_PW.includes(pw.toLowerCase())) return '너무 흔한 비밀번호입니다. 다른 비밀번호를 정하십시오.';
+  return '';
+}
+// 로그인한 Firebase 계정에 연결된 직원 정보를 읽습니다
+async function loadMyProfile(){
+  const u=AUTH&&AUTH.currentUser; if(!u) return null;
+  const id=await fbGet('uidMap/'+u.uid);
+  if(!id||typeof id!=='string') return null;
+  const p=await fbGet('users/'+id);
+  if(!p||p.uid!==u.uid) return null;
+  return {id, 이름:p.이름||id, 역할:p.역할||'user', uid:u.uid};
+}
+// 예전 방식 계정을 Firebase 인증으로 옮깁니다 (첫 로그인 때 한 번)
+// 실패해도 로그인은 막지 않습니다 — 다음 로그인 때 다시 시도합니다
+async function migrateLegacyAccount(id,pw){
+  try{
+    const alias=newAlias();
+    const cred=await _au.createUserWithEmailAndPassword(AUTH,aliasEmail(alias),await derivePw(id,pw));
+    const uid=cred.user.uid, hid=await idKey(id);
+    const upd={};
+    upd['uidMap/'+uid]=id;
+    upd['users/'+id+'/uid']=uid;
+    upd['users/'+id+'/authAt']=nowISO();
+    upd['users/'+id+'/pw']=null;           // 예전 비밀번호 흔적은 지웁니다
+    upd['pub/a/'+hid]=alias;
+    await window._fbUpdate(window._fbRef(DB),upd);
+    return {ok:true,uid};
+  }catch(e){
+    console.error('Firebase 인증 전환 실패:',e);
+    try{ if(AUTH&&AUTH.currentUser) await _au.signOut(AUTH); }catch(_){}
+    return {ok:false,code:String(e&&e.code||e&&e.message||e)};
+  }
+}
+// 관리자가 다른 직원의 Firebase 계정을 만듭니다 — 보조 인증을 써서 관리자 로그인은 그대로 둡니다
+async function createAuthAccount(id,pw){
+  const appM=window._fbApp;
+  let app2=appM.getApps().find(a=>a.name==='hm-admin');
+  if(!app2) app2=appM.initializeApp(FB_CONFIG,'hm-admin');
+  if(!_auth2){
+    _auth2=_au.initializeAuth(app2,{persistence:_au.inMemoryPersistence});
+    if(window.__AUTH_EMU) _au.connectAuthEmulator(_auth2,window.__AUTH_EMU,{disableWarnings:true});
+  }
+  const alias=newAlias();
+  const cred=await _au.createUserWithEmailAndPassword(_auth2,aliasEmail(alias),await derivePw(id,pw));
+  const uid=cred.user.uid;
+  try{ await _au.signOut(_auth2); }catch(_){}
+  return {uid,alias};
+}
+// 다른 창에서 로그아웃하거나 다른 계정으로 로그인하면 이 창도 맞춥니다
+let _authWatch=false;
+function watchAuthState(){
+  if(_authWatch||!AUTH) return; _authWatch=true;
+  _au.onAuthStateChanged(AUTH,u=>{
+    if(!currentUser||!currentUser.uid) return;          // 예전 방식 로그인·로그인 진행 중에는 무시합니다
+    if(!u) forceLogout('로그인이 해제되어 로그아웃했습니다. 다시 로그인하십시오.',{keepAuth:true});
+    else if(u.uid!==currentUser.uid) forceLogout('이 브라우저의 다른 창에서 다른 계정으로 로그인해서 로그아웃했습니다.',{keepAuth:true});
+  });
 }
 
 // ── 영수증 저장소 (Firebase Storage) ──
@@ -1953,7 +2308,10 @@ async function stUpload(file,folder){
   const safe=(f.name||'file').replace(/[^\w.\-가-힣]/g,'_').slice(-60);
   const path=`${folder||'receipts'}/${Date.now()}_${Math.floor(Math.random()*900+100)}_${safe}`;
   const r=_stLib.ref(ST,path);
-  await _stLib.uploadBytes(r,f,{contentType:f.type||'application/octet-stream'});
+  const ext=String(f.name||'').split('.').pop().toLowerCase();
+  const guess={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',bmp:'image/bmp',
+    heic:'image/heic',heif:'image/heif',pdf:'application/pdf'}[ext];
+  await _stLib.uploadBytes(r,f,{contentType:f.type||guess||'application/octet-stream'});
   const url=await _stLib.getDownloadURL(r);
   return {path,url,name:f.name,size:f.size};
 }
@@ -1979,7 +2337,7 @@ async function testStorage(){
       +'\n\n확인하십시오.'
       +'\n1. Firebase 콘솔에서 요금제를 Blaze로 바꾸셨습니까?'
       +'\n2. Storage 화면의 gs:// 주소가 "'+FB_CONFIG.storageBucket+'" 와 같습니까?'
-      +'\n3. Storage 규칙에서 읽기·쓰기를 허용하셨습니까?');
+      +'\n3. Storage 규칙이 [보안 설정] 화면의 규칙과 같습니까? (로그인한 사람만 쓸 수 있습니다)');
   }
 }
 
@@ -1996,11 +2354,22 @@ async function fbRemove(path){return window._fbRemove(fbRef(path));}
 let _syncPause=false; // 내가 직접 삭제 시 동기화 일시 중단
 // 동기화를 잠깐 멈춘 동안 들어온 변경은 버리지 않고, 경로마다 가장 최근 것만 맡아 두었다가 멈춤이 끝나면 적용합니다
 const _syncMissed=new Map();
-function onSync(path,fn){
-  window._fbOnValue(fbRef(path),snap=>{
-    if(_syncPause){ _syncMissed.set(path,()=>fn(snap)); return; }
+const _rtUnsubs=[];          // 로그아웃할 때 실시간 수신을 모두 끊습니다
+function onSync(path,fn,noPause){
+  const un=window._fbOnValue(fbRef(path),snap=>{
+    if(_syncPause&&!noPause){ _syncMissed.set(path,()=>fn(snap)); return; }
     fn(snap);
-  });
+  },err=>onSyncCancel(path,err));
+  if(typeof un==='function') _rtUnsubs.push(un);
+}
+function stopRealtimeSync(){
+  while(_rtUnsubs.length){ const un=_rtUnsubs.pop(); try{ un(); }catch(_){} }
+  _rtStarted=false; _syncMissed.clear();
+}
+// 계정이 지워졌거나 권한이 바뀌면 서버가 실시간 수신을 끊습니다 → 로그아웃해서 다시 로그인하게 합니다
+function onSyncCancel(path,err){
+  console.warn('실시간 수신이 끊겼습니다:',path,err&&err.message);
+  if(currentUser&&isPermErr(err)) forceLogout('계정 권한이 바뀌어 로그아웃했습니다. 다시 로그인하십시오.');
 }
 let _rtStarted=false;
 function startRealtimeSync(){
@@ -2019,7 +2388,7 @@ function startRealtimeSync(){
     if(typeof buildCharts==='function')buildCharts();
   });
   // 재고 — 다른 컴퓨터에서 정산을 완료하면 재고관리장에 바로 반영됩니다
-  window._fbOnValue(fbRef('stockData'),snap=>{
+  onSync('stockData',snap=>{
     stockData=snap.exists()?decodeStockData(snap.val()||{}):{};
     // 이 화면에서 고치고 아직 저장하지 않은 칸은 지우지 않고 다시 얹습니다
     Object.entries(_stockDirty).forEach(([pth,v])=>{
@@ -2029,16 +2398,16 @@ function startRealtimeSync(){
     const pg=document.getElementById('page-재고');
     const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#page-재고 .stbl');
     if(pg&&pg.classList.contains('on')&&!typing) renderStock();
-  });
+  },true);
   // 알바 근무기록 — 관리자가 승인·취소하면 알바 화면(달력·내 근무시간)에도 바로 반영됩니다
-  window._fbOnValue(fbRef('albaWorkLog'),snap=>{
+  onSync('albaWorkLog',snap=>{
     albaWorkLog=snap.exists()?normalizeWorkLog(snap.val()):{};
     syncWorkLogToAlba();
     renderMiniCal();
     if(document.getElementById('myWorkModal')?.classList.contains('show')) renderMyWork();
-  });
-  // 지출·거래처도 함께 받습니다 (다른 직원이 분류한 내용이 바로 보입니다)
-  onSync('expenses',snap=>{
+  },true);
+  // 지출·거래처 — 관리자만 받습니다 (일반 직원은 연말결산 자료를 읽을 수 없습니다)
+  if(isAdmin()) onSync('expenses',snap=>{
     const d=snap.exists()?snap.val():null;
     expenses=d?Object.entries(d).map(([k,e])=>normalizeExp({...e,id:e&&e.id||k})):[];
     const open=document.getElementById('page-경영')?.classList.contains('on');
@@ -2046,8 +2415,17 @@ function startRealtimeSync(){
       &&document.activeElement.closest('#expEditModal,#impModal,#page-경영 input,#page-경영 select');
     if(open&&!typing) renderBiz(); else updateExpBadge();
   });
-  onSync('vendors',snap=>{
+  if(isAdmin()) onSync('vendors',snap=>{
     vendors=snap.exists()?(snap.val()||{}):{};
+  });
+  // 일정 — 다른 직원이 넣은 일정도 바로 보이고, 이틀 안이면 알립니다
+  onSync('schedules',snap=>{
+    schedules=snap.exists()?(snap.val()||{}):{};
+    updateSchBadge();
+    const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#schModal');
+    if(document.getElementById('page-일정')?.classList.contains('on')) renderSchedule();
+    if(document.getElementById('schModal')?.classList.contains('show')&&!typing) renderSchDay();
+    checkScheduleAlerts();
   });
   // 메모장도 함께 실시간으로 받습니다
   onSync('memos',snap=>{
@@ -2078,36 +2456,94 @@ function showSaving(v){
   if(el)el.style.display=v?'inline':'none';
 }
 
-// 로컬 계정 (Firebase Auth 대신 DB에 users 저장)
+// 예전 방식 비밀번호 확인용 (Firebase 인증으로 옮기기 전 계정만 씁니다)
 function hashPw(pw){
-  // 간단한 해시 (보안용도가 아닌 기본 보호)
   let h=0;
   for(let i=0;i<pw.length;i++) h=Math.imul(31,h)+pw.charCodeAt(i)|0;
   return 'hm_'+Math.abs(h).toString(36)+'_'+pw.length;
 }
 
 // ── 로그인 ──
+let _initP=null;            // 처음 열 때 로그인 상태를 확인하는 동안에는 로그인 버튼을 기다리게 합니다
 async function doLogin(){
+  if(_initP){ try{ await _initP; }catch(_){} }
+  if(currentUser) return;
   const id=document.getElementById('li-id').value.trim();
   const pw=document.getElementById('li-pw').value;
-  if(!id||!pw){showLoginErr('아이디와 비밀번호를 입력하세요.');return;}
+  if(!id||!pw){showLoginErr('아이디와 비밀번호를 입력하십시오.');return;}
+  if(!id.includes('@')&&badIdChars(id)){showLoginErr('아이디 또는 비밀번호가 올바르지 않습니다.');return;}
   const btn=document.getElementById('loginBtn');
+  if(btn.disabled) return;
   btn.textContent='로그인 중...';btn.disabled=true;
   try{
-    if(!DB) await initFirebase();
-    let user=await fbGet('users/'+id);
-    if(!user&&id==='admin'){
-      user={id:'admin',이름:'관리자',pw:hashPw('1234'),역할:'admin'};
-      await fbSet('users/admin',user);
+    await initFirebase();
+    if(id.includes('@')){
+      // 비상 복구용: Firebase 콘솔에서 직접 만든 계정(이메일·비밀번호)으로 들어옵니다. 연결표에 등록된 계정만 쓸 수 있습니다
+      try{ await _au.signInWithEmailAndPassword(AUTH,id,pw); }
+      catch(e){ showLoginErr(authErrMsg(e)); return; }
+      let prof=null; try{ prof=await loadMyProfile(); }catch(e){ console.error(e); }
+      if(!prof){ await _au.signOut(AUTH).catch(()=>{}); showLoginErr('이 이메일 계정은 직원 계정에 연결되어 있지 않습니다.'); return; }
+      currentUser=prof; _legacyMode=false;
+      localStorage.setItem('hm_user',JSON.stringify({id:prof.id}));
+      localStorage.setItem('hm_expire',Date.now()+IDLE_LIMIT);
+      localStorage.removeItem('hm_legacy'); localStorage.removeItem('hm_pwchange');
+      addLog(prof.이름,'비상 복구 로그인',id);
+      await onLoginSuccess();
+      return;
     }
-    if(!user){showLoginErr('아이디가 존재하지 않습니다.');return;}
-    if(user.pw!==hashPw(pw)){showLoginErr('비밀번호가 올바르지 않습니다.');return;}
-    currentUser={id:user.id,이름:user.이름,역할:user.역할};
-    localStorage.setItem('hm_user',JSON.stringify(currentUser));
+    const hid=await idKey(id);
+    let alias=null;
+    try{ alias=await withTimeout(fbGet('pub/a/'+hid),15000); }
+    catch(e){ if(e&&e.message==='timeout'){ showLoginErr('서버 응답이 없습니다. 인터넷 연결을 확인한 뒤 다시 시도하십시오.'); return; } console.warn('계정 별칭을 읽지 못했습니다:',e); }
+    let user=null;
+    if(alias){
+      // Firebase 인증으로 옮긴 계정
+      try{ await _au.signInWithEmailAndPassword(AUTH,aliasEmail(alias),await derivePw(id,pw)); }
+      catch(e){ showLoginErr(authErrMsg(e)); return; }
+      try{ user=await loadMyProfile(); }catch(e){ console.error('계정 정보 읽기 실패:',e); user=null; }
+      if(!user||user.id!==id){
+        await _au.signOut(AUTH).catch(()=>{});
+        showLoginErr('계정 연결 정보가 맞지 않습니다. 관리자에게 비밀번호 재발급을 요청하십시오.');
+        return;
+      }
+      _legacyMode=false;
+    } else {
+      // 아직 옮기지 않은 계정 — 예전 비밀번호를 확인한 뒤 Firebase 인증으로 자동으로 옮깁니다
+      let rec=null;
+      try{ rec=await withTimeout(fbGet('users/'+id),15000); }
+      catch(e){
+        if(e&&e.message==='timeout'){ showLoginErr('서버 응답이 없습니다. 인터넷 연결을 확인한 뒤 다시 시도하십시오.'); return; }
+        if(isPermErr(e)){ showLoginErr('아이디 또는 비밀번호가 올바르지 않습니다. 보안 전환 전에 쓰던 계정이면 관리자에게 비밀번호 재발급을 요청하십시오.'); return; }
+        throw e;
+      }
+      if(!rec&&id==='admin'){
+        // 처음 설치할 때만 (계정이 하나도 없을 때) 관리자 계정을 만듭니다
+        const all=await fbGet('users');
+        if(!all){ rec={id:'admin',이름:'관리자',pw:hashPw('1234'),역할:'admin'}; await fbSet('users/admin',rec); }
+      }
+      if(rec&&rec.uid&&!rec.pw){ showLoginErr('계정 연결 정보가 없습니다. 관리자에게 비밀번호 재발급을 요청하십시오.'); return; }
+      if(!rec||!rec.pw||rec.pw!==hashPw(pw)){ showLoginErr('아이디 또는 비밀번호가 올바르지 않습니다.'); return; }
+      const mig=await migrateLegacyAccount(id,pw);
+      if(mig.ok){
+        user={id,이름:rec.이름||id,역할:rec.역할||'user',uid:mig.uid};
+        _legacyMode=false; _authIssue='';
+        addLog(rec.이름||id,'보안 로그인으로 전환');
+      } else {
+        // Firebase 인증을 아직 켜지 않았거나 일시적인 문제 — 예전 방식으로 들어오게 하고 관리자에게 알립니다
+        user={id,이름:rec.이름||id,역할:rec.역할||'user'};
+        _legacyMode=true; _authIssue=mig.code;
+      }
+    }
+    currentUser=user;
+    // 다른 창 로그아웃 신호·아이디 채우기용입니다 (권한 판단에는 쓰지 않습니다)
+    localStorage.setItem('hm_user',JSON.stringify({id:user.id}));
     localStorage.setItem('hm_expire',Date.now()+IDLE_LIMIT);   // 마지막으로 사용한 때부터 1시간
+    if(_legacyMode) localStorage.setItem('hm_legacy','1'); else localStorage.removeItem('hm_legacy');
     fbSet('users/'+id+'/lastLogin',nowISO()).catch(()=>{});
-    onLoginSuccess();
-  }catch(e){showLoginErr('로그인 실패: '+e.message);}
+    const loading=onLoginSuccess();
+    checkWeakPassword(pw);
+    await loading;
+  }catch(e){showLoginErr('로그인하지 못했습니다: '+(e&&e.message||e));}
   finally{btn.textContent='로그인';btn.disabled=false;}
 }
 function showLoginErr(msg){
@@ -2136,26 +2572,43 @@ async function onLoginSuccess(){
   // 지출관리 기본 월은 이번 달로 둡니다
   const exm=document.getElementById('ex-월');
   if(exm&&!exm.value) exm.value=todayStr().slice(0,7);
+  ['mgmt-보안','mgmt-복원','mgmt-스냅샷','ubRestore'].forEach(id=>{
+    const c=document.getElementById(id);
+    if(c) c.style.display=isAdmin()?'':'none';     // 복원은 자료 전체를 덮어쓰므로 관리자만 합니다
+  });
   // 미니 캘린더 렌더링
   renderMiniCal();
   buildMobileNav();
-  // 매일 자정에 캘린더 갱신
-  setInterval(renderMiniCal, 60*60*1000);
+  if(!onLoginSuccess._iv){             // 다시 로그인해도 타이머를 겹쳐 걸지 않습니다
+    onLoginSuccess._iv=true;
+    setInterval(renderMiniCal, 60*60*1000);      // 매일 자정에 캘린더 갱신
+    setInterval(()=>checkScheduleAlerts(),10*60*1000);   // 날짜가 바뀌면 새 알림
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkScheduleAlerts(); });
+    setInterval(()=>document.getElementById('ubTime').textContent=new Date().toLocaleTimeString('ko-KR'),1000);
+  }
   document.getElementById('ubSync').style.color='#f39c12';
-  setInterval(()=>document.getElementById('ubTime').textContent=new Date().toLocaleTimeString('ko-KR'),1000);
+  watchAuthState();
   startIdleWatch();                    // 1시간 동안 사용하지 않으면 자동 로그아웃
   await loadAllData();
   startAutoBackup();
+  if(isAdmin()) refreshSecChip();      // 보안 전환이 끝나지 않았으면 위쪽에 알림을 띄웁니다
 }
 function doLogout(){
   if(!confirm('로그아웃 하시겠습니까?'))return;
   forceLogout('');
 }
 // 묻지 않고 바로 로그아웃합니다 (자동 로그아웃, 다른 창에서 로그아웃한 경우)
-function forceLogout(msg){
+function forceLogout(msg,opt){
   const lastId=currentUser?.id||'';
-  localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
+  localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');localStorage.removeItem('hm_legacy');
   currentUser=null;
+  stopRealtimeSync();
+  // 다른 창이 이미 로그아웃했거나 다른 계정으로 바뀐 경우에는 그 로그인을 건드리지 않습니다
+  if(AUTH&&AUTH.currentUser&&!(opt&&opt.keepAuth)) _au.signOut(AUTH).catch(()=>{});
+  _legacyMode=false; _authIssue='';
+  expenses=[]; vendors={}; posSales={}; _usersCache={};           // 관리자 전용 자료는 메모리에서도 비웁니다
+  bizConfig={과세:'일반',매출기준:'pos',부양:1,연금:0,기타공제:0,세액공제:0};
+  const chip=document.getElementById('ubSec'); if(chip) chip.style.display='none';
   hideIdleWarn();
   document.querySelectorAll('.overlay.show').forEach(o=>o.classList.remove('show'));
   const eo=document.getElementById('editOverlay'); if(eo) eo.style.display='none';
@@ -2227,9 +2680,13 @@ async function loadAllData(){
   try{
     if(!DB) await initFirebase();
     document.getElementById('ubSync').style.color='#f39c12';
-    const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData,moData,vnData]=await Promise.all([
-      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta'),fbGet('expenses'),fbGet('bizConfig'),fbGet('posSales'),fbGet('stockClose'),fbGet('memos'),fbGet('vendors')
+    const adm=isAdmin(), none=Promise.resolve(null);   // 연말결산 자료(지출·카드내역·거래처·세금 설정)는 관리자만 읽습니다
+    const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData,moData,vnData,schData]=await Promise.all([
+      fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta'),
+      adm?fbGet('expenses'):none,adm?fbGet('bizConfig'):none,adm?fbGet('posSales'):none,fbGet('stockClose'),fbGet('memos'),adm?fbGet('vendors'):none,
+      fbGet('schedules')
     ]);
+    schedules=(schData&&typeof schData==='object')?schData:{};
     jungs    =jData?Object.entries(jData).map(([k,j])=>normalizeJung({...j,id:j.id||k})):[];
     results  =rData?Object.entries(rData).map(([k,r])=>({...r,id:String(r.id||k),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
     if(sData){
@@ -2261,9 +2718,12 @@ async function loadAllData(){
     if(typeof buildCharts==='function')buildCharts();
     setTimeout(syncWorkLogToAlba,100); // workLog → albaData 동기화
     startRealtimeSync();
+    updateSchBadge();
+    setTimeout(()=>checkScheduleAlerts(),1500);   // 이틀 안의 일정이 있으면 알립니다
   }catch(e){
     document.getElementById('ubSync').style.color='#e74c3c';
-    alert('데이터 로드 실패: '+e.message);
+    if(isPermErr(e)) alert('자료를 읽을 권한이 없습니다. 다시 로그인하십시오.\n계속되면 관리자에게 알려 주십시오. (보안 규칙 또는 계정 연결 확인 필요)');
+    else alert('데이터 로드 실패: '+e.message);
   }
 }
 function normalizeDate(v){
@@ -2290,18 +2750,19 @@ function openUserMgmt(){
   document.getElementById('umCurUser').textContent=currentUser.이름;
   document.getElementById('umRoleBadge').textContent=isAdmin()?'관리자':'일반';
   document.getElementById('adminSection').style.display=isAdmin()?'':'none';
-  document.getElementById('um-oldpw').value='';document.getElementById('um-newpw').value='';
+  ['um-oldpw','um-newpw','um-newpw2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   loadLogs();document.getElementById('userMgmtModal').classList.add('show');
+  if(isAdmin()) renderUserList();
 }
 async function loadLogs(){
   try{
     const data=await fbGet('logs');
-    const logs=data?Object.values(data).sort((a,b)=>b.시간.localeCompare(a.시간)).slice(0,50):[];
+    const logs=data?Object.values(data).filter(l=>l&&typeof l==='object').sort((a,b)=>String(b.시간||'').localeCompare(String(a.시간||''))).slice(0,50):[];
     const el=document.getElementById('logList');
     el.innerHTML=logs.map(l=>'<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">'+
-      '<span style="color:#888">'+new Date(l.시간).toLocaleString('ko-KR')+'</span> '+
-      '<span style="color:#1b3a5c;font-weight:700">'+l.사용자+'</span> '+
-      '<span style="color:#555">'+l.작업+'</span></div>').join('');
+      '<span style="color:#888">'+esc(localDateTimeOf(l.시간))+'</span> '+
+      '<span style="color:#1b3a5c;font-weight:700">'+esc(l.사용자)+'</span> '+
+      '<span style="color:#555">'+esc(l.작업)+(l.대상?' · '+esc(l.대상):'')+'</span></div>').join('');
     document.getElementById('logSection').style.display='';
   }catch(e){console.error(e);}
 }
@@ -2311,25 +2772,394 @@ async function addLog(사용자,작업,대상){
 async function changePass(){
   const oldPw=document.getElementById('um-oldpw').value;
   const newPw=document.getElementById('um-newpw').value;
-  if(!oldPw||!newPw){alert('비밀번호를 입력하세요.');return;}
-  const user=await fbGet('users/'+currentUser.id);
-  if(!user||user.pw!==hashPw(oldPw)){alert('현재 비밀번호가 올바르지 않습니다.');return;}
-  await fbSet('users/'+currentUser.id+'/pw',hashPw(newPw));
-  alert('비밀번호가 변경됐습니다.');
+  const newPw2=document.getElementById('um-newpw2').value;
+  if(!oldPw||!newPw){alert('현재 비밀번호와 새 비밀번호를 입력하십시오.');return;}
+  if(newPw!==newPw2){alert('새 비밀번호 확인이 맞지 않습니다. 다시 입력하십시오.');return;}
+  const why=pwPolicyMsg(newPw,currentUser.id); if(why){alert(why);return;}
+  try{
+    await changeOwnPassword(oldPw,newPw);
+    ['um-oldpw','um-newpw','um-newpw2'].forEach(id=>document.getElementById(id).value='');
+    alert('비밀번호를 바꿨습니다. 다음 로그인부터 새 비밀번호를 쓰십시오.');
+  }catch(e){ alert(e.message||String(e)); }
+}
+// 내 비밀번호 바꾸기 — Firebase 인증이면 현재 비밀번호로 본인 확인 후 바꿉니다
+async function changeOwnPassword(oldPw,newPw){
+  const id=currentUser.id;
+  const u=AUTH&&AUTH.currentUser;
+  if(_legacyMode||!u){
+    const rec=await fbGet('users/'+id);
+    if(!rec||rec.pw!==hashPw(oldPw)) throw new Error('현재 비밀번호가 올바르지 않습니다.');
+    await fbSet('users/'+id+'/pw',hashPw(newPw));
+  } else {
+    try{ await _au.reauthenticateWithCredential(u,_au.EmailAuthProvider.credential(u.email,await derivePw(id,oldPw))); }
+    catch(e){ throw new Error(/invalid-credential|wrong-password|invalid-login|user-mismatch/.test(String(e.code||''))?'현재 비밀번호가 올바르지 않습니다.':authErrMsg(e)); }
+    try{ await _au.updatePassword(u,await derivePw(id,newPw)); }
+    catch(e){ throw new Error(authErrMsg(e)); }
+  }
+  localStorage.removeItem('hm_pwchange');
+  addLog(currentUser.이름,'비밀번호 변경');
+}
+// 로그인한 비밀번호가 너무 짧거나 흔하면 바꾸게 합니다 (관리자는 반드시, 일반 직원은 권유)
+function checkWeakPassword(pw){
+  if(!currentUser) return;
+  const why=pwPolicyMsg(pw,currentUser.id);
+  if(!why){ localStorage.removeItem('hm_pwchange'); return; }
+  const oldPw=pw;
+  localStorage.setItem('hm_pwchange',currentUser.id);   // 바꾸기 전에 새로고침하면 다시 로그인하게 합니다
+  openPwModal({
+    id:currentUser.id,
+    title:'🔑 비밀번호를 바꿔 주십시오',
+    desc:`지금 비밀번호가 너무 짧거나 흔해서 남이 맞히기 쉽습니다.<br>`
+      +`<b>6자 이상의 새 비밀번호로 바꿔야 계속 쓸 수 있습니다.</b> 한 번만 바꾸시면 됩니다.<br>`
+      +`<span style="color:#888">예: 이름 영문 + 숫자 (hongmi0904)처럼 본인만 아는 조합</span>`,
+    canSkip:false,
+    save:async a=>{ if(a===oldPw) throw new Error('지금과 다른 비밀번호를 입력하십시오.'); await changeOwnPassword(oldPw,a); },
+    done:()=>{ localStorage.removeItem('hm_pwchange'); expToast('✅ 비밀번호를 바꿨습니다. 다음 로그인부터 새 비밀번호를 쓰십시오.'); }
+  });
+}
+// ── 비밀번호 입력창 (약한 비밀번호 변경·재발급 공용) ──
+let _pwCtx=null;
+function openPwModal(ctx){
+  _pwCtx=ctx;
+  document.getElementById('pwTitle').textContent=ctx.title;
+  document.getElementById('pwDesc').innerHTML=ctx.desc;
+  document.getElementById('pw-new').value=''; document.getElementById('pw-new2').value='';
+  document.getElementById('pwErr').textContent='';
+  const later=document.getElementById('pwLater');
+  later.style.display=ctx.canSkip?'':'none'; later.textContent=ctx.skipLabel||'나중에';
+  document.getElementById('pwOk').textContent=ctx.okLabel||'💾 저장';
+  document.getElementById('pwModal').classList.add('show');
+  setTimeout(()=>document.getElementById('pw-new').focus(),60);
+}
+async function pwModalOk(){
+  if(!_pwCtx) return;
+  const a=document.getElementById('pw-new').value, b=document.getElementById('pw-new2').value;
+  const err=document.getElementById('pwErr');
+  if(a!==b){ err.textContent='새 비밀번호 확인이 맞지 않습니다.'; return; }
+  const why=pwPolicyMsg(a,_pwCtx.id); if(why){ err.textContent=why; return; }
+  const btn=document.getElementById('pwOk'); if(btn.disabled) return;
+  btn.disabled=true; err.textContent='저장하는 중입니다...';
+  const ctx=_pwCtx;
+  try{
+    await ctx.save(a);
+    err.textContent=''; closeModal('pwModal'); _pwCtx=null;
+    if(ctx.done) ctx.done(a);
+  }catch(e){ err.textContent=e.message||String(e); }
+  finally{ btn.disabled=false; }
+}
+function pwModalLater(){ closeModal('pwModal'); _pwCtx=null; }
+
+// ── 관리자: 계정 목록 ──
+let _usersCache={};
+async function renderUserList(){
+  const box=document.getElementById('umList'); if(!box) return;
+  box.innerHTML='<div style="color:#888;font-size:12px;padding:6px 0">계정 목록을 불러오는 중입니다...</div>';
+  let all;
+  try{ all=await fbGet('users')||{}; }
+  catch(e){ box.innerHTML=`<div style="color:#c0392b;font-size:12px">계정 목록을 읽지 못했습니다: ${esc(e.message)}</div>`; return; }
+  _usersCache=all;
+  const rows=Object.entries(all).filter(([,u])=>u&&typeof u==='object').sort((a,b)=>a[0].localeCompare(b[0]));
+  const stat=u=>u.uid?'<span class="um-st ok">🔒 전환됨</span>'
+               :u.pw?'<span class="um-st wait">⏳ 첫 로그인 전</span>'
+               :'<span class="um-st bad">⚠️ 재발급 필요</span>';
+  box.innerHTML=`<table class="um-tbl"><thead><tr><th>아이디</th><th>이름</th><th>역할</th><th>상태</th><th></th></tr></thead><tbody>${
+    rows.map(([k,u])=>{
+      const me=k===currentUser.id;
+      const role=k==='song'?'<span style="font-size:11px;color:#666">관리자(고정)</span>'
+        :`<select data-id="${esc(k)}" onchange="setUserRole(this.dataset.id,this.value,this)"${me?' disabled':''}>
+            <option value="user"${u.역할!=='admin'?' selected':''}>일반</option><option value="admin"${u.역할==='admin'?' selected':''}>관리자</option></select>`;
+      const last=(u.lastLogin?`<div class="um-last">최근 로그인 ${esc(localDateTimeOf(u.lastLogin))}</div>`:'')
+        +(u.uid?`<div class="um-last">전환 ${esc(localDateTimeOf(u.authAt||''))} · UID ${esc(String(u.uid).slice(0,6))}…</div>`:'');
+      const act=me?'<span style="font-size:11px;color:#999">내 계정</span>'
+        :`<button class="btn btn-info btn-sm" data-id="${esc(k)}" onclick="openReissue(this.dataset.id)">재발급</button>
+          <button class="btn btn-danger btn-sm" data-id="${esc(k)}" onclick="deleteUser(this.dataset.id)">삭제</button>`;
+      return `<tr><td><b>${esc(k)}</b>${last}</td><td>${esc(u.이름||'')}</td><td>${role}</td><td>${stat(u)}</td><td class="um-act">${act}</td></tr>`;
+    }).join('')}</tbody></table>`;
+}
+function adminCount(all,exceptId){
+  const authOn=!_legacyMode&&!!(AUTH&&AUTH.currentUser);
+  return Object.entries(all||{}).filter(([k,u])=>u&&k!==exceptId&&(u.역할==='admin'||k==='song')&&(authOn?u.uid:(u.uid||u.pw))).length;
+}
+async function setUserRole(id,role,sel){
+  const u=_usersCache[id]; if(!u) return;
+  if(role!=='admin'&&u.역할==='admin'&&adminCount(_usersCache,id)<1){
+    alert('관리자가 한 명도 남지 않게 됩니다. 다른 관리자를 먼저 정하십시오.'); if(sel) sel.value='admin'; return;
+  }
+  if(!confirm(`${u.이름||id}(${id}) 계정을 ${role==='admin'?'관리자':'일반'} 계정으로 바꾸시겠습니까?`)){ if(sel) sel.value=u.역할==='admin'?'admin':'user'; return; }
+  try{ await fbSet('users/'+id+'/역할',role); u.역할=role; addLog(currentUser.이름,'역할 변경',`${id} → ${role}`); expToast('역할을 바꿨습니다.'); }
+  catch(e){ alert('바꾸지 못했습니다: '+e.message); if(sel) sel.value=u.역할==='admin'?'admin':'user'; }
+}
+async function deleteUser(id){
+  const u=_usersCache[id]; if(!u) return;
+  if(id===currentUser.id){ alert('내 계정은 지울 수 없습니다.'); return; }
+  if((u.역할==='admin'||id==='song')&&adminCount(_usersCache,id)<1){ alert('마지막 관리자 계정은 지울 수 없습니다.'); return; }
+  if(!confirm(`${u.이름||id}(${id}) 계정을 삭제하시겠습니까?\n\n삭제하면 이 아이디로 더 이상 로그인할 수 없습니다. 지금 접속해 있으면 바로 로그아웃됩니다.`)) return;
+  try{
+    const upd={['users/'+id]:null,['pub/a/'+await idKey(id)]:null};
+    if(u.uid) upd['uidMap/'+u.uid]=null;
+    await window._fbUpdate(window._fbRef(DB),upd);
+    addLog(currentUser.이름,'계정 삭제',id);
+    renderUserList();
+  }catch(e){ alert('삭제하지 못했습니다: '+e.message); }
+}
+// 비밀번호 재발급 — 새 Firebase 계정을 만들어 이 아이디에 다시 연결합니다 (예전 연결은 바로 끊깁니다)
+function openReissue(id){
+  const u=_usersCache[id]; if(!u) return;
+  openPwModal({
+    id, title:`🔑 비밀번호 재발급 — ${u.이름||id}(${id})`,
+    desc:'새 비밀번호를 정해 직원에게 알려 주십시오.<br>직원은 로그인한 뒤 [⚙ 계정]에서 비밀번호를 바꿀 수 있습니다.<br><span style="color:#888">지금 접속해 있는 기기는 바로 로그아웃됩니다.</span>',
+    canSkip:true, skipLabel:'취소', okLabel:'재발급',
+    save:async a=>{ await reissueAccount(id,a); },
+    done:()=>{ alert(`${u.이름||id}(${id}) 계정의 비밀번호를 재발급했습니다.\n새 비밀번호를 직원에게 알려 주십시오.`); renderUserList(); if(document.getElementById('secModal')?.classList.contains('show')) renderSecPanel(); }
+  });
+}
+async function reissueAccount(id,newPw){
+  const u=await fbGet('users/'+id); if(!u) throw new Error('계정을 찾지 못했습니다.');
+  let made;
+  try{ made=await createAuthAccount(id,newPw); }
+  catch(e){
+    if(!u.uid&&await canLegacyFallback(e)){
+      // Firebase 인증이 아직 꺼져 있으면 예전 방식으로 정해 둡니다 (인증을 켜면 첫 로그인 때 옮겨집니다)
+      await fbSet('users/'+id+'/pw',hashPw(newPw)); addLog(currentUser.이름,'비밀번호 재발급(예전 방식)',id); return;
+    }
+    throw new Error(isAuthSetupErr(e)?authSetupMsg(e):authErrMsg(e));
+  }
+  const upd={};
+  if(u.uid&&u.uid!==made.uid) upd['uidMap/'+u.uid]=null;
+  upd['uidMap/'+made.uid]=id;
+  upd['users/'+id+'/uid']=made.uid;
+  upd['users/'+id+'/authAt']=nowISO();
+  upd['users/'+id+'/pw']=null;
+  upd['pub/a/'+await idKey(id)]=made.alias;
+  await window._fbUpdate(window._fbRef(DB),upd);
+  addLog(currentUser.이름,'비밀번호 재발급',id);
 }
 async function addUser(){
   const newId=document.getElementById('um-newid').value.trim();
   const newName=document.getElementById('um-newname').value.trim();
   const newPw=document.getElementById('um-newinpw').value;
   const newRole=document.getElementById('um-role').value;
-  if(!newId||!newPw){alert('아이디와 비밀번호를 입력하세요.');return;}
-  const existing=await fbGet('users/'+newId);
-  if(existing){alert('이미 존재하는 아이디입니다.');return;}
-  await fbSet('users/'+newId,{id:newId,이름:newName||newId,pw:hashPw(newPw),역할:newRole||'user'});
-  alert('계정 추가 완료!');
-  ['um-newid','um-newname','um-newinpw'].forEach(id=>document.getElementById(id).value='');
+  if(!newId||!newPw){alert('아이디와 비밀번호를 입력하십시오.');return;}
+  if(!validNewId(newId)){alert('아이디는 영문·숫자·한글·밑줄(_)·하이픈(-)으로 20자 이내로 정하십시오.');return;}
+  const why=pwPolicyMsg(newPw,newId); if(why){alert(why);return;}
+  const btn=document.getElementById('umAddBtn'); if(btn) btn.disabled=true;
+  try{
+    const existing=await fbGet('users/'+newId);
+    if(existing){alert('이미 있는 아이디입니다.');return;}
+    const rec={id:newId,이름:newName||newId,역할:newRole||'user',생성일:nowISO(),생성자:currentUser.id};
+    let note='';
+    try{
+      const made=await createAuthAccount(newId,newPw);
+      await window._fbUpdate(window._fbRef(DB),{
+        ['users/'+newId]:{...rec,uid:made.uid,authAt:nowISO()},
+        ['uidMap/'+made.uid]:newId,
+        ['pub/a/'+await idKey(newId)]:made.alias
+      });
+    }catch(e){
+      if(!await canLegacyFallback(e)) throw new Error(isAuthSetupErr(e)?authSetupMsg(e):authErrMsg(e));
+      await fbSet('users/'+newId,{...rec,pw:hashPw(newPw)});
+      note='\n\n(Firebase 인증이 아직 꺼져 있어 예전 방식으로 만들었습니다. 인증을 켜면 첫 로그인 때 자동으로 옮겨집니다.)';
+    }
+    addLog(currentUser.이름,'계정 추가',newId);
+    alert('계정을 추가했습니다.'+note);
+    ['um-newid','um-newname','um-newinpw'].forEach(id=>document.getElementById(id).value='');
+    renderUserList();
+  }catch(e){ alert('계정을 추가하지 못했습니다: '+(e.message||e)); }
+  finally{ if(btn) btn.disabled=false; }
 }
 
+// ══ 보안 전환 (관리자) ══
+// 데이터베이스 규칙 — 로그인한 등록 직원만 읽고 쓰고, 연말결산·계정관리는 관리자만 씁니다
+function buildDbRules(){
+  const ME="root.child('uidMap').child(auth.uid).val()";
+  const STAFF="auth != null && root.child('uidMap').child(auth.uid).isString() && root.child('users').child("+ME+").child('uid').val() === auth.uid";
+  const ADMIN="("+STAFF+") && (root.child('users').child("+ME+").child('역할').val() === 'admin' || "+ME+" === 'song')";
+  const rw=(r,w)=>({'.read':r,'.write':w});
+  const R={'.read':false,'.write':false};
+  // 재고·원가는 화면에서 통째로 저장하므로 직원도 노드 전체를 씁니다
+  ['stockData','priceDB'].forEach(n=>R[n]=rw(STAFF,STAFF));
+  // 정산서·결산서·메모·근무기록 등은 직원은 한 건씩만 쓰고, 노드 전체(복원 등)는 관리자만 씁니다
+  ['jungs','results','albaWorkLog','stockClose','memos','meta','schedules'].forEach(n=>R[n]={'.read':STAFF,'.write':ADMIN,'$k':{'.write':STAFF}});
+  // 작업 기록은 직원은 새로 추가만 할 수 있습니다 (고치거나 지우지 못합니다)
+  R.logs={'.read':STAFF,'.write':ADMIN,'$k':{'.write':"(("+STAFF+") && !data.exists() && newData.exists()) || ("+ADMIN+")"}};
+  ['albaData','albaConfig'].forEach(n=>R[n]=rw(STAFF,ADMIN));
+  ['expenses','bizConfig','posSales','vendors'].forEach(n=>R[n]=rw(ADMIN,ADMIN));
+  R.users={'.read':ADMIN,'.write':ADMIN,
+    '$id':{'.read':"("+STAFF+") && "+ME+" === $id",
+           'lastLogin':{'.write':"("+STAFF+") && "+ME+" === $id",'.validate':'newData.isString()'}}};
+  R.uidMap={'.read':ADMIN,'.write':ADMIN,'$uid':{'.read':'auth != null && auth.uid === $uid'}};
+  R.pub={'a':{'$hid':{'.read':true,'.write':ADMIN}}};
+  return {rules:R};
+}
+const STORAGE_RULES=`rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // receipts: signed-in users only, images or PDF only, under 15MB
+    match /receipts/{rest=**} {
+      allow get, delete: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.size < 15 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*|application/pdf');
+    }
+    // small test file used by the storage check button
+    match /_test/{rest=**} {
+      allow get, delete: if request.auth != null;
+      allow create: if request.auth != null && request.resource.size < 1024;
+    }
+  }
+}`;
+function dbRulesText(){ return JSON.stringify(buildDbRules(),null,2); }
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); return true; }
+  catch(_){
+    const ta=document.createElement('textarea'); ta.value=t; ta.style.cssText='position:fixed;left:-9999px;top:0';
+    document.body.appendChild(ta); ta.select();
+    let ok=false; try{ ok=document.execCommand('copy'); }catch(__){}
+    ta.remove(); return ok;
+  }
+}
+async function copyRules(kind){
+  if(kind!=='storage'){
+    let all={}; try{ all=await fbGet('users')||{}; }catch(_){}
+    const list=Object.entries(all).filter(([,u])=>u&&typeof u==='object')
+      .map(([k,u])=>`· ${k} (${u.이름||k}) — ${(u.역할==='admin'||k==='song')?'관리자':'일반'}${u.uid?'':' · 아직 로그인 안 함'}`).join('\n');
+    if(!confirm('규칙을 잠그기 전에 계정을 확인하십시오.\n\n'+list+'\n\n모르는 계정이나 더 쓰지 않는 계정이 있으면 [취소]를 누르고 [⚙ 계정]에서 먼저 삭제하십시오.\n모두 맞으면 [확인]을 누르십시오.')) return;
+  }
+  const t=kind==='storage'?STORAGE_RULES:dbRulesText();
+  const ok=await copyText(t);
+  if(ok) expToast(kind==='storage'?'📋 저장소 규칙을 복사했습니다. Storage › Rules에 붙여넣으십시오.':'📋 데이터베이스 규칙을 복사했습니다. Realtime Database › 규칙에 붙여넣으십시오.');
+  else { const d=document.getElementById('secRulesBox'); if(d){ d.open=true; } alert('자동 복사가 되지 않았습니다. 아래 [규칙 내용 보기]에서 직접 선택해 복사하십시오.'); }
+}
+// 로그인하지 않은 상태로 읽어 보아 막히면 잠긴 것입니다 (별도 연결로 확인하므로 내 로그인은 그대로입니다)
+function probeApp(){
+  const appM=window._fbApp;
+  return appM.getApps().find(a=>a.name==='hm-probe')||appM.initializeApp(FB_CONFIG,'hm-probe');
+}
+async function probeDbLock(){
+  try{
+    const dbM=window._fbDb, db2=dbM.getDatabase(probeApp());
+    try{ if(dbM.goOnline) dbM.goOnline(db2); }catch(_){}
+    try{ await withTimeout(dbM.get(dbM.ref(db2,'meta')),9000); return 'open'; }
+    catch(e){ return isPermErr(e)?'locked':'error'; }
+    finally{ try{ if(dbM.goOffline) dbM.goOffline(db2); }catch(_){} }
+  }catch(e){ console.warn('잠금 확인 실패:',e); return 'error'; }
+}
+async function probeStorageLock(){
+  try{
+    const stM=_stLib||await import(fbModUrl('storage'));
+    const st2=stM.getStorage(probeApp());
+    const r=stM.ref(st2,'_test/probe_'+Date.now()+'.txt');
+    try{ await withTimeout(stM.uploadBytes(r,new Blob(['probe'],{type:'text/plain'})),12000); }
+    catch(e){ return /unauthorized|unauthenticated/.test(String(e&&e.code||''))?'locked':'error'; }
+    try{ await stM.deleteObject(r); }catch(_){}
+    return 'open';
+  }catch(e){ console.warn('저장소 잠금 확인 실패:',e); return 'error'; }
+}
+async function purgeLegacyPw(all){
+  const upd={};
+  Object.entries(all||{}).forEach(([k,u])=>{ if(u&&typeof u==='object'&&u.pw) upd['users/'+k+'/pw']=null; });
+  // 연결표(uidMap)에서 실제 계정과 맞지 않는 항목도 지웁니다
+  try{
+    const map=await fbGet('uidMap')||{};
+    Object.entries(map).forEach(([uid,id])=>{ const u=all&&all[id]; if(!u||u.uid!==uid) upd['uidMap/'+uid]=null; });
+  }catch(e){ console.warn('연결표 확인 실패:',e); }
+  const n=Object.keys(upd).length;
+  if(n){ await window._fbUpdate(window._fbRef(DB),upd); addLog(currentUser.이름,'옛 비밀번호 정리',n+'개'); }
+  return n;
+}
+async function openSecPanel(){
+  if(!isAdmin()){ alert('관리자만 볼 수 있습니다.'); return; }
+  closeModal('userMgmtModal');
+  document.getElementById('secModal').classList.add('show');
+  await renderSecPanel();
+}
+let _secBusy=false;
+async function renderSecPanel(){
+  const box=document.getElementById('secBody'); if(!box||_secBusy) return;
+  _secBusy=true;
+  box.innerHTML='<div style="padding:18px 0;color:#888;text-align:center">⏳ 지금 상태를 확인하는 중입니다...</div>';
+  try{
+    const authOn=!!(AUTH&&AUTH.currentUser&&currentUser&&currentUser.uid)&&!_legacyMode;
+    let all={}; try{ all=await fbGet('users')||{}; }catch(e){ console.warn(e); }
+    const list=Object.entries(all).filter(([,u])=>u&&typeof u==='object');
+    const done=list.filter(([,u])=>u.uid), wait=list.filter(([,u])=>!u.uid);
+    const [dbSt,stSt]=await Promise.all([probeDbLock(),probeStorageLock()]);
+    let purged=0;
+    if(dbSt==='locked'&&authOn){ try{ purged=await purgeLegacyPw(all); }catch(e){ console.warn('옛 비밀번호 정리 실패:',e); } }
+    const badge=(ok,okT,ngT,unk)=>ok===true?`<span class="sec-b ok">${okT}</span>`:ok===false?`<span class="sec-b ng">${ngT}</span>`:`<span class="sec-b unk">${unk||'❔ 확인 못 함'}</span>`;
+    const st=v=>v==='locked'?true:v==='open'?false:null;
+    const names=wait.map(([k,u])=>`${esc(u.이름||k)}(${esc(k)})`).join(', ');
+    const allDone=authOn&&!wait.length&&dbSt==='locked'&&stSt!=='open';
+    box.innerHTML=`
+      ${allDone?'<div class="sec-done">✅ 보안 전환이 모두 끝났습니다. 이제 로그인한 직원만 자료를 볼 수 있습니다.</div>':''}
+      <div class="sec-step">
+        <div class="sec-h"><b>① Firebase 로그인 켜기</b>${badge(authOn,'✅ 켜짐','⚠️ 꺼짐')}</div>
+        ${authOn?'<div class="sec-d">관리자 계정이 Firebase 인증으로 로그인해 있습니다.</div>'
+        :`<div class="sec-d">Firebase 콘솔 › <b>Authentication</b> › [시작하기] › <b>로그인 방법</b> › <b>이메일/비밀번호</b>를 눌러 [사용 설정]을 켜고 [저장]하십시오.<br>
+           켠 뒤 이 사이트에서 <b>로그아웃했다가 다시 로그인</b>하면 ✅로 바뀝니다.${_authIssue?`<br><span style="color:#999">(오류 코드: ${esc(_authIssue)})</span>`:''}</div>`}
+      </div>
+      <div class="sec-step">
+        <div class="sec-h"><b>② 직원 모두 한 번씩 로그인</b>${badge(!wait.length,`✅ ${done.length}/${list.length}명`,dbSt==='locked'?`⚠️ 재발급 필요 ${wait.length}명`:`⏳ ${done.length}/${list.length}명`)}</div>
+        <div class="sec-d">${!wait.length?'모든 계정이 Firebase 인증으로 옮겨졌습니다.'
+          :dbSt==='locked'
+          ?`잠금 전에 로그인하지 않은 계정: <b>${names}</b><br>이 계정은 예전 비밀번호로 들어올 수 없습니다. [⚙ 계정]에서 <b>재발급</b>해 새 비밀번호를 알려 주십시오.
+            <br><button class="btn btn-info btn-sm" style="margin-top:6px" onclick="closeModal('secModal');openUserMgmt()">⚙ 계정 관리 열기</button>`
+          :`아직 로그인하지 않은 계정: <b>${names}</b><br>각자 평소 비밀번호로 한 번 로그인하면 자동으로 옮겨집니다. 한동안 안 오는 직원이나 더 쓰지 않는 계정은 그대로 두지 말고 [⚙ 계정]에서 <b>재발급하거나 삭제</b>하십시오.`}</div>
+      </div>
+      <div class="sec-step">
+        <div class="sec-h"><b>③ 데이터베이스 규칙 잠그기</b>${badge(st(dbSt),'🔒 잠김','🔓 열려 있음')}</div>
+        ${dbSt==='locked'?`<div class="sec-d">로그인하지 않은 사람은 자료를 읽거나 쓸 수 없습니다.${purged?`<br>예전 방식 비밀번호 ${purged}개를 지웠습니다. 그 계정은 [재발급]해야 로그인할 수 있습니다.`:''}</div>`
+        :`<div class="sec-d">
+          <ol class="sec-ol">
+            <li>Firebase 콘솔 › <b>Realtime Database</b> › <b>규칙</b> 탭을 엽니다.</li>
+            <li>지금 적힌 규칙을 <b>전부 복사해 메모장에 저장</b>해 둡니다. 문제가 생기면 이것을 다시 붙여넣고 [게시]하면 원래대로 돌아갑니다.</li>
+            <li>아래 [📋 데이터베이스 규칙 복사]를 누르고, 규칙 칸을 전부 지운 뒤 붙여넣고 <b>[게시]</b>를 누릅니다.</li>
+            <li>이 창의 [🔄 다시 확인]을 눌러 🔒 잠김으로 바뀌는지 봅니다.</li>
+          </ol>
+          ${wait.length?'<div class="sec-warn">⚠️ 아직 로그인하지 않은 직원은 잠근 뒤에는 들어올 수 없습니다. 잠근 다음 그 직원은 [재발급]해 주십시오.</div>':''}
+          ${authOn?'<button class="btn btn-primary btn-sm" onclick="copyRules(\'db\')">📋 데이터베이스 규칙 복사</button>'
+                  :'<div class="sec-warn">①을 먼저 끝내십시오. 관리자가 Firebase 인증으로 로그인해 있지 않은 채 잠그면 관리자도 들어올 수 없습니다.</div>'}
+        </div>`}
+      </div>
+      <div class="sec-step">
+        <div class="sec-h"><b>④ 영수증 저장소 규칙 잠그기</b>${badge(st(stSt),'🔒 잠김','🔓 열려 있음')}</div>
+        ${stSt==='locked'?'<div class="sec-d">로그인하지 않은 사람은 영수증 사진을 올리거나 받을 수 없습니다.</div>'
+        :`<div class="sec-d">Firebase 콘솔 › <b>Storage</b> › <b>Rules</b> 탭에서 지금 규칙을 메모장에 저장해 두고, [📋 저장소 규칙 복사]로 붙여넣은 뒤 <b>[게시]</b>를 누르십시오.
+          ${stSt==='error'?'<br><span style="color:#999">저장소 상태를 확인하지 못했습니다. 저장소를 쓰지 않으면 건너뛰셔도 됩니다.</span>':''}<br>
+          ${authOn?'<button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="copyRules(\'storage\')">📋 저장소 규칙 복사</button>':''}</div>`}
+      </div>
+      ${authOn?`<details id="secRulesBox" class="sec-rules"><summary>규칙 내용 보기</summary>
+        <div style="font-size:11px;color:#666;margin:6px 0 3px">데이터베이스 규칙 (Realtime Database › 규칙)</div>
+        <textarea readonly onclick="this.select()">${esc(dbRulesText())}</textarea>
+        <div style="font-size:11px;color:#666;margin:8px 0 3px">저장소 규칙 (Storage › Rules)</div>
+        <textarea readonly onclick="this.select()" style="height:150px">${esc(STORAGE_RULES)}</textarea>
+      </details>`:''}
+      <details class="sec-rules"><summary>관리자 비밀번호를 모두 잊었을 때 (비상 복구)</summary>
+        <ol class="sec-ol" style="font-size:12px;line-height:1.7;margin-top:6px">
+          <li>Firebase 콘솔 › Authentication › 사용자 › [사용자 추가]에서 이메일(예: rescue@example.com)과 비밀번호를 직접 정해 만들고, 생긴 <b>사용자 UID</b>를 복사합니다.</li>
+          <li>Realtime Database › 데이터에서 <b>uidMap</b> 아래에 [UID] = "admin" 을 추가하고, <b>users › admin › uid</b> 값을 그 UID로 바꿉니다.</li>
+          <li>이 사이트의 아이디 칸에 그 <b>이메일</b>, 비밀번호 칸에 정한 비밀번호를 넣어 로그인합니다.</li>
+          <li>[⚙ 계정]에서 다른 관리자 계정을 재발급해 평소처럼 쓰시면 됩니다.</li>
+        </ol>
+        <div style="font-size:11px;color:#888">관리자 계정을 두 개 이상 두면 이 과정이 필요 없습니다. 한 관리자가 다른 관리자를 재발급할 수 있습니다.</div>
+      </details>`;
+    updateSecChip(allDone);
+  }finally{ _secBusy=false; }
+}
+// 관리자 화면 위쪽 알림 — 전환이 끝나지 않았으면 보여 줍니다
+function updateSecChip(allDone){
+  const c=document.getElementById('ubSec'); if(!c) return;
+  c.style.display=(isAdmin()&&!allDone)?'':'none';
+}
+async function refreshSecChip(){
+  try{
+    const authOn=!!(AUTH&&AUTH.currentUser&&currentUser&&currentUser.uid)&&!_legacyMode;
+    let all={}; try{ all=await fbGet('users')||{}; }catch(_){}
+    const wait=Object.values(all).filter(u=>u&&typeof u==='object'&&!u.uid).length;
+    const dbSt=await probeDbLock();
+    updateSecChip(authOn&&!wait&&dbSt==='locked');
+  }catch(e){ console.warn(e); }
+}
 
 let priceDB=[],results=[],stockData={},jungs=[];
 let editingId=null,newCap=50,listFilter='진행중',pendingId=null;
@@ -2377,19 +3207,58 @@ async function init(){
   document.getElementById('nw-날짜').value=('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2);
   updateNFN();
   initKoreanInputs();   // 고인·상주 입력란 한글 변환기 연결
-  // 세션 복원: token 기반 (12시간 유효)
-  // Firebase: token 불필요
-  const savedUser=localStorage.getItem('hm_user');
+  _initP=restoreSession();
+}
+// 이 브라우저에 Firebase 로그인이 남아 있고 1시간 안에 쓴 적이 있으면 그대로 들어갑니다
+async function restoreSession(){
+  let saved=null; try{ saved=JSON.parse(localStorage.getItem('hm_user')||'null'); }catch(_){}
   const expire=+localStorage.getItem('hm_expire')||0;
-  if(savedUser && Date.now()<expire){
-    currentUser=JSON.parse(savedUser);
-    initFirebase().then(()=>onLoginSuccess());
-  } else if(savedUser && Date.now()>=expire){
-    const user=JSON.parse(savedUser);
-    document.getElementById('li-id').value=user.id||'';
-    localStorage.removeItem('hm_user');localStorage.removeItem('hm_expire');
-    showLoginErr('1시간 동안 사용하지 않아 자동으로 로그아웃했습니다. 비밀번호를 다시 입력하십시오.');
-    document.getElementById('li-pw').focus();
+  const wasLegacy=localStorage.getItem('hm_legacy')==='1';
+  if(saved&&saved.id) document.getElementById('li-id').value=saved.id;
+  const btn=document.getElementById('loginBtn');
+  btn.textContent='로그인 확인 중...'; btn.disabled=true;
+  try{
+    try{ await initFirebase(); await AUTH.authStateReady(); }
+    catch(e){
+      console.error('Firebase 연결 실패:',e);
+      showLoginErr('서버에 연결하지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침하십시오.');
+      return;
+    }
+    watchAuthState();
+    const u=AUTH.currentUser;
+    if(u&&Date.now()<expire&&localStorage.getItem('hm_pwchange')){
+      // 관리자가 약한 비밀번호를 바꾸지 않고 새로고침한 경우 — 다시 로그인해서 바꾸게 합니다
+      await _au.signOut(AUTH).catch(()=>{});
+      localStorage.removeItem('hm_user'); localStorage.removeItem('hm_expire');
+      showLoginErr('비밀번호를 바꿔야 계속 쓸 수 있습니다. 다시 로그인하십시오.');
+      setTimeout(()=>document.getElementById('li-pw').focus(),50);
+      return;
+    }
+    if(u&&Date.now()<expire){
+      let prof=null;
+      try{ prof=await loadMyProfile(); }catch(e){ console.error('계정 정보 읽기 실패:',e); }
+      if(prof){
+        currentUser=prof; _legacyMode=false;
+        localStorage.setItem('hm_user',JSON.stringify({id:prof.id}));
+        btn.textContent='로그인'; btn.disabled=false;
+        onLoginSuccess();
+        return;
+      }
+      await _au.signOut(AUTH).catch(()=>{});
+      localStorage.removeItem('hm_user'); localStorage.removeItem('hm_expire');
+      showLoginErr('계정 정보가 바뀌어 로그아웃했습니다. 다시 로그인하십시오.');
+      return;
+    }
+    if(u) await _au.signOut(AUTH).catch(()=>{});
+    if(saved){
+      localStorage.removeItem('hm_user'); localStorage.removeItem('hm_expire'); localStorage.removeItem('hm_legacy');
+      if(u||Date.now()>=expire) showLoginErr('1시간 동안 사용하지 않아 자동으로 로그아웃했습니다. 비밀번호를 다시 입력하십시오.');
+      else if(wasLegacy) showLoginErr('다시 로그인하십시오.');
+      else showLoginErr('보안을 강화해 로그인 방식이 바뀌었습니다. 비밀번호를 한 번 다시 입력하십시오.');
+      setTimeout(()=>document.getElementById('li-pw').focus(),50);
+    }
+  }finally{
+    if(!currentUser){ btn.textContent='로그인'; btn.disabled=false; }
   }
 }
 
@@ -2425,11 +3294,13 @@ function buildMobileNav(){
     ['경영','📒 연말결산',isAdmin()],
     ['재고','📦 재고관리',true],
     ['원가','💰 원가DB',true],
+    ['일정','📅 일정',true],
     ['알바','⏱️ 시간계산',isAdmin()],
     ['관리','⚙️ 마트관리',true],
   ].filter(x=>x[2]);
   tabs.innerHTML=items.map(([k,label])=>
-    `<button class="mn-tab" data-pg="${k}" onclick="goMobile('${k}')">${label}</button>`).join('');
+    `<button class="mn-tab" data-pg="${k}" onclick="goMobile('${k}')">${label}${k==='일정'?'<span class="mn-badge" id="schBadgeM" style="display:none"></span>':''}</button>`).join('');
+  updateSchBadge();
   const u=document.getElementById('mnUser');
   if(u&&currentUser) u.textContent=`${currentUser.이름}(${currentUser.id})`;
   markMobileTab(document.querySelector('.page.on')?.id.replace('page-','')||'관리');
@@ -2456,8 +3327,9 @@ function openMore(){
     + btn('📋','내 근무시간','openMyWork()')
     + btn('📦','기본물품장','openBasicSheet()')
     + btn('💾','백업',"autoBackupToFile('수동')")
-    + btn('↩','스냅샷 복원','restoreSnapshot()')
-    + btn('📂','복원',"document.getElementById('restoreFile').click()")
+    + (isAdmin()?btn('↩','스냅샷 복원','restoreSnapshot()')
+               +btn('📂','복원',"document.getElementById('restoreFile').click()")
+               +btn('🔒','보안 설정','openSecPanel()'):'')
     + btn('👤','계정','openUserMgmt()')
     + btn('🚪','로그아웃','doLogout()');
   // 달력도 함께 보여 줍니다
@@ -2482,6 +3354,7 @@ function showPage(name,btn){
   if(name==='재고') renderStock();
   if(name==='결산'){renderResults();buildCharts();}
   if(name==='원가') renderPrice();
+  if(name==='일정') renderSchedule();
   if(name==='알바'){initAlbaMonth();applyAlbaConfig();renderAlba();}
   if(name==='경영') initBiz();
   // 알바 버튼 색상 (ntab 아닌 별도 버튼)
@@ -2644,7 +3517,7 @@ function burialText(j){
   const [y,m,dd]=d.split('-').map(Number);
   const dt=new Date(y,(m||1)-1,dd||1);
   const dow=isNaN(dt)?'':`(${_DOW[dt.getDay()]})`;
-  const t=j.발인시간?` ${j.발인시간}`:'';
+  const t=j.발인시간?` ${esc(j.발인시간)}`:'';
   return `${m}월 ${dd}일${dow}${t}`;
 }
 
@@ -2734,7 +3607,7 @@ function renderJungList(){
       <span class="ji-cap">${j.인원수}명</span>
       <span class="ji-name">${esc(j.파일명)}</span>
       <span class="ji-burial">발인 ${burialText(j)}</span>
-      <span class="ji-sub ji-gap">생성 ${localDateOf(j.생성일)}</span>
+      <span class="ji-sub ji-gap">생성 ${esc(localDateOf(j.생성일))}</span>
       ${j.생성자?`<span class="ji-sub" style="color:#8a6d3b">작성 ${esc(j.생성자id||j.생성자)}</span>`:''}
       ${(j.수정자&&(j.수정자!==j.생성자||j.수정일))?`<span class="ji-sub" style="color:#e8821a">최종수정 ${esc(j.수정자id||j.수정자)}</span>`:''}
       ${j.메모?'<span class="ji-memo" title="메모 있음">📝</span>':''}
@@ -2746,15 +3619,15 @@ function renderJungList(){
             ?'<span class="badge" style="background:#e74c3c;color:#fff;font-weight:700;animation:pulse 1.5s infinite">🔴 금일완료</span>'
             :'<span class="badge badge-done">✅ 완료</span>';
         })()}
-        <span class="badge badge-${j.결제==='카드결제'?'card':j.결제==='현금결제'?'cash':'rcpt'}">${j.결제}</span>`
+        <span class="badge badge-${j.결제==='카드결제'?'card':j.결제==='현금결제'?'cash':'rcpt'}">${esc(j.결제)}</span>`
         :`<span class="badge badge-ing">진행중</span>`}
       <div class="btn-group" onclick="event.stopPropagation()">
-        ${j.메모?`<span class="badge" style="background:#f39c12;color:#fff;cursor:pointer" onclick="openMemo('${j.id}')">📝 메모있음</span>`:''}
-        <button class="btn btn-sm" style="background:#6c757d;color:#fff" onclick="openMemo('${j.id}')">📋 메모</button>
-        ${!done?`<button class="btn btn-primary btn-sm" onclick="openEdit('${j.id}')">✏️ 편집</button>`:''}
-        <button class="btn btn-gray btn-sm" onclick="openView('${j.id}')">👁 보기</button>
-        <button class="btn btn-info btn-sm" onclick="printJung('${j.id}')">🖨️ 인쇄</button>
-        ${(!done||isAdmin())?`<button class="btn btn-danger btn-sm" onclick="delJung('${j.id}')">삭제</button>`:''}
+        ${j.메모?`<span class="badge" style="background:#f39c12;color:#fff;cursor:pointer" onclick="openMemo(${jsq(j.id)})">📝 메모있음</span>`:''}
+        <button class="btn btn-sm" style="background:#6c757d;color:#fff" onclick="openMemo(${jsq(j.id)})">📋 메모</button>
+        ${!done?`<button class="btn btn-primary btn-sm" onclick="openEdit(${jsq(j.id)})">✏️ 편집</button>`:''}
+        <button class="btn btn-gray btn-sm" onclick="openView(${jsq(j.id)})">👁 보기</button>
+        <button class="btn btn-info btn-sm" onclick="printJung(${jsq(j.id)})">🖨️ 인쇄</button>
+        ${(!done||isAdmin())?`<button class="btn btn-danger btn-sm" onclick="delJung(${jsq(j.id)})">삭제</button>`:''}
       </div>`;
     el.appendChild(div);
   });
@@ -2785,8 +3658,8 @@ function loadForm(j,readOnly,forceEdit=false){
   document.getElementById('e-날짜').value=j.날짜;
   const wEl=document.getElementById('editWriter');
   if(wEl){
-    const made=j.생성자?`작성 ${j.생성자id||j.생성자}${j.생성일?' · '+localDateOf(j.생성일):''}`:'';
-    const upd=j.수정자?`최종수정 ${j.수정자id||j.수정자}${j.수정일?' · '+localDateTimeOf(j.수정일):''}`:'';
+    const made=j.생성자?`작성 ${esc(j.생성자id||j.생성자)}${j.생성일?' · '+esc(localDateOf(j.생성일)):''}`:'';
+    const upd=j.수정자?`최종수정 ${esc(j.수정자id||j.수정자)}${j.수정일?' · '+esc(localDateTimeOf(j.수정일)):''}`:'';
     wEl.innerHTML=[made,upd].filter(Boolean).join(' &nbsp;|&nbsp; ');
   }
   document.getElementById('e-발인시간').value=j.발인시간||'';
@@ -2818,7 +3691,7 @@ function loadForm(j,readOnly,forceEdit=false){
 function buildTable(j,readOnly){
   const body=document.getElementById('editBody');body.innerHTML='';
   const items=j.items||[];
-  const opts=priceDB.map(p=>`<option value="${esc(p.품명)}" data-u="${esc(p.단위)}" data-p="${p.가격}">${p.품명}</option>`).join('');
+  const opts=priceDB.map(p=>`<option value="${esc(p.품명)}" data-u="${esc(p.단위)}" data-p="${+p.가격||0}">${esc(p.품명)}</option>`).join('');
   let bNo=1,aNo=BASIC.length+1;
   const isDone=j.상태==='완료';
   items.forEach((item,idx)=>{
@@ -2840,16 +3713,16 @@ function buildTable(j,readOnly){
     if(isA){
       // 기타물품이면 단위·단가 직접 입력 가능
       const isEtc=item.품명==='기타물품';
-      const 단위셀=readOnly?item.단위
+      const 단위셀=readOnly?esc(item.단위)
         :(isEtc?`<input type="text" value="${esc(item.단위||'')}" placeholder="단위" data-i="${idx}" data-f="단위"
-            onchange="onQExtra(this)" style="width:50px;padding:2px;border:1px solid #ccc;border-radius:3px;font-size:11px">`:item.단위);
+            onchange="onQExtra(this)" style="width:50px;padding:2px;border:1px solid #ccc;border-radius:3px;font-size:11px">`:esc(item.단위));
       const 단가셀=readOnly?(item.단가?fmt(item.단가):'')
         :(isEtc?`<input type="number" value="${item.단가||0}" placeholder="단가" data-i="${idx}" data-f="단가"
             onchange="onQExtra(this);onQ(this)" style="width:62px;padding:2px;border:1px solid #ccc;border-radius:3px;font-size:11px;text-align:right"
             onwheel="event.preventDefault()" onfocus="this.select()">`:item.단가?fmt(item.단가):'');
       tr.innerHTML=`
         <td data-l="NO">${item.품명?aNo++:''}</td>
-        <td class="nm" data-l="">${readOnly?item.품명:`<select class="as" data-i="${idx}" onchange="onSel(this)"><option value="">-- 선택 --</option>${opts}</select>`}</td>
+        <td class="nm" data-l="">${readOnly?esc(item.품명):`<select class="as" data-i="${idx}" onchange="onSel(this)"><option value="">-- 선택 --</option>${opts}</select>`}</td>
         <td data-l="단위">${단위셀}</td><td data-l="단가">${단가셀}</td>
         <td data-l="주문량">${qc(item.주문량,idx,'주문량',readOnly)}</td>
         <td data-l="추가 주문량">${qc(item.추가,idx,'추가',readOnly)}</td>
@@ -2934,9 +3807,16 @@ function onQKey(e){
     case 'ArrowLeft':  if(atStart) done=navHorz(el,-1,false); break;
     case 'Tab':        done=navHorz(el,e.shiftKey?-1:1,true); break;
   }
-  if(done) e.preventDefault();
+  if(done){
+    e.preventDefault();
+    document.getElementById('editTableWrap')?.classList.add('kbnav');   // 마우스를 다시 움직이면 풀립니다
+  }
 }
 document.addEventListener('keydown',e=>{ if(e.target&&e.target.closest&&e.target.closest('#editBody')) onQKey(e); },true);
+document.addEventListener('mousemove',e=>{
+  const w=document.getElementById('editTableWrap');
+  if(w&&w.classList.contains('kbnav')&&(Math.abs(e.movementX)+Math.abs(e.movementY))>2) w.classList.remove('kbnav');
+},{passive:true});
 // 기타물품 단위·단가 직접 입력
 function onQExtra(inp){
   const idx=+inp.dataset.i, f=inp.dataset.f;
@@ -3108,7 +3988,7 @@ th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
 <\/style>
 </head><body>
 <div class="ph1">최 종 정 산 서</div>
-<div class="ph2">${dStr}${j.결제?' &nbsp;&nbsp; <span style="background:#333;color:#fff;padding:2px 10px;border-radius:10px;font-size:10pt;font-weight:700">'+j.결제+'</span>':''}</div>
+<div class="ph2">${dStr}${j.결제?' &nbsp;&nbsp; <span style="background:#333;color:#fff;padding:2px 10px;border-radius:10px;font-size:10pt;font-weight:700">'+esc(j.결제)+'</span>':''}</div>
 <table class="phead" style="margin-bottom:3px">
   <tr>
     <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${esc(j.분향실)}</td>
@@ -3744,7 +4624,7 @@ function renderMyWork(){
       <td>${r.회차}회차${r.업무?`<br><span style="font-size:10px;color:#8a6d3b">${esc(r.업무)}</span>`:''}</td>
       <td>${r.출근}</td><td>${r.퇴근}</td>
       <td style="font-weight:700;color:#1b3a5c">${h.toFixed(1)}h</td>
-      <td><button onclick="editMyWorkSlot('${r.날짜}',${r.회차-1})"
+      <td><button onclick="editMyWorkSlot(${jsq(r.날짜)},${r.회차-1})"
         style="background:${r.승인?'#aab4bf':'#e8821a'};color:#fff;border:none;border-radius:4px;
         padding:3px 9px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit"
         title="${r.승인?'승인되어 수정할 수 없습니다':'출퇴근 시간을 수정합니다'}">
@@ -3796,7 +4676,7 @@ async function editMyWorkSlot(dateKey,slotIdx,who){
           style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px"></div>
     </div>
     <div style="display:flex;gap:6px">
-      <button onclick="saveMyWorkSlot('${dateKey}',${slotIdx},${who?`'${esc(who)}'`:'null'})"
+      <button onclick="saveMyWorkSlot(${jsq(dateKey)},${slotIdx},${who?jsq(who):'null'})"
         style="flex:1;background:#217a3c;color:#fff;border:none;border-radius:5px;padding:7px;
         cursor:pointer;font-weight:700;font-family:inherit;font-size:12px">✅ 저장</button>
       <button onclick="document.getElementById('mwEditPop').remove()"
@@ -3859,7 +4739,7 @@ th{background:#f0f0f0}
 @media print{@page{margin:8mm;size:A4 portrait}}
 <\/style></head><body>
 <h1>근 무 시 간 확 인 서</h1>
-<div class="sub">${me} 님 &nbsp;·&nbsp; ${month||'전체 기간'} &nbsp;·&nbsp; 혼길마트</div>
+<div class="sub">${esc(me)} 님 &nbsp;·&nbsp; ${esc(month||'전체 기간')} &nbsp;·&nbsp; 혼길마트</div>
 <table><thead><tr><th style="width:28px">NO</th><th style="width:86px">날짜</th>
 <th style="width:42px">회차</th><th style="width:90px">업무</th>
 <th style="width:60px">출근</th><th style="width:60px">퇴근</th>
@@ -3882,6 +4762,7 @@ setTimeout(function(){window.print();setTimeout(function(){window.close();},1500
 let stockClose={};
 let scCount={};   // 마감 화면에서 입력 중인 실사 수량 {품명:수량}
 let scReason={};  // {품명:사유}
+let scPrefilled=0; // 재고표의 실제 재고로 미리 채운 품목 수
 
 // 해당 월의 품목별 장부 재고
 function bookStock(ym){
@@ -3906,6 +4787,14 @@ function openStockClose(){
       scReason[n]=done.항목[k].사유||'';
     });
   }
+  scPrefilled=0;
+  if(!(done&&done.항목)){
+    const mData=stockData[ym]||{};
+    bookStock(ym).forEach(r=>{
+      const p=mData[r.품명]||mData[toFbKey(r.품명)]||{};
+      if(p.실사!==undefined&&p.실사!==null&&p.실사!==''){ scCount[r.품명]=+p.실사; scPrefilled++; }
+    });
+  }
   document.getElementById('scTitle').textContent=`${ymLabel(ym)} → ${ymLabel(nextYM(ym))} 이월`;
   renderStockClose();
   document.getElementById('stockCloseModal').classList.add('show');
@@ -3923,14 +4812,14 @@ function renderStockClose(){
     if(has&&diff!==0){ diffCnt++; diffSum+=diff; }
     const c=diff>0?'#217a3c':diff<0?'#c0392b':'#888';
     return `<tr${has&&diff!==0?' style="background:#fffaf0"':''}>
-      <td class="nm" style="text-align:left;padding-left:8px">${r.품명}</td>
+      <td class="nm" style="text-align:left;padding-left:8px">${esc(r.품명)}</td>
       <td style="text-align:right;padding-right:8px;font-weight:700;color:${r.장부<0?'#c0392b':'#1b3a5c'}">${r.장부}</td>
       <td><input type="number" value="${has?실사:''}" placeholder="—"
-        style="${inp};width:86px;text-align:center" onchange="updClose('${esc(r.품명)}',this.value)"></td>
+        style="${inp};width:86px;text-align:center" onchange="updClose(${jsq(r.품명)},this.value)"></td>
       <td style="text-align:right;padding-right:8px;font-weight:700;color:${c}">${has?(diff>0?'+':'')+diff:'-'}</td>
       <td><input type="text" value="${esc(scReason[r.품명]||'')}" lang="ko"
         placeholder="${has&&diff!==0?'예: 파손, 시식, 계수 착오':''}"
-        style="${inp};width:96%;text-align:left" onchange="updCloseReason('${esc(r.품명)}',this.value)"></td>
+        style="${inp};width:96%;text-align:left" onchange="updCloseReason(${jsq(r.품명)},this.value)"></td>
     </tr>`;
   }).join('');
   const ds=document.getElementById('scDiffSum');
@@ -3940,12 +4829,13 @@ function renderStockClose(){
   const al=document.getElementById('scAlert');
   if(done){
     al.style.background='#f0fff4'; al.style.border='1px solid #52be80'; al.style.color='#1e8449';
-    al.innerHTML=`✅ 이미 마감된 달입니다. 확정 ${done.확정자||''} · ${localDateTimeOf(done.확정일)}<br>`
+    al.innerHTML=`✅ 이미 마감된 달입니다. 확정 ${esc(done.확정자||'')} · ${esc(localDateTimeOf(done.확정일))}<br>`
       +`다시 마감하면 ${ymLabel(nextYM(ym))} 이월량을 덮어씁니다.`;
   } else {
     al.style.background='#fff8e7'; al.style.border='1px solid #f0d090'; al.style.color='#8a6d3b';
     al.innerHTML='실사 수량을 비워 두면 그 품목은 <b>장부 재고</b>가 그대로 이월됩니다. '
-      +'값을 넣으면 차이만큼 이번 달에 조정으로 기록되고 실사 수량이 이월됩니다.';
+      +'값을 넣으면 차이만큼 이번 달에 조정으로 기록되고 실사 수량이 이월됩니다.'
+      +(scPrefilled?`<br>📋 재고관리장에 넣어 둔 <b>실제 재고 ${scPrefilled}개 품목</b>을 실사 칸에 채웠습니다.`:'');
   }
 }
 function updClose(품명,v){ scCount[품명]=v; renderStockClose(); }
@@ -4010,10 +4900,10 @@ function printStockClose(){
   const body=rows.map((r,i)=>{
     const has=scCount[r.품명]!==undefined&&scCount[r.품명]!=='';
     const 실사=has?+scCount[r.품명]:r.장부, diff=실사-r.장부;
-    return `<tr><td>${i+1}</td><td class="l">${r.품명}</td>
+    return `<tr><td>${i+1}</td><td class="l">${esc(r.품명)}</td>
       <td class="r">${r.장부}</td><td class="r">${실사}</td>
       <td class="r">${diff>0?'+':''}${diff||''}</td>
-      <td class="l">${scReason[r.품명]||''}</td></tr>`;
+      <td class="l">${esc(scReason[r.품명]||'')}</td></tr>`;
   }).join('');
   const w=window.open('','_blank','width=820,height=1000,scrollbars=yes');
   if(!w){alert('팝업이 차단됐습니다.\n주소창 오른쪽 팝업 차단 아이콘에서 이 사이트의 팝업을 허용해 주십시오.');return;}
@@ -4121,8 +5011,8 @@ function renderBasicSheet(){
       <td class="nm">${esc(it.품명)}</td>
       <td>${esc(it.단위)}</td>
       <td>${fmt(it.단가)}</td>
-      <td><input class="bq" type="number" min="0" value="${it.수량}"
-        data-p="${esc(it.품명)}" data-u="${it.단가}" onchange="onBasicQty(this)"
+      <td><input class="bq" type="number" min="0" value="${+it.수량||0}"
+        data-p="${esc(it.품명)}" data-u="${+it.단가||0}" onchange="onBasicQty(this)"
         onfocus="this.select()" onwheel="event.preventDefault()"
         style="width:62px;padding:3px 5px;border:1px solid #ccc;border-radius:4px;
         text-align:center;font-family:inherit;font-size:13px;font-weight:700;
@@ -4435,7 +5325,7 @@ function openCalInput(dateKey,td){
 
   pop.innerHTML=`
     <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:8px">📅 ${title}</div>
-    <div style="font-size:12px;color:#555;margin-bottom:6px">👤 ${myName}</div>
+    <div style="font-size:12px;color:#555;margin-bottom:6px">👤 ${esc(myName)}</div>
     ${logsHtml?`<div style="margin-bottom:8px">${logsHtml}</div>`:''}
     <div style="background:#f8faff;border-radius:6px;padding:8px;margin-bottom:8px">
       <div style="font-size:11px;color:#1b3a5c;font-weight:700;margin-bottom:6px">+ 근무 추가</div>
@@ -4444,7 +5334,7 @@ function openCalInput(dateKey,td){
         <label style="font-size:10px;color:#555">업무종류</label>
         <select id="calJob" style="width:100%;padding:5px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:12px">
           <option value="">(기본)</option>
-          ${jobs.map(j=>`<option value="${esc(j)}">${j}</option>`).join('')}
+          ${jobs.map(j=>`<option value="${esc(j)}">${esc(j)}</option>`).join('')}
         </select>
       </div>`:'';})()}
       <div style="display:flex;gap:6px">
@@ -4766,7 +5656,7 @@ function refreshAlbaPersonList(){
   if(!sel) return;
   const cur=sel.value;
   const names=getAlbaNames();
-  sel.innerHTML='<option value="">전체</option>'+names.map(n=>`<option value="${esc(n)}">${n}</option>`).join('');
+  sel.innerHTML='<option value="">전체</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
   sel.value=names.includes(cur)?cur:'';
 }
 
@@ -4903,7 +5793,7 @@ function renderAlba(){
     const isFromLog=r.fromLog;
     const isApproved=r.승인;
     const si=(r.slotIdx!==undefined)?r.slotIdx:-1;
-    const args=`'${r.id}','${r.날짜}','${r.이름}',${si}`;
+    const args=`${jsq(r.id)},${jsq(r.날짜)},${jsq(r.이름)},${+si}`;
     let statusCell='<td style="color:#aaa;font-size:11px">-</td>';
     if(isFromLog){
       if(isApproved){
@@ -4917,7 +5807,7 @@ function renderAlba(){
       } else {
         statusCell=isAdmin()
           ?`<td style="white-space:nowrap"><button class="btn btn-sm" style="background:#e8821a;color:#fff;font-size:10px" onclick="approveAlba(${args})">승인</button>`
-            +`<button class="btn btn-sm" style="background:#1b6fb8;color:#fff;font-size:10px;margin-left:3px" title="출퇴근 시간 수정" onclick="editMyWorkSlot('${r.날짜}',${si},'${r.이름}')">✏️ 수정</button></td>`
+            +`<button class="btn btn-sm" style="background:#1b6fb8;color:#fff;font-size:10px;margin-left:3px" title="출퇴근 시간 수정" onclick="editMyWorkSlot(${jsq(r.날짜)},${+si},${jsq(r.이름)})">✏️ 수정</button></td>`
           :'<td><span style="background:#888;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">⏳대기</span></td>';
       }
     }
@@ -4927,7 +5817,7 @@ function renderAlba(){
     tr.innerHTML=`<td>${i+1}</td>
       <td style="font-weight:700">${esc(r.이름)}</td>
       <td style="font-size:11px;color:#6b4c00">${esc(r.업무||'-')}</td>
-      <td>${r.날짜}</td>
+      <td>${esc(r.날짜)}</td>
       <td>${r.출근}</td><td>${r.퇴근}</td>
       <td style="color:#1b3a5c;font-weight:700">${hrs.toFixed(1)}h</td>
       <td style="font-size:11px;color:${hasWageRule(r.이름,r.업무)?'#555':'#c0392b'}"
@@ -4960,7 +5850,7 @@ function renderAlba(){
   shownNames.forEach(n=>{ if(!nameMap[n]) nameMap[n]={hours:0,pay:0,ins:0,tax:0,net:0}; });
   if(summaryEl)summaryEl.innerHTML=shownNames.map(name=>`
     <div style="background:${nameMap[name].hours?'#eef2ff':'#f4f6f8'};border-radius:8px;padding:10px 16px;min-width:200px;${nameMap[name].hours?'':'opacity:.65'}">
-      <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:4px">${name}
+      <div style="font-weight:700;font-size:13px;color:#1b3a5c;margin-bottom:4px">${esc(name)}
         ${nameMap[name].hours?'':'<span style="font-size:10px;font-weight:400;color:#888">· 근무 없음</span>'}</div>
       <div style="font-size:11px;color:#555">근무: <b>${nameMap[name].hours.toFixed(1)}시간</b></div>
       <div style="font-size:12px;color:#217a3c">총급여: <b>${fmt(nameMap[name].pay)}원</b></div>
@@ -4983,10 +5873,14 @@ function renderAlba(){
 
 // 저장된 값을 회차 배열로 정규화합니다
 // 배열 / 구버전 단일객체 / 손상된 {0:{},1:{},승인:true} 형태를 모두 처리합니다
+const _okTime=t=>typeof t==='string'&&/^[0-9]{1,2}:[0-9]{2}$/.test(t);
+function cleanSlots(arr){
+  return arr.filter(s=>s&&_okTime(s.출근)).map(s=>(!s.퇴근||_okTime(s.퇴근))?s:Object.assign({},s,{퇴근:''}));
+}
 function normalizeSlots(v){
   if(!v) return [];
-  if(Array.isArray(v)) return v.filter(s=>s&&s.출근);
-  if(v.출근) return [v];                       // 구버전 단일 객체
+  if(Array.isArray(v)) return cleanSlots(v);
+  if(v.출근) return cleanSlots([v]);           // 구버전 단일 객체
   const parentApproved = v.승인===true;        // 예전 승인 처리로 잘못 붙은 값
   const slots=[];
   Object.keys(v).forEach(k=>{
@@ -4996,7 +5890,7 @@ function normalizeSlots(v){
       slots[+k]=s;
     }
   });
-  return slots.filter(Boolean);
+  return cleanSlots(slots.filter(Boolean));
 }
 // 불러온 근무기록 전체를 정규화하고, 손상된 항목은 Firebase에도 고쳐 씁니다
 function normalizeWorkLog(raw){
@@ -5004,6 +5898,7 @@ function normalizeWorkLog(raw){
   Object.keys(raw||{}).forEach(dk=>{
     const day=raw[dk];
     if(!day||typeof day!=='object') return;
+    if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(fromFbKey(dk))) return;   // 날짜 형식이 아닌 키는 건너뜁니다
     out[dk]={};
     Object.keys(day).forEach(nk=>{
       const slots=normalizeSlots(day[nk]);
@@ -5151,11 +6046,11 @@ function renderResults(){
   list.slice().reverse().forEach((r,i)=>{
     const idx=results.indexOf(r);const tr=document.createElement('tr');
     tr.onclick=()=>openResultDetail(r.id);   // 실시간 갱신으로 순서가 바뀌어도 같은 건을 열도록 id로 찾습니다
-    tr.innerHTML=`<td>${results.length-idx}</td><td>${esc(r.분향실||'')}</td><td class="left">${esc(r.고인||'')}</td><td>${r.날짜}</td>
+    tr.innerHTML=`<td>${results.length-idx}</td><td>${esc(r.분향실||'')}</td><td class="left">${esc(r.고인||'')}</td><td>${esc(r.날짜)}</td>
       <td style="text-align:right">${fmt(r.금액||0)}</td>
-      <td><span class="badge badge-${r.결제==='카드결제'?'card':r.결제==='현금결제'?'cash':'rcpt'}">${r.결제||''}</span></td>
-      <td>${r.인원수||''}명</td><td>${esc(r.비고||'')}</td>
-      <td>${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delResult('${esc(r.id)}')">삭제</button>`:'-'}</td>`;
+      <td><span class="badge badge-${r.결제==='카드결제'?'card':r.결제==='현금결제'?'cash':'rcpt'}">${esc(r.결제||'')}</span></td>
+      <td>${esc(r.인원수||'')}명</td><td>${esc(r.비고||'')}</td>
+      <td>${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delResult(${jsq(r.id)})">삭제</button>`:'-'}</td>`;
     body.appendChild(tr);
   });
 }
@@ -5322,8 +6217,9 @@ function renderStock(){
   const mData=stockData[mKey]||{};
 
   let th='<tr><th>구분</th><th style="min-width:120px">품명</th><th>이월량</th><th>현재재고</th><th style="background:#2a5298;color:#fff;font-size:11px;min-width:80px;white-space:nowrap">포장단위</th>';
-  for(let d=1;d<=days;d++) th+=`<th>${d}</th>`;
-  th+='<th>출고합계</th></tr>';
+  for(let d=1;d<=days;d++) th+=`<th class="dcol">${d}</th>`;
+  th+='<th>출고합계</th><th class="sa-h" title="실제로 센 재고를 넣으면 바로 저장됩니다">실제 재고</th><th class="sa-h" title="실제 재고 − 현재재고">차이</th></tr>';
+  applyStockDays();
   document.getElementById('stockHead').innerHTML=th;
 
   // 마감 상태 안내
@@ -5331,7 +6227,7 @@ function renderStock(){
   if(ci){
     const cl=stockClose[mKey];
     if(cl){
-      ci.innerHTML=`✅ <b>${ymLabel(mKey)} 마감 완료</b> · ${cl.확정자||''} · ${localDateOf(cl.확정일)}`;
+      ci.innerHTML=`✅ <b>${ymLabel(mKey)} 마감 완료</b> · ${esc(cl.확정자||'')} · ${esc(localDateOf(cl.확정일))}`;
       ci.style.color='#1e8449';
     } else {
       const pv=stockClose[prevYM(mKey)];
@@ -5355,7 +6251,7 @@ function renderStock(){
     let outSum=0,dayTds='';
     for(let d=1;d<=days;d++){
       const v=p[d]||0;outSum+=v;
-      dayTds+=`<td style="font-size:11px;color:${v>0?'#c0392b':v<0?'#217a3c':'#aaa'}">${v!==0?v:''}</td>`;
+      dayTds+=`<td class="dcol" style="font-size:11px;color:${v>0?'#c0392b':v<0?'#217a3c':'#aaa'}">${v!==0?v:''}</td>`;
     }
     const 현재재고=이월-outSum+조정;
         const pk=PACK_UNIT[item.품명];
@@ -5366,7 +6262,7 @@ function renderStock(){
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td class="scat">기본</td>
-      <td class="snm">${item.품명}</td>
+      <td class="snm">${esc(item.품명)}</td>
       <td><input class="sv" type="number" value="${이월||''}" data-p="${esc(item.품명)}" data-m="${mKey}" data-d="이월"
         onchange="updStock(this);calcStockRow(this)"
         onwheel="event.preventDefault()"
@@ -5374,9 +6270,11 @@ function renderStock(){
       <td id="cr-${safeKey(item.품명)}" style="font-weight:700;color:${현재재고<0?'#c0392b':'#1b3a5c'}">${현재재고}${조정?`<span style="font-size:10px;color:#8e44ad;font-weight:400"> (조정 ${조정>0?'+':''}${조정})</span>`:''}</td>
       ${packTd}
       ${dayTds}
-      <td style="font-weight:700;color:#c0392b">${outSum||''}</td>`;
+      <td style="font-weight:700;color:#c0392b">${outSum||''}</td>
+      ${saCells(item,mKey,p,현재재고,pk)}`;
     body.appendChild(tr);
   });
+  updateSaSummary();
 }
 // ══ 한글 입력 변환기 (두벌식) ══
 // 한/영 키가 영문 상태여도 입력 즉시 한글로 변환합니다.
@@ -5577,6 +6475,8 @@ function calcStockRow(inp){
   const 현재=이월-out+조정;
   const el=document.getElementById('cr-'+safeKey(품명));
   if(el){el.textContent=현재;el.style.color=현재<0?'#c0392b':'#1b3a5c';}
+  const trow=inp.closest('tr'), dcell=trow&&trow.querySelector('.sa-diff');
+  if(dcell){ dcell.dataset.book=현재; const any=trow.querySelector('.sa-in'); if(any) saLive(any); }   // 이월량을 고치면 차이도 다시 계산
   const pk=PACK_UNIT[품명];
   if(pk){
     const packTd=el?.nextElementSibling;
@@ -5586,6 +6486,139 @@ function calcStockRow(inp){
     }
   }
 }
+
+// ══ 실제 재고(실사) — 출고합계 뒤 칸 ══
+// stockData/{연-월}/{품명}/실사 = 낱개 기준 수량 (포장 품목은 박스×입수+낱개), 실사자·실사일도 함께 남깁니다
+function packOf(품명){ const pk=PACK_UNIT[품명]; return pk&&pk.n>1?pk:null; }
+function saUnit(item){ const u=String(item.단위||''); return u.length<=3?u:''; }
+function saCells(item,mKey,p,현재재고,pkAny){
+  const pk=packOf(item.품명);
+  const has=p.실사!==undefined&&p.실사!==null&&p.실사!=='';
+  const v=has?Math.max(0,Math.round(+p.실사||0)):null;
+  const at=(attr)=>`data-p="${esc(item.품명)}" data-m="${mKey}" ${attr} type="number" min="0" inputmode="numeric"
+      oninput="saLive(this)" onchange="saSave(this)" onfocus="this.select()" onwheel="event.preventDefault()"`;
+  const inputs=pk
+    ?`<input class="sa-in sa-b" ${at('data-k="b"')} value="${has?Math.floor(v/pk.n):''}" placeholder=""><span class="sa-u">${esc(pk.label)}</span>`
+     +`<input class="sa-in sa-r" ${at('data-k="r"')} value="${has?v%pk.n:''}"><span class="sa-u">${esc(pk.sublabel)}</span>`
+    :`<input class="sa-in sa-s" ${at('data-k="s"')} value="${has?v:''}"><span class="sa-u">${esc(saUnit(item))}</span>`;
+  const tip=has?`실제 재고 ${p.실사자?p.실사자+' · ':''}${p.실사일?localDateTimeOf(p.실사일):''}`:'실제로 센 수량을 넣으십시오';
+  return `<td class="sa-td" title="${esc(tip)}">${inputs}</td><td class="sa-diff" data-book="${현재재고}">${saDiffHtml(현재재고,v,pk)}</td>`;
+}
+function saDiffHtml(book,actual,pk){
+  if(actual===null||actual===undefined) return '<span class="sa-none">-</span>';
+  const d=actual-book;
+  if(d===0) return '<span class="sa-ok">✓ 일치</span>';
+  const pkTxt=pk?`<div class="sa-pk">${d<0?'▼':''}${esc(fmtPack(Math.abs(d),pk))}</div>`:'';
+  return `<span class="${d>0?'sa-plus':'sa-minus'}">${d>0?'+':'−'}${Math.abs(d)}</span>${pkTxt}`;
+}
+// 줄의 칸에서 낱개 기준 수량을 읽습니다 (모두 비우면 null)
+function saRowTotal(tr,pk){
+  const s=tr.querySelector('.sa-s');
+  if(s) return s.value===''?null:Math.max(0,Math.round(+s.value||0));
+  const b=tr.querySelector('.sa-b'), r=tr.querySelector('.sa-r');
+  if(!b||!r) return null;
+  if(b.value===''&&r.value==='') return null;
+  return Math.max(0,Math.round(+b.value||0))*pk.n+Math.max(0,Math.round(+r.value||0));
+}
+// 입력하는 대로 차이를 바로 보여 줍니다
+function saLive(inp){
+  const tr=inp.closest('tr'); if(!tr) return;
+  const pk=packOf(inp.dataset.p);
+  const cell=tr.querySelector('.sa-diff');
+  if(cell) cell.innerHTML=saDiffHtml(+cell.dataset.book||0,saRowTotal(tr,pk),pk);
+}
+// 칸을 벗어나거나 Enter를 누르면 저장합니다 (다른 기기에도 바로 보입니다)
+async function saSave(inp){
+  const tr=inp.closest('tr'); if(!tr) return;
+  const 품명=inp.dataset.p, ym=/^[0-9]{4}-[0-9]{2}$/.test(inp.dataset.m)?inp.dataset.m:stockYM();
+  const pk=packOf(품명);
+  const total=saRowTotal(tr,pk);
+  const it=stockItem(ym,품명);
+  const prev=(it.실사===undefined||it.실사===null||it.실사==='')?null:+it.실사;
+  if(prev===total){ saLive(inp); return; }
+  const map={};
+  if(total===null){
+    delete it.실사; delete it.실사자; delete it.실사일;
+    ['실사','실사자','실사일'].forEach(f=>map[stockCellPath(ym,품명,f)]=null);
+  } else {
+    it.실사=total; it.실사자=currentUser?.이름||''; it.실사일=nowISO();
+    map[stockCellPath(ym,품명,'실사')]=total;
+    map[stockCellPath(ym,품명,'실사자')]=it.실사자;
+    map[stockCellPath(ym,품명,'실사일')]=it.실사일;
+    if(pk){                                   // 0박스 35병처럼 넣어도 1박스 5병으로 맞춰 보여 줍니다
+      const b=tr.querySelector('.sa-b'), r=tr.querySelector('.sa-r');
+      if(b&&document.activeElement!==b) b.value=Math.floor(total/pk.n);
+      if(r&&document.activeElement!==r) r.value=total%pk.n;
+    }
+  }
+  saLive(inp);
+  updateSaSummary();
+  try{
+    await stockUpdate(map);
+    touchMeta('stock');
+    const td=tr.querySelector('.sa-td');
+    if(td){ td.title=total===null?'실제로 센 수량을 넣으십시오':`실제 재고 ${it.실사자} · ${localDateTimeOf(it.실사일)}`;
+      td.classList.remove('sa-saved'); void td.offsetWidth; td.classList.add('sa-saved'); }
+  }catch(e){ alert('실제 재고를 저장하지 못했습니다: '+e.message); }
+}
+// 실제 재고 칸에서 Enter·↓는 아래, ↑는 위 (포장 품목은 박스 칸에서 Enter를 누르면 낱개 칸으로)
+document.addEventListener('keydown',e=>{
+  const el=e.target; if(!el||!el.classList||!el.classList.contains('sa-in')) return;
+  if(e.isComposing||e.altKey||e.ctrlKey||e.metaKey) return;
+  const rows=[...document.querySelectorAll('#stockBody tr')];
+  const tr=el.closest('tr'), i=rows.indexOf(tr);
+  const pickRow=(row,kind)=>{ if(!row) return null; return row.querySelector(kind==='r'?'.sa-r':'.sa-b')||row.querySelector('.sa-s')||row.querySelector('.sa-b'); };
+  let to=null;
+  if(e.key==='Enter'&&!e.shiftKey){ to=el.classList.contains('sa-b')?tr.querySelector('.sa-r'):pickRow(rows[i+1],'b'); }
+  else if(e.key==='Enter'&&e.shiftKey){ to=pickRow(rows[i-1],'b'); }
+  else if(e.key==='ArrowDown'){ to=pickRow(rows[i+1],el.dataset.k); }
+  else if(e.key==='ArrowUp'){ to=pickRow(rows[i-1],el.dataset.k); }
+  else return;
+  e.preventDefault();
+  if(e.key==='Enter') el.dispatchEvent(new Event('change',{bubbles:true}));   // Enter로 저장
+  if(to){ to.focus(); to.select&&to.select(); }
+},true);
+function updateSaSummary(){
+  const box=document.getElementById('stockCountInfo'); if(!box) return;
+  const ym=stockYM(), mData=stockData[ym]||{};
+  let n=0, diff=0, minus=0, plus=0;
+  bookStock(ym).forEach(r=>{
+    const p=mData[r.품명]||mData[toFbKey(r.품명)]||{};
+    if(p.실사===undefined||p.실사===null||p.실사==='') return;
+    n++; const d=+p.실사-r.장부; if(d){ diff++; if(d<0) minus++; else plus++; }
+  });
+  box.innerHTML=n
+    ?`📋 실제 재고 <b>${n}개 품목</b> 입력 · ${diff?`차이 <b style="color:#c0392b">${diff}개</b> (부족 ${minus} · 많음 ${plus})`:'<b style="color:#1e8449">모두 일치</b>'}`
+    :'📋 실제 재고는 맨 오른쪽 칸에 넣으면 바로 저장되고 현재재고와의 차이가 보입니다.';
+  const cb=document.getElementById('saClearBtn'); if(cb) cb.style.display=n?'':'none';
+}
+async function clearStockCount(){
+  const ym=stockYM(), mData=stockData[ym]||{};
+  const names=bookStock(ym).map(r=>r.품명).filter(nm=>{ const p=mData[nm]||mData[toFbKey(nm)]||{}; return p.실사!==undefined&&p.실사!==null&&p.실사!==''; });
+  if(!names.length) return;
+  if(!confirm(`${ymLabel(ym)}에 넣은 실제 재고 ${names.length}개 품목을 모두 지우시겠습니까?\n(재고 수량 자체는 바뀌지 않습니다)`)) return;
+  const map={};
+  names.forEach(nm=>{ const it=stockItem(ym,nm); delete it.실사; delete it.실사자; delete it.실사일;
+    ['실사','실사자','실사일'].forEach(f=>map[stockCellPath(ym,nm,f)]=null); });
+  try{ await stockUpdate(map); touchMeta('stock'); }
+  catch(e){ alert('지우지 못했습니다: '+e.message); }
+  renderStock();
+}
+// 일별 출고 칸 숨기기 — 실제 재고를 셀 때 한 화면에 보이게 합니다 (이 기기에 기억)
+function stockDaysHidden(){
+  let v=null; try{ v=localStorage.getItem('hm_stock_hidedays'); }catch(_){}
+  return v===null?isMobile():v==='1';
+}
+function applyStockDays(){
+  const h=stockDaysHidden();
+  document.getElementById('stockTbl')?.classList.toggle('hide-days',h);
+  const cb=document.getElementById('stockHideDays'); if(cb) cb.checked=h;
+}
+function toggleStockDays(v){
+  try{ localStorage.setItem('hm_stock_hidedays',v?'1':'0'); }catch(_){}
+  applyStockDays();
+}
+
 // ── 재고량 수정 모달 ──
 function openStockEditModal(){
   const today=todayStr();
@@ -5763,13 +6796,15 @@ function exportStock(){
   const _extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
   const ALL=[...BASIC,..._extra];
   let csv='품명,이월량,조정,현재재고';
-  for(let d=1;d<=days;d++)csv+=`,${d}일`;csv+=',출고합계\n';
+  for(let d=1;d<=days;d++)csv+=`,${d}일`;csv+=',출고합계,실제재고,차이\n';
   ALL.forEach(it=>{
     const p=mData[it.품명]||mData[toFbKey(it.품명)]||{};
     const 이월=+(p['이월']||0), 조정=+(p['조정']||0);
     let out=0,day='';
     for(let d=1;d<=days;d++){const v=+p[d]||0;out+=v;day+=','+v;}
-    csv+=`${it.품명},${이월},${조정},${이월-out+조정}${day},${out}\n`;
+    const has=p.실사!==undefined&&p.실사!==null&&p.실사!=='';
+    const cur=이월-out+조정;
+    csv+=`${csvCell(it.품명)},${이월},${조정},${cur}${day},${out},${has?+p.실사:''},${has?(+p.실사-cur):''}\n`;
   });
   dl('\uFEFF'+csv,`재고_${ym}.csv`,'text/csv');
 }
@@ -5859,8 +6894,8 @@ function renderPrice(){
       <td class="pc-only"><select onchange="priceDB[${idx}].구분=this.value" style="border:none;background:transparent;width:100%;font-size:12px">${PRICE_CATS.map(c=>`<option${p.구분===c?' selected':''}>${c}</option>`).join('')}${PRICE_CATS.includes(p.구분)?'':`<option selected>${esc(p.구분||'')}</option>`}</select></td>
       <td class="pc-only"><input value="${esc(p.품명)}" onchange="priceDB[${idx}].품명=this.value"></td>
       <td class="pc-only"><input value="${esc(p.단위)}" onchange="priceDB[${idx}].단위=this.value"></td>
-      <td class="pc-only"><input type="number" value="${p.가격||0}" onchange="priceDB[${idx}].가격=+this.value||0"></td>
-      <td class="pc-only"><input type="number" value="${p.원가||0}" onchange="priceDB[${idx}].원가=+this.value||0"></td>
+      <td class="pc-only"><input type="number" value="${+p.가격||0}" onchange="priceDB[${idx}].가격=+this.value||0"></td>
+      <td class="pc-only"><input type="number" value="${+p.원가||0}" onchange="priceDB[${idx}].원가=+this.value||0"></td>
       <td class="pc-only"><button class="btn btn-danger btn-sm" onclick="delPrice(${idx})">삭제</button></td>
       <td class="m-only pc">${esc(p.구분||'')}</td>
       <td class="m-only">${esc(p.품명||'')}${p.단위?` <span style="color:#999;font-size:11px">${esc(p.단위)}</span>`:''}</td>
@@ -5970,6 +7005,8 @@ function backupData(){
 // ── 자동 백업 ──
 function startAutoBackup(){
   loadBackupDir();               // 지정해 둔 백업 폴더를 불러옵니다
+  if(startAutoBackup._on){ updateBackupStatus(); return; }   // 타이머는 처음 한 번만 겁니다
+  startAutoBackup._on=true;
   const today=todayStr();
   const lastBackup=localStorage.getItem('hm_last_backup')||'';
 
@@ -6011,13 +7048,14 @@ function startAutoBackup(){
 }
 
 function autoBackupToFile(label){
+  if(!currentUser) return;                  // 로그아웃한 뒤에는 백업하지 않습니다
   const data={jungs,results,stockData,priceDB,
     albaData,albaWorkLog,albaConfig,          // 알바 근무·시급표
-    expenses,bizConfig,posSales,              // 연말결산
     stockClose,                               // 월 마감 이력
     memos,                                    // 메모장
-    vendors,                                  // 거래처 규칙
+    schedules,                                // 일정
     timestamp:nowISO(),version:'2.2'};
+  if(isAdmin()) Object.assign(data,{expenses,bizConfig,posSales,vendors});   // 연말결산·거래처 규칙 (관리자만)
   const today=todayStr();
   const timeStr=new Date().toTimeString().slice(0,5).replace(':','');
   const filename=`혼길마트_${today}_${timeStr}_${label}.json`;
@@ -6039,11 +7077,14 @@ function autoBackupToFile(label){
 }
 
 function autoSnapshot(){
+  if(!currentUser) return;
   // localStorage에 최근 스냅샷 3개 유지
   const snap={jungs,results,stockData,priceDB,
-    albaData,albaWorkLog,albaConfig,expenses,bizConfig,posSales,stockClose,memos,vendors,
+    albaData,albaWorkLog,albaConfig,stockClose,memos,schedules,
     timestamp:nowISO()};
-  const snaps=JSON.parse(localStorage.getItem('hm_snapshots')||'[]');
+  let snaps=[]; try{ snaps=JSON.parse(localStorage.getItem('hm_snapshots')||'[]'); }catch(_){}
+  // 예전 스냅샷에 남아 있던 지출·카드내역 등은 지웁니다 (파일 백업에는 그대로 들어갑니다)
+  snaps=snaps.map(x=>{ if(x&&typeof x==='object'){ delete x.expenses; delete x.bizConfig; delete x.posSales; delete x.vendors; } return x; });
   snaps.unshift(snap);
   if(snaps.length>3) snaps.splice(3);
   localStorage.setItem('hm_snapshots',JSON.stringify(snaps));
@@ -6134,6 +7175,7 @@ async function saveBackupFile(text,filename,canAsk){
 }
 
 function restoreSnapshot(){
+  if(!isAdmin()){ alert('복원은 자료 전체를 덮어쓰므로 관리자만 할 수 있습니다.'); return; }
   const snaps=JSON.parse(localStorage.getItem('hm_snapshots')||'[]');
   if(!snaps.length){alert('스냅샷이 없습니다.');return;}
   const options=snaps.map((s,i)=>`${i+1}. ${localDateTimeOf(s.timestamp)} (정산서 ${s.jungs?.length||0}건)`).join('\n');
@@ -6154,6 +7196,7 @@ function restoreSnapshot(){
   if(snap.posSales){posSales=snap.posSales;fbSet('posSales',posSales).catch(()=>{});}
   if(snap.stockClose){stockClose=snap.stockClose;fbSet('stockClose',stockClose).catch(()=>{});}
   if(snap.memos){memos=snap.memos;fbSet('memos',memos).catch(()=>{});updateMemoBadge();}
+  if(snap.schedules){schedules=snap.schedules;fbSet('schedules',schedules).catch(()=>{});updateSchBadge();}
   if(snap.vendors){vendors=snap.vendors;fbSet('vendors',vendors).catch(()=>{});}
   renderJungList();renderResults();renderStock();renderPrice();
   if(typeof syncWorkLogToAlba==='function')syncWorkLogToAlba();
@@ -6165,6 +7208,7 @@ function restoreSnapshot(){
 function restoreData(input){
   const file=input.files[0];
   if(!file)return;
+  if(!isAdmin()){ alert('복원은 자료 전체를 덮어쓰므로 관리자만 할 수 있습니다.'); input.value=''; return; }
   if(!confirm(`"${file.name}" 파일로 복원하시겠습니까?\n\n⚠️ 현재 데이터가 모두 덮어씌워집니다.`)){
     input.value='';return;
   }
@@ -6224,6 +7268,7 @@ function restoreData(input){
       if(data.stockClose){ stockClose=data.stockClose; await fbSet('stockClose',stockClose); }
       // ── 메모장 ──
       if(data.memos){ memos=data.memos; await fbSet('memos',memos); updateMemoBadge(); }
+      if(data.schedules){ schedules=data.schedules; await fbSet('schedules',schedules); updateSchBadge(); }
       if(data.vendors){ vendors=data.vendors; await fbSet('vendors',vendors); }
 
       renderJungList();renderResults();renderStock();renderPrice();
@@ -7142,7 +8187,7 @@ function renderMemo(){
 
   tabs.innerHTML=bs.map(([id,b])=>{
     const n=memoOpenCount(b);
-    return `<button class="mm-tab${id===memoBoard?' on':''}" onclick="selMemoBoard('${id}')">`
+    return `<button class="mm-tab${id===memoBoard?' on':''}" onclick="selMemoBoard(${jsq(id)})">`
       +esc(b.제목||'메모')+(n?`<span class="cnt">${n}</span>`:'')+'</button>';
   }).join('')+'<button class="mm-new" onclick="createMemoBoard()">＋ 메모장 추가</button>';
 
@@ -7157,11 +8202,11 @@ function renderMemo(){
   list.innerHTML=items.length?items.map(([iid,it])=>{
     const cls=(it.완료?' done':'')+(it.중요&&!it.완료?' imp':'');
     return `<div class="mm-row${cls}">`
-      +`<input type="checkbox" class="mm-chk"${it.완료?' checked':''} onchange="toggleMemoDone('${iid}',this.checked)">`
-      +`<textarea class="mm-txt" rows="1" lang="ko" oninput="autoGrow(this);editMemoItem('${iid}',this.value)">${esc(it.내용||'')}</textarea>`
-      +`<button class="mm-ico" title="중요 표시" onclick="toggleMemoImp('${iid}')">${it.중요?'⭐':'☆'}</button>`
+      +`<input type="checkbox" class="mm-chk"${it.완료?' checked':''} onchange="toggleMemoDone(${jsq(iid)},this.checked)">`
+      +`<textarea class="mm-txt" rows="1" lang="ko" oninput="autoGrow(this);editMemoItem(${jsq(iid)},this.value)">${esc(it.내용||'')}</textarea>`
+      +`<button class="mm-ico" title="중요 표시" onclick="toggleMemoImp(${jsq(iid)})">${it.중요?'⭐':'☆'}</button>`
       +`<span class="mm-meta">${esc(it.작성자||'')}<br>${esc(localDateOf(it.수정일||it.작성일))}</span>`
-      +`<button class="mm-ico" title="삭제" onclick="delMemoItem('${iid}')">🗑</button>`
+      +`<button class="mm-ico" title="삭제" onclick="delMemoItem(${jsq(iid)})">🗑</button>`
       +'</div>';
   }).join(''):'<div class="mm-empty">메모가 없습니다. 아래 칸에 입력하고 Enter를 누르십시오.</div>';
   list.querySelectorAll('.mm-txt').forEach(autoGrow);
@@ -7320,6 +8365,237 @@ function printMemo(){
 }
 
 // ══ 유틸 ══
+
+// ══ 일정관리 ══
+// schedules/{id} = {id, 날짜:'YYYY-MM-DD', 시간:'HH:MM'|'', 제목, 메모, 완료, 작성자, 작성자id, 작성일, 수정자, 수정일, 완료자, 완료일}
+let schedules={};
+let schYM=null;                         // 달력에 보이는 달 (처음 열 때 이번 달로 정합니다)
+let schDay=null, schEditId=null;        // 날짜별 창에서 보고 있는 날짜 · 고치는 일정
+const SCH_ALERT_DAYS=2;                 // 이틀 전부터 알립니다
+function schOk(v){ return v&&typeof v==='object'&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(v.날짜||'')&&v.제목; }
+function schList(){
+  return Object.entries(schedules||{}).filter(([,v])=>schOk(v)).map(([k,v])=>({...v,id:k,
+    시간:/^[0-9]{1,2}:[0-9]{2}$/.test(v.시간||'')?v.시간:'',제목:String(v.제목),메모:String(v.메모||''),완료:!!v.완료}));
+}
+function schSort(a,b){ return a.날짜.localeCompare(b.날짜)||(a.시간||'').localeCompare(b.시간||'')||String(a.작성일||'').localeCompare(String(b.작성일||'')); }
+function schDate(ds){ const [y,m,d]=ds.split('-').map(Number); return new Date(y,m-1,d); }
+function schStr(d){ return `${d.getFullYear()}-${_p2(d.getMonth()+1)}-${_p2(d.getDate())}`; }
+function daysUntil(ds){ return Math.round((schDate(ds)-schDate(todayStr()))/86400000); }
+function ddayLabel(n){ return n===0?'오늘':n===1?'내일':n===2?'모레':n>0?`D-${n}`:`${-n}일 지남`; }
+function fmtDateK(ds){ const d=schDate(ds); return `${d.getMonth()+1}월 ${d.getDate()}일 (${_DOW[d.getDay()]})`; }
+function canEditSch(s){ return !!s&&(isAdmin()||!s.작성자id||s.작성자id===currentUser?.id); }
+
+// ── 달력 ──
+function schMove(n){ if(!schYM) schYM=todayStr().slice(0,7); const [y,m]=schYM.split('-').map(Number); schYM=schStr(new Date(y,m-1+n,1)).slice(0,7); renderSchedule(); }
+function schToday(){ schYM=todayStr().slice(0,7); renderSchedule(); }
+function renderSchedule(){
+  const grid=document.getElementById('schGrid'); if(!grid) return;
+  if(!schYM) schYM=todayStr().slice(0,7);
+  const [y,m]=schYM.split('-').map(Number);
+  document.getElementById('schTitle').textContent=`${y}년 ${m}월`;
+  const first=new Date(y,m-1,1), startDow=first.getDay(), days=new Date(y,m,0).getDate();
+  const weeks=Math.ceil((startDow+days)/7);
+  const showDone=document.getElementById('schShowDone')?.checked;
+  const byDate={};
+  schList().filter(s=>showDone||!s.완료).forEach(s=>(byDate[s.날짜]=byDate[s.날짜]||[]).push(s));
+  const today=todayStr();
+  let h=_DOW.map((d,i)=>`<div class="sch-h${i===0?' sun':i===6?' sat':''}">${d}</div>`).join('');
+  for(let i=0;i<weeks*7;i++){
+    const d=new Date(y,m-1,1-startDow+i), ds=schStr(d), dow=d.getDay();
+    const list=(byDate[ds]||[]).sort(schSort);
+    const soon=list.some(s=>!s.완료&&daysUntil(s.날짜)>=0&&daysUntil(s.날짜)<=SCH_ALERT_DAYS);
+    const chips=list.slice(0,3).map(s=>{
+      const n=daysUntil(s.날짜), sn=!s.완료&&n>=0&&n<=SCH_ALERT_DAYS;
+      return `<div class="sch-chip${s.완료?' done':''}${sn?' soon':''}" title="${esc((s.시간?s.시간+' ':'')+s.제목)}">${s.시간?`<span class="t">${esc(s.시간)}</span> `:''}${esc(s.제목)}</div>`;
+    }).join('');
+    h+=`<div class="sch-cell${d.getMonth()!==m-1?' out':''}${ds===today?' today':''}" data-date="${ds}" onclick="openSchDay(this.dataset.date)">
+      <div class="sch-d${dow===0?' sun':dow===6?' sat':''}">${d.getDate()}${list.length?`<span class="sch-n${soon?' soon':''}">${list.length}</span>`:''}</div>
+      <div class="sch-chips">${chips}${list.length>3?`<div class="sch-more">+${list.length-3}개 더</div>`:''}</div></div>`;
+  }
+  grid.innerHTML=h;
+  renderSchUpcoming();
+}
+function renderSchUpcoming(){
+  const box=document.getElementById('schUpcoming'); if(!box) return;
+  const list=schList().filter(s=>!s.완료&&daysUntil(s.날짜)>=0&&daysUntil(s.날짜)<=30).sort(schSort);
+  box.innerHTML=list.length?list.map(s=>{
+    const n=daysUntil(s.날짜);
+    return `<div class="sch-up" data-date="${s.날짜}" onclick="openSchDay(this.dataset.date)">
+      <span class="sch-dd d${n<=2?n:'x'}">${ddayLabel(n)}</span>
+      <div class="sch-up-m"><div class="sch-up-t">${esc(s.제목)}</div>
+        <div class="sch-up-s">${esc(fmtDateK(s.날짜))}${s.시간?' · '+esc(s.시간):''} · ${esc(s.작성자||'')}</div>
+        ${s.메모?`<div class="sch-memo">${esc(s.메모)}</div>`:''}</div></div>`;
+  }).join(''):'<div class="sch-empty">앞으로 30일 안에 잡힌 일정이 없습니다.</div>';
+}
+function updateSchBadge(){
+  const n=currentUser?schList().filter(s=>!s.완료&&daysUntil(s.날짜)>=0&&daysUntil(s.날짜)<=SCH_ALERT_DAYS).length:0;
+  ['schBadge','schBadgeM'].forEach(id=>{ const b=document.getElementById(id); if(b){ b.textContent=n; b.style.display=n?'':'none'; } });
+}
+
+// ── 날짜별 창 (보기·추가·수정) ──
+function openSchDay(ds,focus){
+  if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(ds||'')) ds=todayStr();
+  schDay=ds; schFormNew();
+  renderSchDay();
+  document.getElementById('schModal').classList.add('show');
+  koInputInitAll();
+  if(focus||!isMobile()) setTimeout(()=>document.getElementById('sch-제목').focus(),60);
+}
+function schDayStep(n){ const d=schDate(schDay); d.setDate(d.getDate()+n); schDay=schStr(d); schFormNew(); renderSchDay(); }
+function renderSchDay(){
+  if(!schDay) return;
+  const n=daysUntil(schDay);
+  document.getElementById('schDayTitle').innerHTML=`${esc(fmtDateK(schDay))} <span class="sch-dd d${n>=0&&n<=2?n:'x'}" style="vertical-align:2px">${ddayLabel(n)}</span>`;
+  const list=schList().filter(s=>s.날짜===schDay).sort(schSort);
+  document.getElementById('schDayList').innerHTML=list.length?list.map(s=>`
+    <div class="sch-row${s.완료?' done':''}">
+      <input type="checkbox" title="완료" ${s.완료?'checked':''} onchange="toggleSchDone(${jsq(s.id)},this.checked)">
+      <div class="sch-row-m">
+        <div class="sch-row-t">${s.시간?`<span style="color:#6b7f92">${esc(s.시간)}</span> `:''}${esc(s.제목)}</div>
+        ${s.메모?`<div class="sch-memo">${esc(s.메모)}</div>`:''}
+        <div class="sch-row-b">작성 ${esc(s.작성자||'-')}${s.수정자&&s.수정자!==s.작성자?' · 수정 '+esc(s.수정자):''}${s.완료?' · 완료 '+esc(s.완료자||''):''}</div>
+      </div>
+      ${canEditSch(s)?`<div class="sch-row-a"><button class="btn btn-info btn-sm" onclick="editSch(${jsq(s.id)})">수정</button><button class="btn btn-danger btn-sm" onclick="delSch(${jsq(s.id)})">삭제</button></div>`:''}
+    </div>`).join(''):'<div class="sch-empty">이 날짜에는 일정이 없습니다. 아래에 입력하십시오.</div>';
+}
+function schFormNew(){
+  schEditId=null;
+  document.getElementById('sch-제목').value='';
+  document.getElementById('sch-날짜').value=schDay||todayStr();
+  document.getElementById('sch-시간').value='';
+  document.getElementById('sch-메모').value='';
+  document.getElementById('schFormTitle').textContent='➕ 새 일정';
+  document.getElementById('schFormReset').style.display='none';
+  document.getElementById('schSaveBtn').textContent='💾 저장';
+}
+function editSch(id){
+  const s=schList().find(x=>x.id===id); if(!s) return;
+  if(!canEditSch(s)){ alert(`이 일정은 ${s.작성자||s.작성자id} 님이 넣었습니다.\n넣은 사람과 관리자만 고칠 수 있습니다.`); return; }
+  schEditId=id;
+  document.getElementById('sch-제목').value=s.제목;
+  document.getElementById('sch-날짜').value=s.날짜;
+  document.getElementById('sch-시간').value=s.시간||'';
+  document.getElementById('sch-메모').value=s.메모||'';
+  document.getElementById('schFormTitle').textContent='✏️ 일정 수정';
+  document.getElementById('schFormReset').style.display='';
+  document.getElementById('schSaveBtn').textContent='💾 수정 저장';
+  document.getElementById('sch-제목').focus();
+}
+async function saveSchedule(){
+  const 제목=document.getElementById('sch-제목').value.trim();
+  const 날짜=document.getElementById('sch-날짜').value;
+  const 시간=document.getElementById('sch-시간').value||'';
+  const 메모=document.getElementById('sch-메모').value.trim();
+  if(!제목){ alert('일정 제목을 입력하십시오.'); document.getElementById('sch-제목').focus(); return; }
+  if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(날짜)){ alert('날짜를 정하십시오.'); return; }
+  if(시간&&!/^[0-9]{1,2}:[0-9]{2}$/.test(시간)){ alert('시간을 다시 확인하십시오.'); return; }
+  const now=nowISO(), me={이름:currentUser?.이름||'',id:currentUser?.id||''};
+  let rec;
+  if(schEditId&&schedules[schEditId]){
+    const old=schedules[schEditId];
+    if(!canEditSch(old)){ alert('넣은 사람과 관리자만 고칠 수 있습니다.'); return; }
+    rec={...old,id:schEditId,제목,날짜,시간,메모,수정자:me.이름,수정자id:me.id,수정일:now};
+  } else {
+    const id='sc'+Date.now()+Math.floor(Math.random()*900+100);
+    rec={id,제목,날짜,시간,메모,완료:false,작성자:me.이름,작성자id:me.id,작성일:now};
+  }
+  Object.keys(rec).forEach(k=>{ if(rec[k]===undefined) delete rec[k]; });
+  const btn=document.getElementById('schSaveBtn'); if(btn.disabled) return;
+  btn.disabled=true;
+  schedules[rec.id]=rec;
+  schAckAdd([rec]);                     // 내가 넣은 일정은 오늘 다시 알리지 않습니다
+  try{ await fbSet('schedules/'+rec.id,rec); }
+  catch(e){ alert('일정을 저장하지 못했습니다: '+e.message); btn.disabled=false; return; }
+  btn.disabled=false;
+  const moved=schDay!==날짜;
+  schDay=날짜; schYM=날짜.slice(0,7);
+  schFormNew(); renderSchDay(); renderSchedule(); updateSchBadge();
+  expToast(moved?`✅ ${fmtDateK(날짜)}에 일정을 저장했습니다.`:'✅ 일정을 저장했습니다.');
+}
+async function toggleSchDone(id,v){
+  const s=schedules[id]; if(!s) return;
+  s.완료=!!v;
+  if(v){ s.완료자=currentUser?.이름||''; s.완료일=nowISO(); } else { delete s.완료자; delete s.완료일; }
+  renderSchDay(); renderSchedule(); updateSchBadge();
+  try{ await window._fbUpdate(fbRef('schedules/'+id),{완료:!!v,완료자:v?(currentUser?.이름||''):null,완료일:v?nowISO():null}); }
+  catch(e){ alert('저장하지 못했습니다: '+e.message); }
+}
+async function delSch(id){
+  const s=schedules[id]; if(!s) return;
+  if(!canEditSch(s)){ alert(`이 일정은 ${s.작성자||s.작성자id} 님이 넣었습니다.\n넣은 사람과 관리자만 삭제할 수 있습니다.`); return; }
+  if(!confirm(`"${s.제목}" 일정을 삭제하시겠습니까?`)) return;
+  delete schedules[id];
+  if(schEditId===id) schFormNew();
+  pauseSync(); renderSchDay(); renderSchedule(); updateSchBadge();
+  try{ await fbRemove('schedules/'+id); }
+  catch(e){ alert('삭제하지 못했습니다: '+e.message); }
+}
+
+// ── 알림 — 이틀 전(모레)·하루 전(내일)·당일(오늘) 일정을 하루 한 번 팝업으로 알립니다 ──
+// 같은 날 [확인]한 일정은 다시 띄우지 않고, 날짜·시간·제목이 바뀌면 다시 알립니다
+let _schAlertList=[], _schAlertRetry=null;
+function schSig(s){ return [s.id,s.날짜,s.시간||'',s.제목].join('|'); }
+function schAckGet(){
+  try{ const o=JSON.parse(localStorage.getItem('hm_sch_ack')||'null');
+    if(o&&o.day===todayStr()&&o.user===(currentUser?.id||'')) return o.sig||[]; }catch(_){}
+  return [];
+}
+function schAckAdd(list){
+  const sig=[...new Set([...schAckGet(),...list.map(schSig)])];
+  try{ localStorage.setItem('hm_sch_ack',JSON.stringify({day:todayStr(),user:currentUser?.id||'',sig})); }catch(_){}
+}
+// 정산서를 입력하거나 다른 창을 보고 있을 때는 끝날 때까지 미룹니다
+function schBusy(){
+  if(document.hidden) return true;
+  if(document.querySelector('.overlay.show:not(#schAlertModal)')) return true;
+  const eo=document.getElementById('editOverlay'); if(eo&&eo.style.display&&eo.style.display!=='none') return true;
+  if(document.getElementById('moreSheet')?.classList.contains('on')) return true;
+  const a=document.activeElement;
+  return !!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+}
+function checkScheduleAlerts(){
+  if(!currentUser) return;
+  updateSchBadge();
+  const pg=document.getElementById('page-일정');
+  if(pg&&pg.classList.contains('on')&&checkScheduleAlerts._day&&checkScheduleAlerts._day!==todayStr()) renderSchedule();   // 밤 12시가 지나면 달력의 '오늘'도 옮깁니다
+  checkScheduleAlerts._day=todayStr();
+  const list=schList().filter(s=>!s.완료&&daysUntil(s.날짜)>=0&&daysUntil(s.날짜)<=SCH_ALERT_DAYS).sort(schSort);
+  const acked=new Set(schAckGet());
+  const fresh=list.filter(s=>!acked.has(schSig(s)));
+  const box=document.getElementById('schAlertModal');
+  if(box.classList.contains('show')){ if(fresh.length) showSchAlert(list,fresh); return; }   // 이미 떠 있으면 내용만 새로 고칩니다
+  if(!fresh.length) return;
+  if(schBusy()){
+    clearTimeout(_schAlertRetry);
+    _schAlertRetry=setTimeout(()=>checkScheduleAlerts(),20000);
+    return;
+  }
+  showSchAlert(list,fresh);
+}
+function showSchAlert(list,fresh){
+  const freshSet=new Set(fresh.map(schSig));
+  _schAlertList=list;
+  document.getElementById('schAlertList').innerHTML=list.map(s=>{
+    const n=daysUntil(s.날짜);
+    return `<div class="sch-al${n===0?' d0':''}">
+      <div class="sch-al-h"><span class="sch-dd d${n}">${ddayLabel(n)}</span><span>${esc(fmtDateK(s.날짜))}${s.시간?' '+esc(s.시간):''}</span>${freshSet.has(schSig(s))?'':'<span class="sch-seen">확인함</span>'}</div>
+      <div class="sch-al-t">${esc(s.제목)}</div>
+      ${s.메모?`<div class="sch-memo">${esc(s.메모)}</div>`:''}
+      <div class="sch-al-f"><span>작성 ${esc(s.작성자||'-')}</span><button class="btn btn-success btn-sm" onclick="schAlertDone(${jsq(s.id)})">✔ 완료</button></div>
+    </div>`;
+  }).join('');
+  document.getElementById('schAlertModal').classList.add('show');
+}
+function schAlertOk(){ schAckAdd(_schAlertList); closeModal('schAlertModal'); }
+function schAlertOpen(){ schAlertOk(); showPage('일정',ntabOf('일정')); window.scrollTo(0,0); }
+async function schAlertDone(id){
+  await toggleSchDone(id,true);
+  _schAlertList=_schAlertList.filter(s=>s.id!==id);
+  if(!_schAlertList.length){ closeModal('schAlertModal'); return; }
+  const acked=new Set(schAckGet());
+  showSchAlert(_schAlertList,_schAlertList.filter(s=>!acked.has(schSig(s))));
+}
+
 function fmt(n){return(+n||0).toLocaleString('ko-KR');}
 
 // ══ 날짜·시각 (로컬 기준) ══
@@ -7353,6 +8629,8 @@ function localDateTimeOf(iso){
   return `${d.getFullYear()}-${_p2(d.getMonth()+1)}-${_p2(d.getDate())} ${_p2(d.getHours())}:${_p2(d.getMinutes())}`;
 }
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');}
+// onclick="fn(${jsq(x)})" 처럼 씁니다. esc()만으로는 &#39;가 따옴표로 되살아나 코드가 될 수 있습니다
+function jsq(s){return esc(JSON.stringify(String(s==null?'':s)));}
 // CSV 한 칸 — 쉼표·따옴표·줄바꿈이 있으면 따옴표로 감쌉니다 (엑셀에서 칸이 밀리지 않게)
 function csvCell(v){ const t=String(v==null?'':v); return /[",\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; }
 function dl(c,name,type){const b=new Blob([c],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
