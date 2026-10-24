@@ -104,8 +104,14 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 
 /* ── 정산서 테이블 ── */
 .jtbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
-.jtbl tfoot td{position:sticky;bottom:0;z-index:11;background:#ffe9b3;color:#000;font-weight:700;font-size:14px;border-top:2px solid #1b3a5c}
+/* 합계 줄: 표 아래에 붙여 둡니다. 겹친 테두리는 고정된 칸과 함께 움직이지 않아 1px 틈이 생기므로
+   bottom:-1px로 덮고, 윗선은 그림자로 그려 칸과 함께 움직이게 합니다 */
+.jtbl tfoot td{position:sticky;bottom:-1px;z-index:11;background:#ffe9b3;color:#000;font-weight:700;font-size:14px;border-top:0;
+  box-shadow:inset 0 2px 0 #1b3a5c,0 -2px 4px rgba(0,0,0,.12)}
 .jtbl th{background:#1b3a5c;color:#fff;padding:5px 3px;text-align:center;position:sticky;top:-1px;z-index:12;box-shadow:0 2px 4px rgba(0,0,0,.2);line-height:1.25;white-space:nowrap}
+/* 정산서 수정 표는 카드 자체가 스크롤 틀입니다. 카드의 안쪽 여백이 있으면 고정된 머리글·합계 줄이
+   가장자리에서 떠 보이고 그 틈으로 다른 줄이 비쳐 보이므로, 틀에는 여백을 두지 않습니다 */
+#editTableWrap{padding:0}
 .jtbl td{padding:3px 3px;border-bottom:1px solid #f0f0f0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jtbl tr.br td{background:#fafbfc}.jtbl tr.br:hover td{background:#f0f5ff}
 .jtbl tr.ar td{background:#fffde7}.jtbl tr.ar:hover td{background:#fff8c0}
@@ -118,7 +124,7 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .kbnav .jtbl tr.ar:hover td{background:#fffde7}
 .kbnav .jtbl tr.br:hover:focus-within td{background:#f0f5ff}
 .kbnav .jtbl tr.ar:hover:focus-within td{background:#fff8c0}
-.jtbl tr.tr td{background:#e8f4fd;font-weight:700;font-size:13px;border-top:2px solid #1b3a5c}
+.jtbl tr.tr td{background:#e8f4fd;font-weight:700;font-size:13px}   /* 윗선은 위의 tfoot td 그림자(2px)로 그립니다 */
 .jtbl td.nm{text-align:left;padding-left:5px;white-space:normal}
 .jtbl input.q{width:50px;padding:2px 3px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:12px}
 .jtbl input.q:focus{border-color:#4da6ff}
@@ -213,8 +219,17 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
   .stbl td.snm{min-width:104px;max-width:130px;font-size:12px}
 }
 .sa-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-2px 0 8px;font-size:12px;color:#666}
-.sa-bar .sa-acts{margin-left:auto;display:flex;gap:6px}
-.sa-acts .btn.sa-dim{opacity:.55}
+/* [기록]·[리셋]은 「실제 재고」 머리글 바로 위에 둡니다 (표를 옆으로 넘겨도 칸과 함께 움직이고, 아래로 내려도 보입니다) */
+.stbl th.sa-hcol{padding:4px 5px 5px}
+.stbl .sa-hbtns{display:flex;gap:4px;justify-content:center;margin-bottom:3px}
+.stbl .sa-hb{border:none;border-radius:4px;padding:3px 8px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;line-height:1.35;white-space:nowrap}
+.stbl .sa-hb-rec{background:#27ae60;color:#fff}
+.stbl .sa-hb-rec:hover{background:#1e8449}
+.stbl .sa-hb-reset{background:#fff3e0;color:#7a4b00}
+.stbl .sa-hb-reset:hover{background:#ffe2b8}
+.stbl .sa-hb.sa-dim{opacity:.6}
+.stbl .sa-hb:disabled{opacity:.5;cursor:default}
+.stbl .sa-hl{display:block}
 /* 실제 재고 기록 줄 — 언제 누가 기록했는지 */
 .sa-rec{margin:-2px 0 8px;padding:6px 10px;border-radius:7px;font-size:12.5px;line-height:1.55}
 .sa-rec.sa-rec-ok{background:#eefaf1;border:1px solid #bfe5c9;color:#1d5b33}
@@ -603,6 +618,9 @@ body.login #mobileNav{display:none!important}
   .vmode colgroup{display:none}
   .vmode col{width:auto!important}
   .vmode tbody tr.jf-empty td{justify-content:center;flex-wrap:wrap}
+  #editTableWrap.wrap-vm{padding:8px 8px 0}
+  .vmode tfoot{position:sticky;bottom:0;z-index:11;background:#fff;padding:4px 0 6px}
+  .vmode tfoot tr.tr td{box-shadow:none;background:transparent}
 }
 @media (max-width:480px){
   .content{padding:6px}
@@ -1710,10 +1728,6 @@ body.login #mobileNav{display:none!important}
     <div class="sa-bar">
       <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="stockHideDays" onchange="toggleStockDays(this.checked)"> 일별 출고 숨기기</label>
       <span id="stockCountInfo">📋 실제로 센 수량을 맨 오른쪽 칸에 넣고, 다 넣으면 [기록]을 누르십시오.</span>
-      <span class="sa-acts">
-        <button class="btn btn-success btn-sm" id="saRecBtn" onclick="recordStockCount()" title="지금 넣어 둔 실제 재고를 날짜·시간과 함께 기록합니다">💾 기록</button>
-        <button class="btn btn-gray btn-sm" id="saClearBtn" onclick="clearStockCount()" title="실제 재고 칸을 모두 비우고 새로 셉니다">🔄 리셋</button>
-      </span>
     </div>
     <div class="sa-rec" id="stockCountRec" style="display:none"></div>
     <div class="tbl-wrap" id="stockWrap">
@@ -3330,6 +3344,7 @@ function applyVMode(){
   const tb=document.getElementById('editTableWrap');
   const tbl=tb?tb.querySelector('table'):null;
   if(tbl) tbl.classList.toggle('vmode', vMode);
+  if(tb) tb.classList.toggle('wrap-vm', vMode);
   document.querySelectorAll('.vtoggle').forEach(b=>{
     b.style.display = isMobile()?'':'none';
     b.textContent = vMode?'📄 가로보기':'📱 세로보기';
@@ -3927,7 +3942,18 @@ function updateJFilterBar(){
 //  Enter·↓ = 아래 칸, Shift+Enter·↑ = 위 칸, ←→ = 옆 칸, Tab = 오른쪽(줄 끝이면 다음 줄 첫 칸), Shift+Tab = 반대
 const NAV_SEL='input.q, select.as, input[data-f="단위"], input[data-f="단가"]';
 function navCells(){ return [...document.querySelectorAll('#editBody tr')].map(tr=>[...tr.querySelectorAll(NAV_SEL)].filter(el=>el.offsetParent!==null)); }
-function navFocus(el){ if(!el) return false; el.focus(); if(el.select&&el.type!=='select-one') el.select(); return true; }
+function navFocus(el){ if(!el) return false; el.focus(); if(el.select&&el.type!=='select-one') el.select(); revealInWrap(el,document.getElementById('editTableWrap')); return true; }
+// 고정된 머리글·합계 줄 밑에 가려지지 않게, 커서가 옮겨 간 칸을 보이는 곳으로 옮깁니다
+function revealInWrap(el,wr){
+  if(!el||!wr||!wr.contains(el)) return;
+  const hd=wr.querySelector('thead'), ft=wr.querySelector('tfoot');
+  const hh=hd&&hd.offsetParent!==null?hd.getBoundingClientRect().height:0;   // 세로보기에서는 머리글이 숨겨집니다
+  const fh=ft&&ft.offsetParent!==null?ft.getBoundingClientRect().height:0;
+  const w=wr.getBoundingClientRect(), top=w.top+wr.clientTop+hh, bot=w.top+wr.clientTop+wr.clientHeight-fh;
+  const r=el.getBoundingClientRect(), pad=6;
+  if(r.top-pad<top) wr.scrollTop-=Math.ceil(top-(r.top-pad));
+  else if(r.bottom+pad>bot) wr.scrollTop+=Math.ceil(r.bottom+pad-bot);
+}
 function navColOf(el){ return el.closest('td').cellIndex; }
 function navVert(el,dir){
   const rows=navCells(), tr=el.closest('tr'), col=navColOf(el);
@@ -6378,7 +6404,12 @@ function renderStock(){
   let th='<tr><th>구분</th><th style="min-width:120px">품명</th><th>이월량</th><th>현재재고</th><th style="background:#2a5298;color:#fff;font-size:11px;min-width:80px;white-space:nowrap">포장단위</th>';
   for(let d=1;d<=days;d++) th+=`<th class="dcol">${d}</th>`;
   const _rec=saRec(mKey), _recOk=!!(_rec&&!_rec.리셋&&_rec.일시);
-  th+='<th>출고합계</th><th class="sa-h" title="실제로 센 재고를 넣으면 바로 저장됩니다. 다 넣은 뒤 [기록]을 누르십시오">실제 재고'
+  th+='<th>출고합계</th><th class="sa-h sa-hcol">'
+    +'<div class="sa-hbtns">'
+    +'<button type="button" id="saRecBtn" class="sa-hb sa-hb-rec" onclick="recordStockCount()" title="지금 넣어 둔 실제 재고를 날짜·시간과 함께 기록합니다">💾 기록</button>'
+    +'<button type="button" id="saClearBtn" class="sa-hb sa-hb-reset" onclick="clearStockCount()" title="실제 재고 칸을 모두 비우고 새로 셉니다">🔄 리셋</button>'
+    +'</div>'
+    +'<span class="sa-hl" title="실제로 센 재고를 넣으면 바로 저장됩니다. 다 넣은 뒤 [기록]을 누르십시오">실제 재고</span>'
     +(_recOk?`<span class="sa-hrec">${esc(saWhenShort(_rec.일시))} 기록</span>`:'')
     +'</th><th class="sa-h" title="실제 재고 − 현재재고">차이</th></tr>';
   applyStockDays();
@@ -6853,7 +6884,7 @@ document.addEventListener('keydown',e=>{
   else return;
   e.preventDefault();
   if(e.key==='Enter') el.dispatchEvent(new Event('change',{bubbles:true}));   // Enter로 저장
-  if(to){ to.focus(); to.select&&to.select(); }
+  if(to){ to.focus(); to.select&&to.select(); revealInWrap(to,document.getElementById('stockWrap')); }
 },true);
 function updateSaSummary(){
   const box=document.getElementById('stockCountInfo'); if(!box) return;
