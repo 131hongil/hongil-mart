@@ -123,6 +123,23 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .jtbl input.q{width:50px;padding:2px 3px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:12px}
 .jtbl input.q:focus{border-color:#4da6ff}
 .jtbl select.as{width:100%;padding:2px;border:1px solid #ccc;border-radius:3px;font-size:11px}
+/* 자동필터 (추가 주문량·반품량) */
+.jf-btn{display:inline-block;width:16px;height:16px;padding:0;margin-left:3px;vertical-align:1px;border:1px solid #9fb3c8;border-radius:3px;
+  background:#fff;color:#1b3a5c;font-size:9px;line-height:14px;cursor:pointer;font-family:inherit}
+.jf-btn:hover{border-color:#1b6fb8}
+.jf-btn.on{background:#1b6fb8;color:#fff;border-color:#1b6fb8}
+.jtbl tr.jf-hide{display:none!important}
+.jtbl tr.jf-empty td{padding:18px;color:#888;font-size:13px;background:#fff!important}
+.jf-pop{position:fixed;z-index:3000;background:#fff;border:1px solid #c9d6e6;border-radius:7px;box-shadow:0 6px 20px rgba(0,0,0,.18);padding:4px;min-width:200px;font-size:12.5px}
+.jf-pop div{padding:7px 10px;border-radius:5px;cursor:pointer;white-space:nowrap;color:#333}
+.jf-pop div:hover{background:#eef4fc}
+.jf-pop div.on{font-weight:700;color:#1b6fb8}
+.jf-pop div.dis{color:#aaa;cursor:default;background:none}
+.jf-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#eaf3ff;border:1px solid #b9d3f0;border-radius:7px;
+  padding:6px 10px;margin:0 0 6px;font-size:12.5px;color:#1b3a5c;flex-shrink:0}
+.jf-bar .jf-chips{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.jf-chip{border:1px solid #b9d3f0;background:#fff;color:#1b3a5c;border-radius:14px;padding:3px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.jf-chip.on{background:#1b6fb8;color:#fff;border-color:#1b6fb8}
 .neg{color:#c0392b}
 .stamp{display:inline-block;border:2px solid #c0392b;color:#c0392b;padding:1px 7px;border-radius:3px;font-weight:700;font-size:11px;transform:rotate(-4deg);margin-left:5px;vertical-align:middle}
 
@@ -227,6 +244,8 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 /* ── 모달 ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-start;justify-content:center;overflow-y:auto}
 .overlay.show{display:flex}
+#memoModal.mm-mine .modal{border-top:4px solid #8e44ad}
+#memoModal.mm-mine #mmTitle{color:#6c3483}
 /* 일정관리 */
 .sch-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .sch-title{font-size:16px;color:#1b3a5c;min-width:118px;text-align:center}
@@ -565,8 +584,11 @@ body.login #mobileNav{display:none!important}
   .vmode tfoot tr{display:flex;justify-content:space-between;background:#ffe9b3;
     border-radius:8px;padding:9px 12px;font-weight:700}
   .vmode tfoot td{border:none!important;padding:0}
-  .vmode{min-width:0!important}
+  .vmode{min-width:0!important;display:block;table-layout:auto}
+  .vmode tbody,.vmode tfoot{display:block}
+  .vmode colgroup{display:none}
   .vmode col{width:auto!important}
+  .vmode tbody tr.jf-empty td{justify-content:center;flex-wrap:wrap}
 }
 @media (max-width:480px){
   .content{padding:6px}
@@ -786,7 +808,8 @@ body.login #mobileNav{display:none!important}
     <button class="ntab" id="tab-경영" data-pg="경영" style="display:none;position:relative" onclick="showPage('경영',this)"><span class="ti">📒</span>연말<br>결산<span class="memo-badge" id="expBadge" style="display:none" title="사업·개인을 정하지 않은 지출">0</span></button>
     <button class="ntab" data-pg="재고" onclick="showPage('재고',this)"><span class="ti">📦</span>재고<br>관리</button>
     <button class="ntab" data-pg="원가" onclick="showPage('원가',this)"><span class="ti">💰</span>원가DB</button>
-    <button class="ntab" id="tab-메모" style="position:relative" onclick="openMemoPad()"><span class="ti">📝</span>메모장<span class="memo-badge" id="memoBadge" style="display:none">0</span></button>
+    <button class="ntab" id="tab-메모" style="position:relative" onclick="openMemoPad('shared')"><span class="ti">📝</span>메모장<span class="memo-badge" id="memoBadge" style="display:none">0</span></button>
+    <button class="ntab" id="tab-개인메모" style="position:relative" onclick="openMemoPad('mine')"><span class="ti">🔒</span>개인<br>메모장<span class="memo-badge" id="myMemoBadge" style="display:none">0</span></button>
     <button class="ntab" id="tab-일정" data-pg="일정" style="position:relative" onclick="showPage('일정',this)"><span class="ti">📅</span>일정<br>관리<span class="memo-badge" id="schBadge" style="display:none" title="이틀 안에 다가오는 일정">0</span></button>
     <button class="ntab on" data-pg="관리" onclick="showPage('관리',this)"><span class="ti">⚙️</span>마트<br>관리</button>
     <!-- 캘린더 + 시간계산 버튼 - 마트관리 바로 아래 -->
@@ -888,6 +911,8 @@ body.login #mobileNav{display:none!important}
       </div>
     </div>
 
+    <!-- 자동필터 안내 (필터 중이거나 휴대폰일 때) -->
+    <div id="jfBar" class="jf-bar" style="display:none"></div>
     <!-- 화면 테이블 -->
     <div class="card" style="overflow:auto;flex:1;min-height:0;margin-bottom:0" id="editTableWrap">
       <table class="jtbl">
@@ -899,8 +924,8 @@ body.login #mobileNav{display:none!important}
         <thead><tr>
           <th>NO</th><th>품  목</th><th>단위</th><th>단가</th>
           <th>주문량</th>
-        <th style="color:#2a5298;background:#dbeafe">추가<br>주문량</th>
-        <th style="color:#c0392b;background:#fde8e8">반품량</th>
+        <th style="color:#2a5298;background:#dbeafe">추가<br>주문량<button class="jf-btn" data-col="추가" title="자동 필터 — 추가 주문이 있는 품목만 보기" onclick="event.stopPropagation();openJFilter('추가',this)">▼</button></th>
+        <th style="color:#c0392b;background:#fde8e8">반품량<button class="jf-btn" data-col="반품" title="자동 필터 — 반품이 있는 품목만 보기" onclick="event.stopPropagation();openJFilter('반품',this)">▼</button></th>
         <th>최종<br>주문량</th><th>가격</th>
         </tr></thead>
         <tbody id="editBody"></tbody>
@@ -1178,7 +1203,7 @@ body.login #mobileNav{display:none!important}
 <div class="overlay" id="memoModal">
   <div class="modal" style="max-width:700px;width:96%">
     <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px">
-      <h3 style="margin:0">📝 메모장</h3>
+      <h3 style="margin:0" id="mmTitle">📝 메모장</h3>
       <span id="mmTotal" style="font-size:12px;color:#c0392b;font-weight:700"></span>
       <div style="margin-left:auto;display:flex;gap:5px">
         <button class="btn btn-gray btn-sm" onclick="renameMemoBoard()">✏️ 이름변경</button>
@@ -1200,7 +1225,7 @@ body.login #mobileNav{display:none!important}
         <button class="btn btn-gray btn-sm" onclick="closeModal('memoModal')">닫기</button>
       </div>
     </div>
-    <div style="font-size:11px;color:#8a6d3b;margin-top:7px">
+    <div style="font-size:11px;color:#8a6d3b;margin-top:7px" id="mmNote">
       ※ 입력한 내용은 자동으로 저장되며 직원 모두가 함께 봅니다. 메모장 삭제는 만든 사람과 관리자만 할 수 있습니다.
     </div>
   </div>
@@ -1714,7 +1739,7 @@ body.login #mobileNav{display:none!important}
 <!-- ══ 일정관리 ══ -->
 <div id="page-일정" class="page">
   <div class="card">
-    <div class="card-title">📅 일정관리 <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px">날짜를 누르면 일정을 넣을 수 있습니다 · 이틀 전부터 알림</span></div>
+    <div class="card-title">📅 일정관리 <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px">🔒 나만 보는 일정입니다 · 날짜를 누르면 일정을 넣을 수 있습니다 · 이틀 전부터 알림</span></div>
     <div class="sch-head">
       <button class="btn btn-gray btn-sm" onclick="schMove(-1)" title="이전 달">◀</button>
       <b id="schTitle" class="sch-title"></b>
@@ -2418,8 +2443,8 @@ function startRealtimeSync(){
   if(isAdmin()) onSync('vendors',snap=>{
     vendors=snap.exists()?(snap.val()||{}):{};
   });
-  // 일정 — 다른 직원이 넣은 일정도 바로 보이고, 이틀 안이면 알립니다
-  onSync('schedules',snap=>{
+  // 내 일정 — 같은 아이디로 다른 기기에서 넣은 일정도 바로 보이고, 이틀 안이면 알립니다
+  onSync('mySchedules/'+myKey(),snap=>{
     schedules=snap.exists()?(snap.val()||{}):{};
     updateSchBadge();
     const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#schModal');
@@ -2427,11 +2452,19 @@ function startRealtimeSync(){
     if(document.getElementById('schModal')?.classList.contains('show')&&!typing) renderSchDay();
     checkScheduleAlerts();
   });
+  // 개인메모장 — 같은 아이디의 다른 기기와 맞춥니다
+  onSync('myMemos/'+myKey(),snap=>{
+    myMemos=_myMemoData(snap.exists()?snap.val():null);
+    updateMemoBadge();
+    const open=document.getElementById('memoModal')?.classList.contains('show')&&memoScope==='mine';
+    const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#memoModal');
+    if(open&&!typing) renderMemo();
+  });
   // 메모장도 함께 실시간으로 받습니다
   onSync('memos',snap=>{
     memos=snap.exists()?(snap.val()||{}):{};
     updateMemoBadge();
-    const open=document.getElementById('memoModal')?.classList.contains('show');
+    const open=document.getElementById('memoModal')?.classList.contains('show')&&memoScope==='shared';
     const typing=document.activeElement&&document.activeElement.closest
       &&document.activeElement.closest('#memoModal');
     if(open&&!typing) renderMemo();   // 입력 중일 때는 화면을 건드리지 않습니다
@@ -2607,6 +2640,7 @@ function forceLogout(msg,opt){
   if(AUTH&&AUTH.currentUser&&!(opt&&opt.keepAuth)) _au.signOut(AUTH).catch(()=>{});
   _legacyMode=false; _authIssue='';
   expenses=[]; vendors={}; posSales={}; _usersCache={};           // 관리자 전용 자료는 메모리에서도 비웁니다
+  schedules={}; myMemos={}; memoScope='shared'; memoBoard=null; _memoBoardBy.shared=null; _memoBoardBy.mine=null;   // 개인 일정·개인메모도 비웁니다
   bizConfig={과세:'일반',매출기준:'pos',부양:1,연금:0,기타공제:0,세액공제:0};
   const chip=document.getElementById('ubSec'); if(chip) chip.style.display='none';
   hideIdleWarn();
@@ -2681,12 +2715,13 @@ async function loadAllData(){
     if(!DB) await initFirebase();
     document.getElementById('ubSync').style.color='#f39c12';
     const adm=isAdmin(), none=Promise.resolve(null);   // 연말결산 자료(지출·카드내역·거래처·세금 설정)는 관리자만 읽습니다
-    const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData,moData,vnData,schData]=await Promise.all([
+    const [jData,rData,sData,pData,aData,wData,cData,mData,eData,bData,psData,scData,moData,vnData,schData,myMoData]=await Promise.all([
       fbGet('jungs'),fbGet('results'),fbGet('stockData'),fbGet('priceDB'),fbGet('albaData'),fbGet('albaWorkLog'),fbGet('albaConfig'),fbGet('meta'),
       adm?fbGet('expenses'):none,adm?fbGet('bizConfig'):none,adm?fbGet('posSales'):none,fbGet('stockClose'),fbGet('memos'),adm?fbGet('vendors'):none,
-      fbGet('schedules')
+      fbGet('mySchedules/'+myKey()),fbGet('myMemos/'+myKey())
     ]);
-    schedules=(schData&&typeof schData==='object')?schData:{};
+    schedules=(schData&&typeof schData==='object')?schData:{};      // 내 일정만
+    myMemos=_myMemoData(myMoData);                                     // 내 개인메모장
     jungs    =jData?Object.entries(jData).map(([k,j])=>normalizeJung({...j,id:j.id||k})):[];
     results  =rData?Object.entries(rData).map(([k,r])=>({...r,id:String(r.id||k),날짜:normalizeDate(r.날짜),금액:+r.금액||0})):[];
     if(sData){
@@ -2718,7 +2753,8 @@ async function loadAllData(){
     if(typeof buildCharts==='function')buildCharts();
     setTimeout(syncWorkLogToAlba,100); // workLog → albaData 동기화
     startRealtimeSync();
-    updateSchBadge();
+    updateSchBadge(); updateMemoBadge();
+    migrateSharedSchedules();                     // 예전에 함께 보던 일정 중 내가 넣은 것은 내 일정으로 옮깁니다
     setTimeout(()=>checkScheduleAlerts(),1500);   // 이틀 안의 일정이 있으면 알립니다
   }catch(e){
     document.getElementById('ubSync').style.color='#e74c3c';
@@ -2829,7 +2865,8 @@ function openPwModal(ctx){
   later.style.display=ctx.canSkip?'':'none'; later.textContent=ctx.skipLabel||'나중에';
   document.getElementById('pwOk').textContent=ctx.okLabel||'💾 저장';
   document.getElementById('pwModal').classList.add('show');
-  setTimeout(()=>document.getElementById('pw-new').focus(),60);
+  // 이미 다른 칸을 눌러 입력 중이면 커서를 빼앗지 않습니다
+  setTimeout(()=>{ if(!document.getElementById('pwModal').contains(document.activeElement)) document.getElementById('pw-new').focus(); },60);
 }
 async function pwModalOk(){
   if(!_pwCtx) return;
@@ -2895,7 +2932,7 @@ async function deleteUser(id){
   if((u.역할==='admin'||id==='song')&&adminCount(_usersCache,id)<1){ alert('마지막 관리자 계정은 지울 수 없습니다.'); return; }
   if(!confirm(`${u.이름||id}(${id}) 계정을 삭제하시겠습니까?\n\n삭제하면 이 아이디로 더 이상 로그인할 수 없습니다. 지금 접속해 있으면 바로 로그아웃됩니다.`)) return;
   try{
-    const upd={['users/'+id]:null,['pub/a/'+await idKey(id)]:null};
+    const upd={['users/'+id]:null,['pub/a/'+await idKey(id)]:null,['mySchedules/'+id]:null,['myMemos/'+id]:null};
     if(u.uid) upd['uidMap/'+u.uid]=null;
     await window._fbUpdate(window._fbRef(DB),upd);
     addLog(currentUser.이름,'계정 삭제',id);
@@ -2988,6 +3025,9 @@ function buildDbRules(){
     '$id':{'.read':"("+STAFF+") && "+ME+" === $id",
            'lastLogin':{'.write':"("+STAFF+") && "+ME+" === $id",'.validate':'newData.isString()'}}};
   R.uidMap={'.read':ADMIN,'.write':ADMIN,'$uid':{'.read':'auth != null && auth.uid === $uid'}};
+  // 개인 일정·개인 메모장 — 본인만 읽고 씁니다. 관리자도 읽을 수 없고, 계정을 지울 때 정리(삭제)만 합니다
+  const OWN="("+STAFF+") && "+ME+" === $id";
+  ['mySchedules','myMemos'].forEach(n=>R[n]={'$id':{'.read':OWN,'.write':"("+OWN+") || ("+ADMIN+")"}});
   R.pub={'a':{'$hid':{'.read':true,'.write':ADMIN}}};
   return {rules:R};
 }
@@ -3273,6 +3313,7 @@ function applyVMode(){
     b.style.display = isMobile()?'':'none';
     b.textContent = vMode?'📄 가로보기':'📱 세로보기';
   });
+  updateJFilterBar();
 }
 function toggleVMode(){
   vMode=!vMode;
@@ -3323,7 +3364,8 @@ function openMore(){
   const btn=(icon,label,fn)=>`<button class="ms-btn" onclick="closeMore();${fn}"><b>${icon}</b>${label}</button>`;
   const mo=memoTotalOpen();
   g.innerHTML=
-      btn('📝','메모장'+(mo?` (${mo})`:''),'openMemoPad()')
+      btn('📝','메모장'+(mo?` (${mo})`:''),"openMemoPad('shared')")
+    + btn('🔒','개인메모장'+(memoTotalOpen('mine')?` (${memoTotalOpen('mine')})`:''),"openMemoPad('mine')")
     + btn('📋','내 근무시간','openMyWork()')
     + btn('📦','기본물품장','openBasicSheet()')
     + btn('💾','백업',"autoBackupToFile('수동')")
@@ -3638,6 +3680,7 @@ function renderJungList(){
 // 보기: 완료 상태 → 읽기 전용. 수정 버튼 클릭 시에만 편집 활성화
 function openEdit(id){
   const j=jungs.find(x=>x.id===id);if(!j)return;
+  if(editingId!==id) jFilter=null;          // 다른 정산서를 열면 자동필터를 풉니다
   if(j.상태==='완료'){openView(id);return;}
   editingId=id;
   document.getElementById('editOverlay').style.display='flex';
@@ -3645,6 +3688,7 @@ function openEdit(id){
 }
 function openView(id){
   const j=jungs.find(x=>x.id===id);if(!j)return;
+  if(editingId!==id) jFilter=null;
   editingId=id;
   document.getElementById('editOverlay').style.display='flex';
   loadForm(j,true);
@@ -3709,6 +3753,7 @@ function buildTable(j,readOnly){
     const g=f*(item.단가||0);
     if(isA&&!item.품명&&readOnly) return;
     const tr=document.createElement('tr');
+    tr.dataset.i=idx;
     tr.className=isA?('ar'+(item.품명?'':' empty')):'br';
     if(isA){
       // 기타물품이면 단위·단가 직접 입력 가능
@@ -3731,14 +3776,14 @@ function buildTable(j,readOnly){
         <td data-l="가격">${g?fmt(g):''}</td>`;
     } else {
       tr.innerHTML=`
-        <td>${bNo++}</td>
+        <td data-l="NO">${bNo++}</td>
         <td class="nm">${esc(item.품명)}</td>
-        <td>${esc(item.단위)}</td><td>${fmt(item.단가)}</td>
+        <td data-l="단위">${esc(item.단위)}</td><td data-l="단가">${fmt(item.단가)}</td>
         <td data-l="주문량">${qc(item.주문량,idx,'주문량',readOnly)}</td>
         <td data-l="추가 주문량">${qc(item.추가,idx,'추가',readOnly)}</td>
         <td data-l="반품량">${qc(item.반품,idx,'반품',readOnly)}</td>
-        <td class="${f<0?'neg':''}">${f}</td>
-        <td>${fmt(g)}</td>`;
+        <td data-l="최종 주문량" class="${f<0?'neg':''}">${f}</td>
+        <td data-l="가격">${fmt(g)}</td>`;
     }
     body.appendChild(tr);
     if(isA&&item.품명&&!readOnly){
@@ -3746,6 +3791,8 @@ function buildTable(j,readOnly){
       if(sel) for(let o of sel.options){if(o.value===item.품명){o.selected=true;break;}}
     }
   });
+  _jfReadOnly=!!readOnly;
+  applyJFilterDom(j,readOnly);
   updTotal();
   applyVMode();
 }
@@ -3763,6 +3810,96 @@ function qc(v,idx,f,ro){
     onwheel="event.preventDefault()"
     onfocus="this.select()"
     style="background:${color};color:${tcolor};font-weight:${v>0?'700':'400'}">`;
+}
+
+
+// ══ 정산서 자동필터 — 진행중 정산서의 추가 주문량·반품량 ══
+// 엑셀 자동필터처럼 머리글 ▼에서 고릅니다. 값을 고쳐도 다시 거를 때까지 줄은 그대로 둡니다.
+let jFilter=null;        // null 또는 {col:'추가'|'반품', sort:true|false}
+let _jfReadOnly=false;
+const JF_LABEL={추가:'추가 주문',반품:'반품'};
+function jfJung(){ return jungs.find(x=>x.id===editingId)||null; }
+function jfOn(j){ return !!j&&!_jfReadOnly&&j.상태!=='완료'; }
+function jfMatch(it,col){ return !!it&&(+it[col]||0)>0&&(!it.isAdd||!!it.품명); }
+function jfCount(j,col){ return (j&&j.items||[]).filter(it=>jfMatch(it,col)).length; }
+function openJFilter(col,btn){
+  const wasOpen=document.getElementById('jfPop')?._col===col;
+  closeJFilter();
+  if(wasOpen) return;                        // 같은 ▼를 다시 누르면 닫기만 합니다
+  const j=jfJung(); if(!jfOn(j)) return;
+  const n=jfCount(j,col), cur=jFilter&&jFilter.col===col?jFilter:null;
+  const pop=document.createElement('div'); pop.className='jf-pop'; pop.id='jfPop'; pop._col=col;
+  const opt=(label,on,fn,dis)=>{
+    const d=document.createElement('div');
+    d.textContent=(on?'✓ ':'　')+label;
+    if(on) d.classList.add('on');
+    if(dis) d.classList.add('dis');
+    else d.onclick=e=>{ e.stopPropagation(); closeJFilter(); fn(); };
+    pop.appendChild(d);
+  };
+  opt('전체 보기',!cur,()=>setJFilter(null));
+  opt(`${JF_LABEL[col]} 있는 품목만 (${n}개)`,!!(cur&&!cur.sort),()=>setJFilter({col,sort:false}),!n);
+  opt(`${JF_LABEL[col]} 있는 품목만 · 많은 순`,!!(cur&&cur.sort),()=>setJFilter({col,sort:true}),!n);
+  document.body.appendChild(pop);
+  const r=btn.getBoundingClientRect(), w=pop.offsetWidth, h=pop.offsetHeight;
+  let left=Math.min(Math.max(4,r.right-w),innerWidth-w-4), top=r.bottom+4;
+  if(top+h>innerHeight-6) top=Math.max(4,r.top-h-4);
+  pop.style.left=left+'px'; pop.style.top=top+'px';
+  setTimeout(()=>{ document.addEventListener('click',closeJFilter); window.addEventListener('scroll',closeJFilter,true); },0);
+}
+function closeJFilter(){
+  document.removeEventListener('click',closeJFilter);
+  window.removeEventListener('scroll',closeJFilter,true);
+  document.getElementById('jfPop')?.remove();
+}
+function setJFilter(f){
+  jFilter=f&&(f.col==='추가'||f.col==='반품')?{col:f.col,sort:!!f.sort}:null;
+  const j=jfJung(); if(!j) return;
+  buildTable(j,_jfReadOnly);                 // 원래 순서로 다시 그린 뒤 거릅니다
+  const w=document.getElementById('editTableWrap'); if(w) w.scrollTop=0;
+}
+function applyJFilterDom(j,readOnly){
+  const on=!readOnly&&!!j&&j.상태!=='완료';
+  document.querySelectorAll('.jf-btn').forEach(b=>{
+    b.style.display=on?'':'none';
+    b.classList.toggle('on',!!(on&&jFilter&&jFilter.col===b.dataset.col));
+  });
+  const f=on?jFilter:null;
+  const body=document.getElementById('editBody');
+  if(f&&body){
+    const keep=[];
+    [...body.querySelectorAll('tr')].forEach(tr=>{
+      const i=+tr.dataset.i, it=(j.items||[])[i];
+      const show=jfMatch(it,f.col);
+      tr.classList.toggle('jf-hide',!show);
+      if(show) keep.push([tr,+it[f.col]||0,i]);
+    });
+    if(f.sort){ keep.sort((a,b)=>b[1]-a[1]||a[2]-b[2]); keep.forEach(([tr])=>body.appendChild(tr)); }
+    if(!keep.length){
+      const tr=document.createElement('tr'); tr.className='jf-empty';
+      tr.innerHTML=`<td colspan="9">${JF_LABEL[f.col]}이 있는 품목이 없습니다. <button class="jf-chip" onclick="setJFilter(null)">전체 보기</button></td>`;
+      body.appendChild(tr);
+    }
+  }
+  updateJFilterBar();
+}
+// 필터 중일 때(그리고 휴대폰에서는 늘) 표 위에 띠를 보여 줍니다 — 숨은 줄이 있다는 것을 잊지 않게
+function updateJFilterBar(){
+  const bar=document.getElementById('jfBar'); if(!bar) return;
+  const j=jfJung(), on=jfOn(j);
+  if(!on||(!jFilter&&!isMobile())){ bar.style.display='none'; return; }
+  const nA=jfCount(j,'추가'), nR=jfCount(j,'반품');
+  const chip=(label,arg,active)=>`<button class="jf-chip${active?' on':''}" onclick="setJFilter(${arg})">${label}</button>`;
+  bar.innerHTML=(jFilter
+      ?`🔽 <b>${JF_LABEL[jFilter.col]}</b> 있는 품목만${jFilter.sort?' · 많은 순':''} 보는 중 <span style="color:#6b7f92;font-size:11px">(합계는 전체 품목 기준)</span>`
+      :'🔽 자동필터')
+    +'<span class="jf-chips">'
+    +chip('전체','null',!jFilter)
+    +chip(`추가 주문 ${nA}`,"{col:'추가',sort:false}",!!(jFilter&&jFilter.col==='추가'))
+    +chip(`반품 ${nR}`,"{col:'반품',sort:false}",!!(jFilter&&jFilter.col==='반품'))
+    +(jFilter?chip(jFilter.sort?'⇅ 원래 순서':'⇅ 많은 순',`{col:'${jFilter.col}',sort:${!jFilter.sort}}`,false):'')
+    +'</span>';
+  bar.style.display='flex';
 }
 
 // 정산서 입력칸 키보드 이동 (엑셀처럼)
@@ -3858,6 +3995,7 @@ function onQ(inp){
   tr.cells[7].textContent=fin;tr.cells[7].className=fin<0?'neg':'';
   tr.cells[8].textContent=g?fmt(g):'';
   updTotal();
+  if(f==='추가'||f==='반품') updateJFilterBar();
   // 저장은 💾 저장 버튼 클릭 시 처리
 }
 function onCapChange(){
@@ -7052,8 +7190,7 @@ function autoBackupToFile(label){
   const data={jungs,results,stockData,priceDB,
     albaData,albaWorkLog,albaConfig,          // 알바 근무·시급표
     stockClose,                               // 월 마감 이력
-    memos,                                    // 메모장
-    schedules,                                // 일정
+    memos,                                    // 메모장 (개인 일정·개인메모장은 넣지 않습니다)
     timestamp:nowISO(),version:'2.2'};
   if(isAdmin()) Object.assign(data,{expenses,bizConfig,posSales,vendors});   // 연말결산·거래처 규칙 (관리자만)
   const today=todayStr();
@@ -7080,7 +7217,7 @@ function autoSnapshot(){
   if(!currentUser) return;
   // localStorage에 최근 스냅샷 3개 유지
   const snap={jungs,results,stockData,priceDB,
-    albaData,albaWorkLog,albaConfig,stockClose,memos,schedules,
+    albaData,albaWorkLog,albaConfig,stockClose,memos,
     timestamp:nowISO()};
   let snaps=[]; try{ snaps=JSON.parse(localStorage.getItem('hm_snapshots')||'[]'); }catch(_){}
   // 예전 스냅샷에 남아 있던 지출·카드내역 등은 지웁니다 (파일 백업에는 그대로 들어갑니다)
@@ -7196,7 +7333,6 @@ function restoreSnapshot(){
   if(snap.posSales){posSales=snap.posSales;fbSet('posSales',posSales).catch(()=>{});}
   if(snap.stockClose){stockClose=snap.stockClose;fbSet('stockClose',stockClose).catch(()=>{});}
   if(snap.memos){memos=snap.memos;fbSet('memos',memos).catch(()=>{});updateMemoBadge();}
-  if(snap.schedules){schedules=snap.schedules;fbSet('schedules',schedules).catch(()=>{});updateSchBadge();}
   if(snap.vendors){vendors=snap.vendors;fbSet('vendors',vendors).catch(()=>{});}
   renderJungList();renderResults();renderStock();renderPrice();
   if(typeof syncWorkLogToAlba==='function')syncWorkLogToAlba();
@@ -7268,7 +7404,6 @@ function restoreData(input){
       if(data.stockClose){ stockClose=data.stockClose; await fbSet('stockClose',stockClose); }
       // ── 메모장 ──
       if(data.memos){ memos=data.memos; await fbSet('memos',memos); updateMemoBadge(); }
-      if(data.schedules){ schedules=data.schedules; await fbSet('schedules',schedules); updateSchBadge(); }
       if(data.vendors){ vendors=data.vendors; await fbSet('vendors',vendors); }
 
       renderJungList();renderResults();renderStock();renderPrice();
@@ -8130,13 +8265,25 @@ function printExp(){
 //  메모장 — 업무별로 메모장을 여러 개 만들어 함께 씁니다
 //  구조: memos/{메모장id}/{제목,순서,생성자,생성일,항목:{항목id:{내용,완료,중요,...}}}
 // ══════════════════════════════════════════════
-let memos={};          // 전체 메모장
+let memos={};          // 함께 보는 메모장 (직원 모두)
+let myMemos={};        // 개인메모장 (나만 봄 — myMemos/{아이디})
+let memoScope='shared';                 // 지금 열린 메모장: 'shared' 또는 'mine'
 let memoBoard=null;    // 지금 보고 있는 메모장 id
+const _memoBoardBy={shared:null,mine:null};   // 메모장마다 마지막으로 본 탭
 const _mmTimers={};    // 글자 입력 저장을 조금 늦추기 위한 타이머
+function myKey(){ return String(currentUser?.id||''); }
+function _myMemoData(v){ return (v&&typeof v==='object')?v:{}; }
+function memoData(scope){ return (scope||memoScope)==='mine'?myMemos:memos; }
+// 저장 경로 — 개인메모장은 내 아이디 아래에만 씁니다 (로그아웃 상태에서는 쓰지 않습니다)
+function memoRoot(){
+  if(memoScope!=='mine') return 'memos';
+  if(!myKey()) throw new Error('로그인이 필요합니다.');
+  return 'myMemos/'+myKey();
+}
 
 // 순서 → 생성일 순으로 정렬한 [id, 메모장] 목록
-function memoBoards(){
-  return Object.entries(memos)
+function memoBoards(scope){
+  return Object.entries(memoData(scope)||{})
     .filter(([,b])=>b&&typeof b==='object')
     .sort((a,b)=>(+a[1].순서||0)-(+b[1].순서||0)
       || String(a[1].생성일||'').localeCompare(String(b[1].생성일||'')));
@@ -8154,24 +8301,36 @@ function memoItems(b){
     });
 }
 function memoOpenCount(b){ return memoItems(b).filter(([,v])=>!v.완료).length; }
-function memoTotalOpen(){ return memoBoards().reduce((s,[,b])=>s+memoOpenCount(b),0); }
+function memoTotalOpen(scope){ return memoBoards(scope||'shared').reduce((s,[,b])=>s+memoOpenCount(b),0); }
 
-// 사이드 메뉴 버튼의 빨간 숫자 (미완료 합계)
+// 사이드 메뉴 버튼의 빨간 숫자 (미완료 합계) — 메모장·개인메모장 따로
 function updateMemoBadge(){
-  const el=document.getElementById('memoBadge');
-  if(!el) return;
-  const n=memoTotalOpen();
-  el.textContent=n>99?'99+':String(n);
-  el.style.display=n?'':'none';
+  [['memoBadge','shared'],['myMemoBadge','mine']].forEach(([id,sc])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const n=memoTotalOpen(sc);
+    el.textContent=n>99?'99+':String(n);
+    el.style.display=n?'':'none';
+  });
 }
 
-function openMemoPad(){
-  if(!memoBoard||!memos[memoBoard]){
+function openMemoPad(scope){
+  if(scope!=='mine'&&scope!=='shared') scope='shared';
+  _memoBoardBy[memoScope]=memoBoard;
+  memoScope=scope;
+  memoBoard=_memoBoardBy[scope];
+  const mine=scope==='mine';
+  document.getElementById('mmTitle').textContent=mine?'🔒 개인메모장':'📝 메모장';
+  document.getElementById('mmNote').textContent=mine
+    ?'※ 나만 보는 메모장입니다. 다른 직원과 관리자는 볼 수 없으며, 입력한 내용은 자동으로 저장됩니다.'
+    :'※ 입력한 내용은 자동으로 저장되며 직원 모두가 함께 봅니다. 메모장 삭제는 만든 사람과 관리자만 할 수 있습니다.';
+  document.getElementById('memoModal').classList.toggle('mm-mine',mine);
+  if(!memoBoard||!memoData()[memoBoard]){
     const bs=memoBoards();
     memoBoard=bs.length?bs[0][0]:null;
   }
   document.getElementById('memoModal').classList.add('show');
-  if(!memoBoard){ createMemoBoard('업무 메모',true); }
+  if(!memoBoard){ createMemoBoard(mine?'내 메모':'업무 메모',true); }
   else renderMemo();
   setTimeout(()=>document.getElementById('mmNew')?.focus(),80);
 }
@@ -8182,8 +8341,9 @@ function autoGrow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight+
 function renderMemo(){
   const tabs=document.getElementById('mmTabs'), list=document.getElementById('mmList');
   if(!tabs||!list) return;
+  const data=memoData(), mine=memoScope==='mine';
   const bs=memoBoards();
-  if(bs.length&&(!memoBoard||!memos[memoBoard])) memoBoard=bs[0][0];
+  if(bs.length&&(!memoBoard||!data[memoBoard])) memoBoard=bs[0][0];
 
   tabs.innerHTML=bs.map(([id,b])=>{
     const n=memoOpenCount(b);
@@ -8191,7 +8351,7 @@ function renderMemo(){
       +esc(b.제목||'메모')+(n?`<span class="cnt">${n}</span>`:'')+'</button>';
   }).join('')+'<button class="mm-new" onclick="createMemoBoard()">＋ 메모장 추가</button>';
 
-  const b=memos[memoBoard];
+  const b=data[memoBoard];
   if(!b){
     list.innerHTML='<div class="mm-empty">메모장이 없습니다. ＋ 메모장 추가를 눌러 주십시오.</div>';
     document.getElementById('mmTotal').textContent='';
@@ -8205,7 +8365,7 @@ function renderMemo(){
       +`<input type="checkbox" class="mm-chk"${it.완료?' checked':''} onchange="toggleMemoDone(${jsq(iid)},this.checked)">`
       +`<textarea class="mm-txt" rows="1" lang="ko" oninput="autoGrow(this);editMemoItem(${jsq(iid)},this.value)">${esc(it.내용||'')}</textarea>`
       +`<button class="mm-ico" title="중요 표시" onclick="toggleMemoImp(${jsq(iid)})">${it.중요?'⭐':'☆'}</button>`
-      +`<span class="mm-meta">${esc(it.작성자||'')}<br>${esc(localDateOf(it.수정일||it.작성일))}</span>`
+      +`<span class="mm-meta">${mine?'':esc(it.작성자||'')+'<br>'}${esc(localDateOf(it.수정일||it.작성일))}</span>`
       +`<button class="mm-ico" title="삭제" onclick="delMemoItem(${jsq(iid)})">🗑</button>`
       +'</div>';
   }).join(''):'<div class="mm-empty">메모가 없습니다. 아래 칸에 입력하고 Enter를 누르십시오.</div>';
@@ -8213,48 +8373,53 @@ function renderMemo(){
 
   const n=memoOpenCount(b);
   document.getElementById('mmTotal').textContent=items.length?(n?`미완료 ${n}건`:'모두 완료'):'';
-  document.getElementById('mmInfo').textContent=
-    `만든 사람 ${b.생성자||'-'} · ${localDateOf(b.생성일)||'-'} · 메모 ${items.length}건`;
+  document.getElementById('mmInfo').textContent=mine
+    ?`🔒 나만 보는 메모장 · ${localDateOf(b.생성일)||'-'} · 메모 ${items.length}건`
+    :`만든 사람 ${b.생성자||'-'} · ${localDateOf(b.생성일)||'-'} · 메모 ${items.length}건`;
   updateMemoBadge();
 }
 
 async function createMemoBoard(name,silent){
   const t=name||prompt('새 메모장 이름을 입력하십시오.','');
   if(t===null||!String(t).trim()) return;
+  let root; try{ root=memoRoot(); }catch(e){ alert(e.message); return; }
+  const data=memoData();
   const id='mb'+Date.now()+Math.floor(Math.random()*900+100);
-  const board={제목:String(t).trim().slice(0,30),순서:Object.keys(memos).length+1,
+  const board={제목:String(t).trim().slice(0,30),순서:Object.keys(data).length+1,
     생성자:currentUser?.이름||'',생성자id:currentUser?.id||'',생성일:nowISO()};
-  memos[id]=board; memoBoard=id;
+  data[id]=board; memoBoard=id;
   renderMemo();
-  try{ await fbSet('memos/'+id,board); }
+  try{ await fbSet(root+'/'+id,board); }
   catch(e){ alert('메모장 추가에 실패했습니다: '+e.message); return; }
   if(!silent) alert(`메모장 "${board.제목}"을 추가했습니다.`);
 }
 
 async function renameMemoBoard(){
-  const bid=memoBoard, b=memos[bid];
+  const bid=memoBoard, b=memoData()[bid];
   if(!b){ alert('메모장이 없습니다.'); return; }
   const t=prompt('메모장 이름을 입력하십시오.',b.제목||'');
   if(t===null) return;
   if(!t.trim()){ alert('이름을 입력하십시오.'); return; }
+  let root; try{ root=memoRoot(); }catch(e){ alert(e.message); return; }
   b.제목=t.trim().slice(0,30);
   renderMemo();
-  try{ await fbSet(`memos/${bid}/제목`,b.제목); }
+  try{ await fbSet(`${root}/${bid}/제목`,b.제목); }
   catch(e){ alert('이름 변경에 실패했습니다: '+e.message); }
 }
 
 async function delMemoBoard(){
-  const bid=memoBoard, b=memos[bid];
+  const bid=memoBoard, data=memoData(), b=data[bid];
   if(!b){ alert('메모장이 없습니다.'); return; }
-  if(!isAdmin()&&b.생성자id&&b.생성자id!==currentUser?.id){
+  if(memoScope!=='mine'&&!isAdmin()&&b.생성자id&&b.생성자id!==currentUser?.id){
     alert(`이 메모장은 ${b.생성자||b.생성자id} 님이 만들었습니다.\n만든 사람과 관리자만 삭제할 수 있습니다.`);
     return;
   }
   const cnt=memoItems(b).length;
   if(!confirm(`메모장 "${b.제목||''}"을 삭제하시겠습니까?\n\n메모 ${cnt}건이 함께 지워지며 되돌릴 수 없습니다.`)) return;
-  delete memos[bid]; memoBoard=null;
+  let root; try{ root=memoRoot(); }catch(e){ alert(e.message); return; }
+  delete data[bid]; memoBoard=null;
   pauseSync(); renderMemo();
-  try{ await fbRemove('memos/'+bid); }
+  try{ await fbRemove(root+'/'+bid); }
   catch(e){ alert('메모장 삭제에 실패했습니다: '+e.message); }
 }
 
@@ -8262,87 +8427,95 @@ async function addMemoItem(){
   const inp=document.getElementById('mmNew');
   const txt=(inp.value||'').trim();
   if(!txt){ inp.focus(); return; }
-  const bid=memoBoard;
-  if(!bid||!memos[bid]){ alert('먼저 메모장을 추가하십시오.'); return; }
+  const bid=memoBoard, data=memoData();
+  if(!bid||!data[bid]){ alert('먼저 메모장을 추가하십시오.'); return; }
+  let root; try{ root=memoRoot(); }catch(e){ alert(e.message); return; }
   const iid='mi'+Date.now()+Math.floor(Math.random()*900+100);
   const item={내용:txt,완료:false,중요:false,
     작성자:currentUser?.이름||'',작성자id:currentUser?.id||'',
     작성일:nowISO(),수정일:nowISO()};
-  if(!memos[bid].항목) memos[bid].항목={};
-  memos[bid].항목[iid]=item;
+  if(!data[bid].항목) data[bid].항목={};
+  data[bid].항목[iid]=item;
   inp.value='';
   renderMemo(); inp.focus();
-  try{ await fbSet(`memos/${bid}/항목/${iid}`,item); }
+  try{ await fbSet(`${root}/${bid}/항목/${iid}`,item); }
   catch(e){ alert('메모 저장에 실패했습니다: '+e.message); }
 }
 
 // 글자를 입력하면 0.7초 뒤 자동 저장합니다 (버튼 없음)
 function editMemoItem(iid,val){
-  const bid=memoBoard, b=memos[bid];
+  const bid=memoBoard, b=memoData()[bid];
   if(!b||!b.항목||!b.항목[iid]) return;
+  let root; try{ root=memoRoot(); }catch(e){ return; }      // 저장 위치는 지금 정해 둡니다 (나중에 로그아웃해도 엉뚱한 곳에 쓰지 않게)
   const it=b.항목[iid];
   it.내용=val; it.수정일=nowISO(); it.수정자=currentUser?.이름||'';
-  const key=bid+'|'+iid;
+  const key=root+'|'+bid+'|'+iid;
   clearTimeout(_mmTimers[key]);
   _mmTimers[key]=setTimeout(()=>{
-    fbSet(`memos/${bid}/항목/${iid}`,it).catch(e=>console.error('메모 저장 오류:',e));
+    if(!currentUser) return;
+    fbSet(`${root}/${bid}/항목/${iid}`,it).catch(e=>console.error('메모 저장 오류:',e));
   },700);
 }
 
 async function toggleMemoDone(iid,v){
-  const bid=memoBoard, b=memos[bid];
+  const bid=memoBoard, b=memoData()[bid];
   if(!b||!b.항목||!b.항목[iid]) return;
+  let root; try{ root=memoRoot(); }catch(e){ return; }
   const it=b.항목[iid];
   it.완료=!!v; it.수정일=nowISO(); it.수정자=currentUser?.이름||'';
   it.완료자=v?(currentUser?.이름||''):''; it.완료일=v?nowISO():'';
   renderMemo();
-  try{ await fbSet(`memos/${bid}/항목/${iid}`,it); }
+  try{ await fbSet(`${root}/${bid}/항목/${iid}`,it); }
   catch(e){ console.error('메모 저장 오류:',e); }
 }
 
 async function toggleMemoImp(iid){
-  const bid=memoBoard, b=memos[bid];
+  const bid=memoBoard, b=memoData()[bid];
   if(!b||!b.항목||!b.항목[iid]) return;
+  let root; try{ root=memoRoot(); }catch(e){ return; }
   const it=b.항목[iid];
   it.중요=!it.중요; it.수정일=nowISO();
   renderMemo();
-  try{ await fbSet(`memos/${bid}/항목/${iid}`,it); }
+  try{ await fbSet(`${root}/${bid}/항목/${iid}`,it); }
   catch(e){ console.error('메모 저장 오류:',e); }
 }
 
 async function delMemoItem(iid){
-  const bid=memoBoard, b=memos[bid];
+  const bid=memoBoard, b=memoData()[bid];
   if(!b||!b.항목||!b.항목[iid]) return;
+  let root; try{ root=memoRoot(); }catch(e){ return; }
   const it=b.항목[iid];
   if(!confirm(`메모를 삭제하시겠습니까?\n\n"${(it.내용||'').slice(0,40)}"`)) return;
   delete b.항목[iid];
   pauseSync(); renderMemo();
-  try{ await fbRemove(`memos/${bid}/항목/${iid}`); }
+  try{ await fbRemove(`${root}/${bid}/항목/${iid}`); }
   catch(e){ alert('메모 삭제에 실패했습니다: '+e.message); }
 }
 
 async function clearDoneMemo(){
-  const bid=memoBoard, b=memos[bid];
+  const bid=memoBoard, b=memoData()[bid];
   if(!b){ alert('메모장이 없습니다.'); return; }
   const done=memoItems(b).filter(([,v])=>v.완료);
   if(!done.length){ alert('완료된 메모가 없습니다.'); return; }
   if(!confirm(`완료된 메모 ${done.length}건을 삭제하시겠습니까?`)) return;
+  let root; try{ root=memoRoot(); }catch(e){ alert(e.message); return; }
   done.forEach(([iid])=>{ delete b.항목[iid]; });
   pauseSync(); renderMemo();
   try{
-    for(const [iid] of done) await fbRemove(`memos/${bid}/항목/${iid}`);
+    for(const [iid] of done) await fbRemove(`${root}/${bid}/항목/${iid}`);
     alert(`완료된 메모 ${done.length}건을 정리했습니다.`);
   }catch(e){ alert('정리 중 오류가 생겼습니다: '+e.message); }
 }
 
 function printMemo(){
-  const b=memos[memoBoard];
+  const b=memoData()[memoBoard];
   if(!b){ alert('인쇄할 메모장이 없습니다.'); return; }
+  const mine=memoScope==='mine';
   const items=memoItems(b);
   const rows=items.map(([,it],i)=>
     `<tr><td class="c">${i+1}</td><td class="c">${it.완료?'✔':''}</td>`
     +`<td>${it.중요?'⭐ ':''}${esc(it.내용||'').replace(/\n/g,'<br>')}</td>`
-    +`<td class="c">${esc(it.작성자||'')}</td>`
+    +(mine?'':`<td class="c">${esc(it.작성자||'')}</td>`)
     +`<td class="c">${esc(localDateOf(it.수정일||it.작성일))}</td></tr>`).join('');
   const w=window.open('','_blank');
   if(!w){ alert('팝업이 차단되었습니다. 팝업을 허용한 뒤 다시 시도하십시오.'); return; }
@@ -8354,10 +8527,10 @@ function printMemo(){
     +'th,td{border:1px solid #999;padding:5px 6px;vertical-align:top}'
     +'th{background:#eef2f7}.c{text-align:center;white-space:nowrap}'
     +'@page{size:A4;margin:12mm}</style></head><body>'
-    +'<h2>📝 '+esc(b.제목||'메모장')+'</h2>'
-    +'<div class="sub">출력 '+localDateTimeOf(nowISO())+' · 전체 '+items.length+'건 · 미완료 '+memoOpenCount(b)+'건</div>'
+    +'<h2>'+(mine?'🔒 ':'📝 ')+esc(b.제목||'메모장')+'</h2>'
+    +'<div class="sub">'+(mine?'개인메모장 · ':'')+'출력 '+localDateTimeOf(nowISO())+' · 전체 '+items.length+'건 · 미완료 '+memoOpenCount(b)+'건</div>'
     +'<table><thead><tr><th style="width:30px">No</th><th style="width:36px">완료</th>'
-    +'<th>내용</th><th style="width:70px">작성자</th><th style="width:80px">수정일</th></tr></thead><tbody>'
+    +'<th>내용</th>'+(mine?'':'<th style="width:70px">작성자</th>')+'<th style="width:80px">수정일</th></tr></thead><tbody>'
     +(rows||'<tr><td colspan="5" class="c">메모가 없습니다.</td></tr>')
     +'</tbody></table></body></html>');
   w.document.close();
@@ -8367,8 +8540,28 @@ function printMemo(){
 // ══ 유틸 ══
 
 // ══ 일정관리 ══
-// schedules/{id} = {id, 날짜:'YYYY-MM-DD', 시간:'HH:MM'|'', 제목, 메모, 완료, 작성자, 작성자id, 작성일, 수정자, 수정일, 완료자, 완료일}
+// mySchedules/{아이디}/{id} = {id, 날짜:'YYYY-MM-DD', 시간:'HH:MM'|'', 제목, 메모, 완료, 작성일, 수정일, 완료일}
+// 일정은 각자 자기 것만 봅니다 (직원끼리 공유는 메모장으로)
 let schedules={};
+function mySchPath(){ if(!myKey()) throw new Error('로그인이 필요합니다.'); return 'mySchedules/'+myKey(); }
+// 처음 만든 판에서 함께 보던 일정(schedules/) 중 내가 넣은 것을 내 일정으로 옮깁니다
+async function migrateSharedSchedules(){
+  if(!currentUser) return;
+  let shared=null;
+  try{ shared=await fbGet('schedules'); }catch(e){ return; }
+  if(!shared||typeof shared!=='object') return;
+  const me=myKey(), upd={}, moved={};
+  Object.entries(shared).forEach(([k,v])=>{
+    if(v&&typeof v==='object'&&v.작성자id===me){ upd[mySchPath()+'/'+k]=v; upd['schedules/'+k]=null; moved[k]=v; }
+  });
+  if(!Object.keys(moved).length) return;
+  try{
+    await window._fbUpdate(window._fbRef(DB),upd);
+    Object.assign(schedules,moved);
+    updateSchBadge();
+    if(document.getElementById('page-일정')?.classList.contains('on')) renderSchedule();
+  }catch(e){ console.warn('일정 옮기기 실패:',e); }
+}
 let schYM=null;                         // 달력에 보이는 달 (처음 열 때 이번 달로 정합니다)
 let schDay=null, schEditId=null;        // 날짜별 창에서 보고 있는 날짜 · 고치는 일정
 const SCH_ALERT_DAYS=2;                 // 이틀 전부터 알립니다
@@ -8383,7 +8576,7 @@ function schStr(d){ return `${d.getFullYear()}-${_p2(d.getMonth()+1)}-${_p2(d.ge
 function daysUntil(ds){ return Math.round((schDate(ds)-schDate(todayStr()))/86400000); }
 function ddayLabel(n){ return n===0?'오늘':n===1?'내일':n===2?'모레':n>0?`D-${n}`:`${-n}일 지남`; }
 function fmtDateK(ds){ const d=schDate(ds); return `${d.getMonth()+1}월 ${d.getDate()}일 (${_DOW[d.getDay()]})`; }
-function canEditSch(s){ return !!s&&(isAdmin()||!s.작성자id||s.작성자id===currentUser?.id); }
+function canEditSch(s){ return !!s; }                 // 내 일정만 보이므로 모두 고칠 수 있습니다
 
 // ── 달력 ──
 function schMove(n){ if(!schYM) schYM=todayStr().slice(0,7); const [y,m]=schYM.split('-').map(Number); schYM=schStr(new Date(y,m-1+n,1)).slice(0,7); renderSchedule(); }
@@ -8423,7 +8616,7 @@ function renderSchUpcoming(){
     return `<div class="sch-up" data-date="${s.날짜}" onclick="openSchDay(this.dataset.date)">
       <span class="sch-dd d${n<=2?n:'x'}">${ddayLabel(n)}</span>
       <div class="sch-up-m"><div class="sch-up-t">${esc(s.제목)}</div>
-        <div class="sch-up-s">${esc(fmtDateK(s.날짜))}${s.시간?' · '+esc(s.시간):''} · ${esc(s.작성자||'')}</div>
+        <div class="sch-up-s">${esc(fmtDateK(s.날짜))}${s.시간?' · '+esc(s.시간):''}</div>
         ${s.메모?`<div class="sch-memo">${esc(s.메모)}</div>`:''}</div></div>`;
   }).join(''):'<div class="sch-empty">앞으로 30일 안에 잡힌 일정이 없습니다.</div>';
 }
@@ -8453,7 +8646,7 @@ function renderSchDay(){
       <div class="sch-row-m">
         <div class="sch-row-t">${s.시간?`<span style="color:#6b7f92">${esc(s.시간)}</span> `:''}${esc(s.제목)}</div>
         ${s.메모?`<div class="sch-memo">${esc(s.메모)}</div>`:''}
-        <div class="sch-row-b">작성 ${esc(s.작성자||'-')}${s.수정자&&s.수정자!==s.작성자?' · 수정 '+esc(s.수정자):''}${s.완료?' · 완료 '+esc(s.완료자||''):''}</div>
+        <div class="sch-row-b">넣은 날 ${esc(localDateOf(s.작성일)||'-')}${s.완료?' · 완료 '+esc(localDateOf(s.완료일)||''):''}</div>
       </div>
       ${canEditSch(s)?`<div class="sch-row-a"><button class="btn btn-info btn-sm" onclick="editSch(${jsq(s.id)})">수정</button><button class="btn btn-danger btn-sm" onclick="delSch(${jsq(s.id)})">삭제</button></div>`:''}
     </div>`).join(''):'<div class="sch-empty">이 날짜에는 일정이 없습니다. 아래에 입력하십시오.</div>';
@@ -8504,7 +8697,7 @@ async function saveSchedule(){
   btn.disabled=true;
   schedules[rec.id]=rec;
   schAckAdd([rec]);                     // 내가 넣은 일정은 오늘 다시 알리지 않습니다
-  try{ await fbSet('schedules/'+rec.id,rec); }
+  try{ await fbSet(mySchPath()+'/'+rec.id,rec); }
   catch(e){ alert('일정을 저장하지 못했습니다: '+e.message); btn.disabled=false; return; }
   btn.disabled=false;
   const moved=schDay!==날짜;
@@ -8517,7 +8710,7 @@ async function toggleSchDone(id,v){
   s.완료=!!v;
   if(v){ s.완료자=currentUser?.이름||''; s.완료일=nowISO(); } else { delete s.완료자; delete s.완료일; }
   renderSchDay(); renderSchedule(); updateSchBadge();
-  try{ await window._fbUpdate(fbRef('schedules/'+id),{완료:!!v,완료자:v?(currentUser?.이름||''):null,완료일:v?nowISO():null}); }
+  try{ await window._fbUpdate(fbRef(mySchPath()+'/'+id),{완료:!!v,완료자:v?(currentUser?.이름||''):null,완료일:v?nowISO():null}); }
   catch(e){ alert('저장하지 못했습니다: '+e.message); }
 }
 async function delSch(id){
@@ -8527,7 +8720,7 @@ async function delSch(id){
   delete schedules[id];
   if(schEditId===id) schFormNew();
   pauseSync(); renderSchDay(); renderSchedule(); updateSchBadge();
-  try{ await fbRemove('schedules/'+id); }
+  try{ await fbRemove(mySchPath()+'/'+id); }
   catch(e){ alert('삭제하지 못했습니다: '+e.message); }
 }
 
@@ -8581,7 +8774,7 @@ function showSchAlert(list,fresh){
       <div class="sch-al-h"><span class="sch-dd d${n}">${ddayLabel(n)}</span><span>${esc(fmtDateK(s.날짜))}${s.시간?' '+esc(s.시간):''}</span>${freshSet.has(schSig(s))?'':'<span class="sch-seen">확인함</span>'}</div>
       <div class="sch-al-t">${esc(s.제목)}</div>
       ${s.메모?`<div class="sch-memo">${esc(s.메모)}</div>`:''}
-      <div class="sch-al-f"><span>작성 ${esc(s.작성자||'-')}</span><button class="btn btn-success btn-sm" onclick="schAlertDone(${jsq(s.id)})">✔ 완료</button></div>
+      <div class="sch-al-f"><span></span><button class="btn btn-success btn-sm" onclick="schAlertDone(${jsq(s.id)})">✔ 완료</button></div>
     </div>`;
   }).join('');
   document.getElementById('schAlertModal').classList.add('show');
