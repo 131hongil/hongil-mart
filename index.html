@@ -2435,7 +2435,9 @@ function startRealtimeSync(){
   _rtStarted=true;
   onSync('jungs',snap=>{
     const data=snap.exists()?snap.val():null;
+    const mine=editingId&&editDirty()?jungs.find(x=>x.id===editingId):null;   // 고치고 아직 저장 안 한 정산서
     jungs=data?Object.entries(data).map(([k,j])=>normalizeJung({...j,id:j.id||k})):[];
+    if(mine){ const i=jungs.findIndex(x=>x.id===mine.id); if(i>=0) jungs[i]=mine; }
     renderJungList();
   });
   onSync('results',snap=>{
@@ -3714,6 +3716,10 @@ function renderJungList(){
 // ══ 편집 / 보기 ══
 // 편집: 진행중 상태 → 수량·추가물품 모두 수정 가능
 // 보기: 완료 상태 → 읽기 전용. 수정 버튼 클릭 시에만 편집 활성화
+// 수정 화면에서 고친 내용이 있는지 — 열 때·저장할 때의 내용과 비교합니다
+let _editBase=null;
+function markEditBase(){ const j=editingId&&jungs.find(x=>x.id===editingId); _editBase=j?JSON.stringify(j):null; }
+function editDirty(){ const j=editingId&&jungs.find(x=>x.id===editingId); return !!(j&&_editBase!==null&&JSON.stringify(j)!==_editBase); }
 function openEdit(id){
   const j=jungs.find(x=>x.id===id);if(!j)return;
   if(editingId!==id) jFilter=null;          // 다른 정산서를 열면 자동필터를 풉니다
@@ -3721,6 +3727,7 @@ function openEdit(id){
   editingId=id;
   document.getElementById('editOverlay').style.display='flex';
   loadForm(j,false);
+  markEditBase();
 }
 function openView(id){
   const j=jungs.find(x=>x.id===id);if(!j)return;
@@ -3728,6 +3735,7 @@ function openView(id){
   editingId=id;
   document.getElementById('editOverlay').style.display='flex';
   loadForm(j,true);
+  markEditBase();
 }
 function enableEdit(){
   const j=jungs.find(x=>x.id===editingId);if(!j)return;
@@ -4051,11 +4059,32 @@ function onCapChange(){
   if(!confirm(`인원수를 ${n}명으로 변경하면 기본물품 수량이 초기화됩니다. 계속하시겠습니까?`)){
     document.getElementById('e-인원수').value=j.인원수;return;
   }
-  j.인원수=n;j.items.forEach(it=>{if(!it.isAdd)it.주문량=BASIC.find(b=>b.품명===it.품명)?.qty[n]||0;});
+  j.인원수=n;
+  j.items=itemsForCap(j.items,n);
   buildTable(j,false);
   updateEditFileName();  // 파일명 자동 갱신
 }
 
+// 인원수에 맞는 기본물품 목록으로 다시 짭니다 — 새 정산서를 만들 때와 같은 기준
+// (예: 50명은 맥심커피믹스/50T, 150명 이상은 /210T). 추가·반품 수량과 추가물품 줄은 그대로 둡니다.
+function itemsForCap(old,n){
+  old=Array.isArray(old)?old:Object.values(old||{});
+  const prev={}; old.forEach(it=>{ if(it&&!it.isAdd&&it.품명) prev[it.품명]=it; });
+  const fits=b=>!b.isExtra&&!(b.only50&&n!==50)&&!(b.only150plus&&n===50);
+  const out=[];
+  BASIC.forEach(b=>{
+    const p=prev[b.품명];
+    if(fits(b)){
+      out.push(p?{...p,주문량:b.qty[n]||0}:{품명:b.품명,단위:b.단위,단가:b.단가,주문량:b.qty[n]||0,추가:0,반품:0,isAdd:false});
+    } else if(p&&((+p.추가||0)||(+p.반품||0))){
+      out.push({...p,주문량:0});            // 이 인원수에는 없는 품목이지만 추가·반품을 넣어 둔 경우는 남깁니다
+    }
+    if(p) delete prev[b.품명];
+  });
+  Object.values(prev).forEach(p=>out.push(p));   // 원가DB에서 빠진 옛 기본물품은 그대로 둡니다
+  old.forEach(it=>{ if(it&&it.isAdd) out.push(it); });
+  return out;
+}
 // 편집창 필드 변경 시 파일명 자동 갱신 (고인명, 날짜, 분향실, 인원수 변경 연동)
 function updateEditFileName(){
   const j=jungs.find(x=>x.id===editingId);if(!j)return;
@@ -4071,7 +4100,7 @@ function calcTotal(items){return(items||[]).reduce((s,it)=>{const f=(it.주문�
 function updTotal(){const j=jungs.find(x=>x.id===editingId);const t=j?calcTotal(j.items):0;document.getElementById('editTotal').textContent=fmt(t)+' 원';return t;}
 function closeEditOverlay(){
   document.getElementById('editOverlay').style.display='none';
-  editingId=null;
+  editingId=null; _editBase=null;
 }
 async function saveEditing(){
   if(!editingId)return;
@@ -4089,6 +4118,7 @@ async function saveEditing(){
   j.수정자=currentUser?.이름||'';
   j.수정자id=currentUser?.id||'';
   j.수정일=nowISO();
+  markEditBase();
 
   // 저장을 먼저 시작하고 화면을 갱신합니다
   fbSet('jungs/'+j.id,j).then(()=>addLog(currentUser?.이름||'','정산서저장',j.파일명))
@@ -7461,9 +7491,11 @@ function autoBackupToFile(label){
     console.log(`[자동백업] ${filename} → ${where}`);
     if(label==='수동') expToast(where==='folder'
       ? `💾 백업 폴더(${_bkDir.name})에 저장했습니다.`
-      : '💾 다운로드 폴더에 저장했습니다.');
+      : (!_bkDir&&window.showDirectoryPicker
+        ? '💾 다운로드 폴더에 저장했습니다. 마트관리 › 📁 백업 폴더 지정에서 폴더를 골라 두면 그 폴더에 저장됩니다.'
+        : '💾 다운로드 폴더에 저장했습니다.'));
     else if(where==='download'&&_bkDir)
-      expToast('백업 폴더 권한이 꺼져 있어 다운로드 폴더에 저장했습니다. [💾 백업]을 한 번 눌러 허용하십시오.');
+      expToast('백업 폴더에 쓸 권한이 없어 다운로드 폴더에 저장했습니다. 마트관리 › 📁 백업 폴더 지정에서 다시 골라 주십시오.');
   });
   localStorage.setItem('hm_last_backup',today);
   localStorage.setItem('hm_last_backup_time',new Date().toLocaleString('ko-KR'));
@@ -7523,6 +7555,46 @@ async function loadBackupDir(){
   if(!window.showDirectoryPicker) return;
   _bkDir=await _bkGet();
   updateBackupStatus();
+  bkCheckPerm();
+}
+// 브라우저를 다시 켜면 폴더 권한이 '다시 묻기'로 돌아갑니다. 자동 백업은 사람이 누른 동작이 아니라서
+// 브라우저가 권한을 물을 수 없으므로, 화면 아래 띠로 한 번 [허용]을 받습니다.
+// 권한 창에서 '방문할 때마다 허용'을 고르면 다음부터는 묻지 않습니다.
+let _bkPending=null, _bkPendTimer=null;
+async function bkCheckPerm(){
+  if(!_bkDir){ bkBar(false); return; }
+  let perm='prompt'; try{ perm=await _bkDir.queryPermission({mode:'readwrite'}); }catch(_){}
+  bkBar(perm==='prompt');
+}
+function bkBar(show){
+  let b=document.getElementById('bkPermBar');
+  if(!show){ if(b) b.remove(); return; }
+  if(!b){
+    b=document.createElement('div'); b.id='bkPermBar';
+    b.style.cssText='position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:3100;background:#1b3a5c;color:#fff;'
+      +'border-radius:10px;padding:10px 14px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:13px;line-height:1.5;'
+      +'display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:calc(100vw - 24px)';
+    document.body.appendChild(b);
+  }
+  b.innerHTML=`<span>📁 백업 파일을 <b>${esc(_bkDir?.name||'백업 폴더')}</b> 폴더에 저장하려면 [허용]을 누르십시오.`
+    +`<br><span style="font-size:11.5px;color:#cfe0f2">권한 창에서 <b>「방문할 때마다 허용」</b>을 고르면 다음부터는 묻지 않습니다.</span></span>`
+    +`<button class="btn btn-success btn-sm" onclick="bkGrant()">허용</button>`
+    +(_bkPending?`<button class="btn btn-gray btn-sm" onclick="bkPendingDownload()">다운로드로 저장</button>`:'');
+}
+async function bkGrant(){
+  if(!_bkDir) return;
+  let perm='denied';
+  try{ perm=await _bkDir.requestPermission({mode:'readwrite'}); }catch(e){ console.error(e); }
+  if(perm!=='granted'){ expToast('폴더 권한을 받지 못했습니다. 마트관리 › 📁 백업 폴더 지정에서 다시 골라 주십시오.'); return; }
+  bkBar(false);
+  const p=_bkPending; _bkPending=null; clearTimeout(_bkPendTimer);
+  if(p){ const where=await saveBackupFile(p.text,p.filename,false); expToast(where==='folder'?`💾 백업 폴더(${_bkDir.name})에 저장했습니다.`:'💾 다운로드 폴더에 저장했습니다.'); }
+  else expToast(`✅ 이제 백업은 ${_bkDir.name} 폴더에 저장됩니다.`);
+}
+function bkPendingDownload(){
+  const p=_bkPending; _bkPending=null; clearTimeout(_bkPendTimer);
+  if(p) dl(p.text,p.filename,'application/json');
+  bkBar(!!_bkDir);
 }
 // 주의: 폴더 선택 창은 '누른 그 순간'에만 열립니다.
 // 그 전에 alert/confirm을 띄우면 크롬이 클릭이 끝난 것으로 보고 창을 막으므로, 안내는 카드 글자와 알림으로만 합니다.
@@ -7544,7 +7616,7 @@ async function pickBackupDir(){
     if(perm!=='granted') perm=await h.requestPermission({mode:'readwrite'});
     if(perm!=='granted'){ alert('폴더에 파일을 쓸 수 있는 권한을 받지 못했습니다.\n다시 지정하실 때 "파일 수정 허용"에서 [허용]을 누르십시오.'); return; }
   }catch(e){ alert('폴더 권한을 확인하지 못했습니다: '+e.message); return; }
-  _bkDir=h; updateBackupStatus();
+  _bkDir=h; updateBackupStatus(); bkBar(false);
   try{ await _bkPut(h); }
   catch(err){ console.error('백업 폴더 기억 실패:',err);
     expToast('이번 접속 동안은 이 폴더에 저장합니다. 다음에 다시 지정해야 할 수 있습니다.'); }
@@ -7557,7 +7629,15 @@ async function saveBackupFile(text,filename,canAsk){
     try{
       let perm=await _bkDir.queryPermission({mode:'readwrite'});
       if(perm!=='granted'&&canAsk) perm=await _bkDir.requestPermission({mode:'readwrite'});
+      if(perm==='prompt'&&!canAsk){
+        // 자동 백업: 다운로드하지 않고 [허용]을 기다립니다 (가장 최근 것 하나만). 30분 안에 허용이 없으면 다운로드합니다.
+        _bkPending={text,filename}; bkBar(true);
+        clearTimeout(_bkPendTimer);
+        _bkPendTimer=setTimeout(()=>{ if(_bkPending) bkPendingDownload(); },30*60*1000);
+        return 'pending';
+      }
       if(perm==='granted'){
+        if(document.getElementById('bkPermBar')) bkBar(false);
         const fh=await _bkDir.getFileHandle(filename,{create:true});
         const w=await fh.createWritable();
         await w.write(new Blob([text],{type:'application/json'}));
