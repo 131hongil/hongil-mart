@@ -1816,8 +1816,8 @@ body.login #mobileNav{display:none!important}
         <select id="priceFilter" onchange="renderPrice()">
           <option value="">전체</option>
           <option>기본물품</option><option>답례품</option><option>장지품</option>
-          <option>음료수</option><option>잡화</option><option>주 류</option>
-          <option>과자류</option><option>기타</option>
+          <option>음료수</option><option>잡화</option><option>과자류</option>
+          <option>주 류</option><option>기타</option>
         </select>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openPriceEdit(-1)">+ 추가</button>
@@ -3360,6 +3360,7 @@ async function stockUpdate(map){
   await window._fbUpdate(window._fbRef(DB),map);      // 여러 칸을 한 번에, 다른 칸은 건드리지 않고 씁니다
 }
 async function price_save(){
+  sortPriceDB();
   const obj={};priceDB.forEach((p,i)=>obj[i]=p);
   fbSet('priceDB',obj).catch(e=>console.error('원가DB 저장 오류:',e));
 }
@@ -7688,9 +7689,17 @@ function koInputInit(el){
 function koInputInitAll(){ document.querySelectorAll('input.ko-in').forEach(koInputInit); }
 
 // ══ 원가DB ══
-const PRICE_CATS=['기본물품','답례품','장지품','음료수','잡화','주 류','과자류','기타'];
-// 품목 고르기 목록의 구분 순서 (여기 없는 구분은 과자류 뒤, 기타 앞에 둡니다)
-const PICK_ORDER=['기본물품','답례품','음료수','잡화','과자류'];
+// 원가DB 구분 — 이 순서로 목록·저장·품목 고르기를 정렬합니다 (주 류처럼 따로 정하지 않은 구분은 과자류 뒤, 기타 앞)
+const PRICE_CATS=['기본물품','답례품','장지품','음료수','잡화','과자류','주 류','기타'];
+const PICK_ORDER=['기본물품','답례품','장지품','음료수','잡화','과자류'];
+// 원가DB를 구분 순서대로 정렬합니다 (같은 구분 안에서는 원래 순서 유지)
+function sortPriceDB(){
+  const a=priceDB.map((p,ix)=>({p,ix}));
+  a.sort((x,y)=>pickRank(x.p&&x.p.구분)-pickRank(y.p&&y.p.구분)||String(x.p&&x.p.구분||'').localeCompare(String(y.p&&y.p.구분||''))||x.ix-y.ix);
+  const changed=a.some((x,i)=>x.ix!==i);
+  if(changed){ priceDB.length=0; a.forEach(x=>priceDB.push(x.p)); }
+  return changed;
+}
 function pickRank(c){ c=(c||'').trim(); const i=PICK_ORDER.indexOf(c); if(i>=0) return i; return c==='기타'||!c?PICK_ORDER.length+1:PICK_ORDER.length; }
 let _priceEditIdx=-1, _priceFlash=null;
 function renderPrice(){
@@ -7779,7 +7788,9 @@ function delPrice(idx){
 async function savePrice(opt){
   const quiet=opt&&opt.quiet;
   showSaving(true);
+  const moved=sortPriceDB();                 // 구분 순서대로 정렬해서 저장합니다
   try{const obj={};priceDB.forEach((p,i)=>obj[i]=p);await fbSet('priceDB',obj);touchMeta('price');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return false;}
+  if(moved&&typeof renderPrice==='function') renderPrice();
   showSaving(false);
 
   // 진행중 정산서의 단가를 priceDB 최신값으로 자동 업데이트
