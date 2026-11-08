@@ -246,6 +246,8 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .sa-rec .sa-ago{color:#6b7f92;font-size:11.5px}
 .sa-rec .sa-chgnote{color:#b45f06;font-weight:700}
 .sa-rec .btn{padding:2px 9px;margin-left:6px;vertical-align:1px}
+.bs-temp{background:#e8f4fd;border:1px solid #9cc8ec;color:#1b4f7a;border-radius:6px;padding:6px 10px;font-size:12px;margin:0 0 8px;line-height:1.5}
+.bs-temp .btn{padding:2px 8px;margin-left:6px}
 .stbl th .sa-hrec{display:block;font-size:10px;font-weight:400;color:#ffd99a;margin-top:1px;white-space:nowrap}
 .stbl td.sa-td.sa-chg{box-shadow:inset 3px 0 0 #e8821a}
 .stbl .sa-was{font-size:10px;font-weight:400;color:#8a8a8a;white-space:nowrap}
@@ -1313,7 +1315,8 @@ body.login #mobileNav{display:none!important}
     </div>
     <div style="font-size:11.5px;color:#7a5a12;background:#fff8ec;border:1px solid #f0d9a8;border-radius:6px;padding:6px 10px;margin-bottom:8px;line-height:1.55">
       인원수별 칸에 기본 주문량을 넣으십시오. <b>칸을 비워 두면</b> 그 인원수 정산서에는 그 품목이 들어가지 않고, <b>0</b>을 넣으면 0개로 들어갑니다.<br>
-      바꾼 목록은 <b>새로 만드는 정산서</b>와 기본물품장에 적용됩니다. 이미 만든 정산서는 그대로입니다.
+      <b>[이번만 적용]</b> — 저장하지 않고 지금 기본물품장과 <b>다음에 만드는 정산서 1건</b>에만 씁니다. 그 뒤 원래 목록으로 돌아갑니다.<br>
+      <b>[💾 영구 저장]</b> — 모든 직원의 기본물품장과 앞으로 만드는 정산서에 계속 적용합니다 (관리자). 이미 만든 정산서는 그대로입니다.
     </div>
     <datalist id="bePriceList"></datalist>
     <div style="max-height:52vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
@@ -1331,7 +1334,8 @@ body.login #mobileNav{display:none!important}
       <button class="btn btn-gray btn-sm" onclick="beResetDefault()">↺ 처음 목록으로</button>
       <span style="flex:1"></span>
       <button class="btn btn-gray" onclick="closeModal('basicEditModal')">취소</button>
-      <button class="btn btn-success" id="beSaveBtn" onclick="saveBasicEdit()">💾 저장</button>
+      <button class="btn btn-info" onclick="applyBasicTemp()">이번만 적용</button>
+      <button class="btn btn-success" id="beSaveBtn" onclick="saveBasicEdit()">💾 영구 저장</button>
     </div>
   </div>
 </div>
@@ -1375,6 +1379,7 @@ body.login #mobileNav{display:none!important}
       </div>
     </div>
 
+    <div class="bs-temp" id="bsTempNote" style="display:none"></div>
     <div style="max-height:44vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
       <table class="jtbl" id="bsTable" style="width:100%">
         <thead><tr>
@@ -1858,6 +1863,7 @@ body.login #mobileNav{display:none!important}
 <div class="overlay" id="newModal">
   <div class="modal" style="max-width:460px">
     <h3>📋 새 정산서 생성</h3>
+    <div class="bs-temp" id="nwTempNote" style="display:none"></div>
     <div style="display:flex;flex-direction:column;gap:11px">
       <div class="fg">
         <label>예상 인원수</label>
@@ -2017,7 +2023,7 @@ function basicFits(b,cap){
 function stockBaseItems(){
   const extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
   const m=new Map();
-  [...BASIC,...BASIC_DEFAULT,...extra].forEach(b=>{ if(b&&b.품명&&!m.has(b.품명)) m.set(b.품명,b); });
+  [...(_basicSaved||BASIC),...BASIC_DEFAULT,...extra].forEach(b=>{ if(b&&b.품명&&!m.has(b.품명)) m.set(b.품명,b); });
   return [...m.values()];
 }
 
@@ -2736,6 +2742,7 @@ function forceLogout(msg,opt){
   expenses=[]; vendors={}; posSales={}; _usersCache={};           // 관리자 전용 자료는 메모리에서도 비웁니다
   schedules={}; myMemos={}; memoScope='shared'; memoBoard=null; _memoBoardBy.shared=null; _memoBoardBy.mine=null;   // 개인 일정·개인메모도 비웁니다
   bizConfig={과세:'일반',매출기준:'pos',부양:1,연금:0,기타공제:0,세액공제:0};
+  if(_basicTemp){ BASIC.length=0; (_basicSaved||BASIC_DEFAULT).forEach(b=>BASIC.push(b)); _basicTemp=null; _basicSaved=null; updateBasicTempNotes(); }   // '이번만' 목록은 로그아웃하면 버립니다
   const chip=document.getElementById('ubSec'); if(chip) chip.style.display='none';
   hideIdleWarn();
   document.querySelectorAll('.overlay.show').forEach(o=>o.classList.remove('show'));
@@ -3518,6 +3525,7 @@ function openNewModal(){
   const now=new Date();
   document.getElementById('nw-날짜').value=('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2);
   updateNFN();
+  updateBasicTempNotes();
   document.getElementById('newModal').classList.add('show');
 }
 function selCap(n,el){
@@ -3621,6 +3629,7 @@ async function createJungsan(){
   // 1. 창 먼저 닫기 + 로컬에 추가
   closeModal('newModal');
   jungs.push(jung);
+  if(_basicTemp){ clearBasicTemp(true); setTimeout(()=>expToast('이번만 바꾼 기본물품은 이 정산서에 적용하고 원래 목록으로 되돌렸습니다.'),2600); }
   // 2. 저장을 먼저 시작하고 목록을 그립니다 (목록 그리기에서 문제가 생겨도 저장되도록)
   const saving=fbSet('jungs/'+jung.id, jung);
   try{ renderJungList(); }catch(e){ console.error('목록 갱신 오류:',e); }
@@ -5208,7 +5217,7 @@ setTimeout(function(){window.print();setTimeout(function(){window.close();},1500
 // ══ 기본물품 목록 편집 ══
 // basicList (Firebase): [{품명, 단위, 단가, qty:{50:n|null,…}}]  — null(빈칸)은 그 인원수 정산서에서 뺍니다
 let _basicListRaw=null;
-function applyBasicList(arr){
+function applyBasicList(arr,temp){
   if(!Array.isArray(arr)||!arr.length) return false;
   const extra=BASIC_DEFAULT.filter(b=>b.isExtra);
   const list=arr.filter(x=>x&&x.품명).map(x=>{
@@ -5219,11 +5228,35 @@ function applyBasicList(arr){
   });
   if(!list.length) return false;
   BASIC.length=0; list.forEach(b=>BASIC.push(b)); extra.forEach(b=>BASIC.push(b));
-  _basicListRaw=arr;
+  if(!temp) _basicListRaw=arr;
   return true;
+}
+// ── 이번만 적용 (서버에 저장하지 않음) ──
+let _basicTemp=null, _basicSaved=null;
+function basicTempOn(){ return !!_basicTemp; }
+function setBasicTemp(arr){
+  if(!_basicTemp) _basicSaved=BASIC.map(b=>({...b,qty:{...b.qty},caps:b.caps?[...b.caps]:undefined}));
+  _basicTemp=arr;
+  applyBasicList(arr,true);
+  updateBasicTempNotes();
+}
+function clearBasicTemp(silent){
+  if(!_basicTemp) return;
+  BASIC.length=0; (_basicSaved||BASIC_DEFAULT).forEach(b=>BASIC.push(b));
+  _basicTemp=null; _basicSaved=null;
+  updateBasicTempNotes();
+  if(document.getElementById('basicModal')?.classList.contains('show')){ bsQty={}; renderBasicSheet(); }
+  loadBasicList();
+  if(!silent) expToast('기본물품을 원래 목록으로 되돌렸습니다.');
+}
+function updateBasicTempNotes(){
+  const html=_basicTemp?'✏️ <b>이번만 바꾼 기본물품 목록</b>을 쓰는 중입니다. 다음에 만드는 정산서 1건에만 적용되고 원래 목록으로 돌아갑니다.'
+    +'<button class="btn btn-gray btn-sm" onclick="clearBasicTemp()">원래 목록으로</button>':'';
+  ['bsTempNote','nwTempNote'].forEach(id=>{ const e=document.getElementById(id); if(e){ e.innerHTML=html; e.style.display=html?'':'none'; } });
 }
 // 서버의 목록을 불러옵니다. 바뀌었으면 true. (규칙이 아직 옛것이라 못 읽으면 지금 목록을 그대로 씁니다)
 async function loadBasicList(){
+  if(_basicTemp) return false;               // 이번만 바꾼 목록을 쓰는 중에는 서버 목록으로 덮지 않습니다
   try{
     const d=await fbGet('basicList');
     const arr=Array.isArray(d)?d:(d&&typeof d==='object'?Object.values(d):null);
@@ -5244,8 +5277,8 @@ function beFromBasic(){
   });
 }
 function openBasicEdit(){
-  if(!isAdmin()){ alert('기본물품 편집은 관리자만 할 수 있습니다.'); return; }
   beRows=beFromBasic();
+  const sb=document.getElementById('beSaveBtn'); if(sb) sb.style.display=isAdmin()?'':'none';
   document.getElementById('bePriceList').innerHTML=priceDB.filter(p=>p&&p.품명)
     .map(p=>`<option value="${esc(p.품명)}">${esc((p.구분?p.구분+' · ':'')+fmt(+p.가격||0)+'원')}</option>`).join('');
   renderBasicEdit();
@@ -5293,21 +5326,36 @@ function beResetDefault(){
   beRows=BASIC_DEFAULT.filter(b=>!b.isExtra).map(b=>{ const qty={}; BASIC_CAPS.forEach(c=>qty[c]=basicFits(b,c)?(b.qty[c]||0):null); return {품명:b.품명,qty}; });
   renderBasicEdit();
 }
-async function saveBasicEdit(){
+// 편집한 목록을 검사해 저장 형식으로 돌려줍니다 (문제가 있으면 null)
+function beCollect(){
   const rows=beRows.filter(r=>r.품명);
-  if(!rows.length){ alert('기본물품이 하나도 없습니다.'); return; }
+  if(!rows.length){ alert('기본물품이 하나도 없습니다.'); return null; }
   const bad=rows.filter(r=>!priceDB.find(p=>p.품명===r.품명));
-  if(bad.length){ alert('원가DB에 없는 품목이 있습니다:\n· '+bad.map(r=>r.품명).join('\n· ')+'\n\n원가DB에 먼저 등록하거나 목록에서 고르십시오.'); return; }
+  if(bad.length){ alert('원가DB에 없는 품목이 있습니다:\n· '+bad.map(r=>r.품명).join('\n· ')+'\n\n원가DB에 먼저 등록하거나 목록에서 고르십시오.'); return null; }
   const seen=new Set(), dup=rows.filter(r=>seen.has(r.품명)||!seen.add(r.품명));
-  if(dup.length){ alert('같은 품목이 두 번 있습니다: '+[...new Set(dup.map(r=>r.품명))].join(', ')); return; }
+  if(dup.length){ alert('같은 품목이 두 번 있습니다: '+[...new Set(dup.map(r=>r.품명))].join(', ')); return null; }
   const arr=rows.map(r=>{ const db=priceDB.find(p=>p.품명===r.품명); const qty={};
     BASIC_CAPS.forEach(c=>{ qty[c]=(r.qty[c]===null||r.qty[c]===undefined)?null:r.qty[c]; });
     return {품명:r.품명, 단위:db.단위||'', 단가:+db.가격||0, qty}; });
   // Firebase는 null을 저장하지 않으므로 빈칸은 ''로 보냅니다
-  const send=arr.map(x=>({...x,qty:Object.fromEntries(BASIC_CAPS.map(c=>[c,x.qty[c]===null?'':x.qty[c]]))}));
+  return arr.map(x=>({...x,qty:Object.fromEntries(BASIC_CAPS.map(c=>[c,x.qty[c]===null?'':x.qty[c]]))}));
+}
+// [이번만 적용]
+function applyBasicTemp(){
+  const send=beCollect(); if(!send) return;
+  setBasicTemp(send);
+  closeModal('basicEditModal');
+  bsQty={}; renderBasicSheet();
+  expToast('✏️ 이번만 바꾼 목록을 적용했습니다. 다음에 만드는 정산서 1건에만 쓰입니다.');
+}
+// [💾 영구 저장]
+async function saveBasicEdit(){
+  if(!isAdmin()){ alert('영구 저장은 관리자만 할 수 있습니다. [이번만 적용]을 쓰십시오.'); return; }
+  const send=beCollect(); if(!send) return;
   const btn=document.getElementById('beSaveBtn'); btn.disabled=true;
   try{
     await fbSet('basicList',send);
+    if(_basicTemp){ _basicTemp=null; _basicSaved=null; updateBasicTempNotes(); }   // 영구 저장하면 '이번만'은 끝납니다
     applyBasicList(send);
     addLog(currentUser?.이름||'','기본물품 편집',`${send.length}개 품목`);
     closeModal('basicEditModal');
@@ -5340,7 +5388,7 @@ function openBasicSheet(){
   ['bs-분향실','bs-고인','bs-상주','bs-연락처'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   bsQty={};
   renderBasicSheet();
-  const eb=document.getElementById('bsEditBtn'); if(eb) eb.style.display=isAdmin()?'':'none';
+  updateBasicTempNotes();
   document.getElementById('basicModal').classList.add('show');
   loadBasicList().then(ch=>{ if(ch) renderBasicSheet(); });   // 다른 PC에서 바꾼 목록이 있으면 다시 그립니다
 }
