@@ -1344,7 +1344,6 @@ body.login #mobileNav{display:none!important}
       <b>[이번만 적용]</b> — 저장하지 않고 지금 기본물품장과 <b>다음에 만드는 정산서 1건</b>에만 씁니다. 그 뒤 원래 목록으로 돌아갑니다.<br>
       <b>[💾 영구 저장]</b> — 모든 직원의 기본물품장과 앞으로 만드는 정산서에 계속 적용합니다 (관리자). 이미 만든 정산서는 그대로입니다.
     </div>
-    <datalist id="bePriceList"></datalist>
     <div style="max-height:52vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
       <table class="jtbl" id="beTable" style="width:100%;min-width:760px">
         <thead><tr>
@@ -1818,6 +1817,7 @@ body.login #mobileNav{display:none!important}
           <option value="">전체</option>
           <option>기본물품</option><option>답례품</option><option>장지품</option>
           <option>음료수</option><option>잡화</option><option>주 류</option>
+          <option>과자류</option><option>기타</option>
         </select>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openPriceEdit(-1)">+ 추가</button>
@@ -5391,8 +5391,6 @@ function beFromBasic(){
 function openBasicEdit(){
   beRows=beFromBasic();
   const sb=document.getElementById('beSaveBtn'); if(sb) sb.style.display=isAdmin()?'':'none';
-  document.getElementById('bePriceList').innerHTML=priceDB.filter(p=>p&&p.품명)
-    .map(p=>`<option value="${esc(p.품명)}">${esc((p.구분?p.구분+' · ':'')+fmt(+p.가격||0)+'원')}</option>`).join('');
   renderBasicEdit();
   document.getElementById('basicEditModal').classList.add('show');
 }
@@ -5406,8 +5404,9 @@ function renderBasicEdit(){
       style="width:44px;padding:3px 2px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit"></td>`;
     return `<tr>
       <td>${i+1}</td>
-      <td class="nm"><input type="text" list="bePriceList" value="${esc(r.품명)}" placeholder="원가DB 품목 검색"
-        onchange="beName(${i},this.value)" style="width:100%;box-sizing:border-box;padding:4px 6px;border:1px solid ${bad||dup?'#e74c3c':'#ccc'};border-radius:4px;font-family:inherit;font-size:12.5px">
+      <td class="nm"><input type="text" class="be-nm" autocomplete="off" value="${esc(r.품명)}" placeholder="원가DB 품목 검색"
+        onfocus="beSug(this,${i})" onclick="beSug(this,${i})" oninput="beSug(this,${i})" onkeydown="beSugKey(event,this,${i})" onblur="setTimeout(beSugHide,150)"
+        onchange="if(!_beSugPicking) beName(${i},this.value)" style="width:100%;box-sizing:border-box;padding:4px 6px;border:1px solid ${bad||dup?'#e74c3c':'#ccc'};border-radius:4px;font-family:inherit;font-size:12.5px">
         ${bad?'<div style="color:#c0392b;font-size:10.5px">원가DB에 없는 품목입니다</div>':dup?'<div style="color:#c0392b;font-size:10.5px">이미 목록에 있습니다</div>':''}</td>
       <td>${db?esc(db.단위||''):''}</td>
       <td>${db?fmt(+db.가격||0):''}</td>
@@ -5418,6 +5417,59 @@ function renderBasicEdit(){
         <button class="btn btn-danger btn-sm" style="padding:2px 6px" onclick="beDel(${i})">✕</button>
       </td></tr>`;
   }).join('');
+}
+// 품목 추천 목록 — 브라우저 기본 목록은 입력칸 폭이라 줄이 바뀌므로, 넓은 목록을 따로 띄웁니다 (한 줄에 품명·구분·가격)
+let _beSugSel=-1, _beSugList=[], _beSugPicking=false;
+function beSug(inp,i){
+  let box=document.getElementById('beSugBox');
+  if(!box){ box=document.createElement('div'); box.id='beSugBox';
+    box.style.cssText='position:fixed;z-index:4000;background:#fff;border:1px solid #9fb6d4;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:300px;overflow:auto;font-size:13px';
+    document.body.appendChild(box); }
+  const q=inp.value.trim().toLowerCase().replace(/\s+/g,'');
+  // 구분 순서: 기본물품 → 답례품 → 음료수 → 잡화 → 과자류 → (장지품·주 류 등) → 기타, 같은 구분 안에서는 원가DB 순서
+  _beSugList=priceDB.map((p,ix)=>({p,ix})).filter(({p})=>p&&p.품명&&(!q||p.품명.toLowerCase().replace(/\s+/g,'').includes(q)||(p.구분||'').includes(inp.value.trim())))
+    .sort((a,b)=>pickRank(a.p.구분)-pickRank(b.p.구분)||(a.p.구분||'').localeCompare(b.p.구분||'')||a.ix-b.ix).map(x=>x.p).slice(0,300);
+  _beSugSel=-1;
+  if(!_beSugList.length){ box.style.display='none'; return; }
+  let lastCat=null;
+  box.innerHTML=_beSugList.map((p,k)=>{
+    const cat=(p.구분||'').trim()||'기타';
+    const head=cat!==lastCat?`<div style="position:sticky;top:0;background:#eef3f9;color:#1b3a5c;font-size:11.5px;font-weight:700;padding:3px 12px;border-bottom:1px solid #d6e0ec">${esc(cat)}</div>`:'';
+    lastCat=cat;
+    return head+`<div class="be-sg" data-k="${k}" onmousedown="event.preventDefault();bePick(${i},${k})"
+    style="display:flex;gap:14px;align-items:baseline;padding:6px 12px;cursor:pointer;white-space:nowrap;border-bottom:1px solid #f0f3f7">
+    <span style="flex:1 1 auto;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(p.품명)}">${esc(p.품명)}</span>
+    <span style="flex:none;color:#7a8a9c;font-size:11.5px">${esc(p.단위||'')}</span>
+    <span style="flex:none;min-width:80px;text-align:right;color:#1b3a5c">${fmt(+p.가격||0)}원</span></div>`;
+  }).join('');
+  // 가장 긴 품명이 한 줄에 들어가도록 폭을 잡습니다 (화면보다 넓어지지는 않게)
+  const longest=_beSugList.reduce((m,p)=>Math.max(m,[...String(p.품명)].reduce((a,ch)=>a+(/[ -~]/.test(ch)?8:13.5),0)+String(p.단위||'').length*8),0);
+  const r=inp.getBoundingClientRect(), w=Math.min(Math.max(r.width,560,longest+160),window.innerWidth-16);
+  box.style.width=w+'px';
+  box.style.left=Math.max(8,Math.min(r.left,window.innerWidth-w-8))+'px';
+  const below=window.innerHeight-r.bottom;
+  if(below<220&&r.top>below){ box.style.top=''; box.style.bottom=(window.innerHeight-r.top+2)+'px'; }
+  else { box.style.bottom=''; box.style.top=(r.bottom+2)+'px'; }
+  box.style.display='block';
+}
+// 목록이 떠 있는 동안 표를 스크롤하면 위치가 어긋나므로 닫습니다
+window.addEventListener('scroll',e=>{ const b=document.getElementById('beSugBox'); if(b&&b.style.display!=='none'&&!b.contains(e.target)) beSugHide(); },true);
+function beSugHide(){ const b=document.getElementById('beSugBox'); if(b) b.style.display='none'; _beSugSel=-1; }
+function beSugMark(){ document.querySelectorAll('#beSugBox .be-sg').forEach(d=>{ const on=+d.dataset.k===_beSugSel; d.style.background=on?'#e8f1fb':''; if(on) d.scrollIntoView({block:'nearest'}); }); }
+function beSugKey(e,inp,i){
+  const box=document.getElementById('beSugBox'); const open=box&&box.style.display!=='none'&&_beSugList.length;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    if(!open){ beSug(inp,i); return; }
+    e.preventDefault(); const n=_beSugList.length;
+    _beSugSel=e.key==='ArrowDown'?(_beSugSel+1)%n:(_beSugSel<=0?n-1:_beSugSel-1); beSugMark();
+  } else if(e.key==='Enter'&&open&&_beSugSel>=0){ e.preventDefault(); bePick(i,_beSugSel); }
+  else if(e.key==='Escape'&&open){ e.preventDefault(); beSugHide(); }
+}
+function bePick(i,k){
+  const p=_beSugList[k]; if(!p) return;
+  _beSugPicking=true; beSugHide();
+  beName(i,p.품명);
+  _beSugPicking=false;
 }
 function beName(i,v){ beRows[i].품명=String(v||'').trim(); renderBasicEdit(); }
 function beQty(i,c,v){ beRows[i].qty[c]=(v===''?null:Math.max(0,Math.round(+v||0))); }
@@ -5430,8 +5482,8 @@ function beDel(i){
 function beAdd(){
   const q={}; BASIC_CAPS.forEach(c=>q[c]=0);
   beRows.push({품명:'',qty:q}); renderBasicEdit();
-  const ins=document.querySelectorAll('#beBody input[list]'); const last=ins[ins.length-1];
-  if(last){ last.scrollIntoView({block:'nearest'}); last.focus(); }
+  const ins=document.querySelectorAll('#beBody input.be-nm'); const last=ins[ins.length-1];
+  if(last){ last.scrollIntoView({block:'nearest'}); setTimeout(()=>{ last.focus(); beSug(last,beRows.length-1); },120); }   // 스크롤이 끝난 뒤 목록을 띄웁니다
 }
 function beResetDefault(){
   if(!confirm('처음 기본물품 목록으로 되돌립니다. (저장해야 적용됩니다)')) return;
@@ -7636,7 +7688,10 @@ function koInputInit(el){
 function koInputInitAll(){ document.querySelectorAll('input.ko-in').forEach(koInputInit); }
 
 // ══ 원가DB ══
-const PRICE_CATS=['기본물품','답례품','장지품','음료수','잡화','주 류'];
+const PRICE_CATS=['기본물품','답례품','장지품','음료수','잡화','주 류','과자류','기타'];
+// 품목 고르기 목록의 구분 순서 (여기 없는 구분은 과자류 뒤, 기타 앞에 둡니다)
+const PICK_ORDER=['기본물품','답례품','음료수','잡화','과자류'];
+function pickRank(c){ c=(c||'').trim(); const i=PICK_ORDER.indexOf(c); if(i>=0) return i; return c==='기타'||!c?PICK_ORDER.length+1:PICK_ORDER.length; }
 let _priceEditIdx=-1, _priceFlash=null;
 function renderPrice(){
   koInputInitAll();
