@@ -100,6 +100,13 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .ji-burial{font-size:12px;color:#1b3a5c;font-weight:700;margin-left:10mm;white-space:nowrap}
 .ji-gap{margin-left:30mm}
 .ji-cap{background:#1b3a5c;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+/* 진행중 목록: 분향실 번호를 앞에 두고, 칸 너비를 고정해 발인·생성 열을 줄마다 맞춥니다 (PC) */
+@media (min-width:861px){
+  .jung-item.ji-ing .ji-cap{flex:0 0 90px;width:90px;padding:2px 4px;text-align:center;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .jung-item.ji-ing .ji-name{flex:0 0 290px;width:290px;overflow:hidden;text-overflow:ellipsis}
+  .jung-item.ji-ing .ji-burial{flex:0 0 165px;margin-left:14px}
+  .jung-item.ji-ing .ji-gap{flex:0 0 120px;margin-left:14px}
+}
 .empty-msg{color:#aaa;text-align:center;padding:30px;font-size:13px}
 
 /* ── 정산서 테이블 ── */
@@ -3674,7 +3681,8 @@ function renderJungList(){
       },0);
     }
     const div=document.createElement('div');
-    div.className='jung-item'+(done?' done':'')+(isMobile()&&jungSel===j.id?' sel':'');
+    const ingView=listFilter==='진행중';          // 진행중 목록만 분향실 번호·열 맞춤
+    div.className='jung-item'+(done?' done':'')+(ingView?' ji-ing':'')+(isMobile()&&jungSel===j.id?' sel':'');
     div.dataset.id=j.id;
     // PC: 칸을 클릭하면 진행중은 편집, 완료는 보기로 엽니다
     // 휴대폰: 누르면 그 정산서만 선택되어 버튼이 펼쳐지고, 다시 누르면 접힙니다
@@ -3684,8 +3692,8 @@ function renderJungList(){
     };
     div.title=done?'클릭하면 정산서를 엽니다':'클릭하면 편집 화면이 열립니다';
     div.innerHTML=`
-      <span class="ji-cap">${j.인원수}명</span>
-      <span class="ji-name">${esc(j.파일명)}</span>
+      ${ingView?`<span class="ji-cap" title="분향실_인원수">${j.분향실?esc(/호$/.test(j.분향실)?j.분향실:j.분향실+'호'):'-'}_${j.인원수}명</span>`:`<span class="ji-cap">${j.인원수}명</span>`}
+      <span class="ji-name"${ingView?` title="${esc(j.파일명)}"`:''}>${esc(j.파일명)}</span>
       <span class="ji-burial">발인 ${burialText(j)}</span>
       <span class="ji-sub ji-gap">생성 ${esc(localDateOf(j.생성일))}</span>
       ${j.생성자?`<span class="ji-sub" style="color:#8a6d3b">작성 ${esc(j.생성자id||j.생성자)}</span>`:''}
