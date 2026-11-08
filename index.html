@@ -1304,12 +1304,44 @@ body.login #mobileNav{display:none!important}
   </div>
 </div>
 
+<!-- ══ 기본물품 편집 ══ -->
+<div class="overlay" id="basicEditModal" style="z-index:1600">
+  <div class="modal" style="max-width:940px;width:98%">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <h3 style="margin:0">✏️ 기본물품 편집</h3>
+      <span style="font-size:11.5px;color:#666">품목은 원가DB에서 고르며, 단위·단가는 원가DB 값이 그대로 적용됩니다.</span>
+    </div>
+    <div style="font-size:11.5px;color:#7a5a12;background:#fff8ec;border:1px solid #f0d9a8;border-radius:6px;padding:6px 10px;margin-bottom:8px;line-height:1.55">
+      인원수별 칸에 기본 주문량을 넣으십시오. <b>칸을 비워 두면</b> 그 인원수 정산서에는 그 품목이 들어가지 않고, <b>0</b>을 넣으면 0개로 들어갑니다.<br>
+      바꾼 목록은 <b>새로 만드는 정산서</b>와 기본물품장에 적용됩니다. 이미 만든 정산서는 그대로입니다.
+    </div>
+    <datalist id="bePriceList"></datalist>
+    <div style="max-height:52vh;overflow:auto;border:1px solid #d0dff0;border-radius:6px">
+      <table class="jtbl" id="beTable" style="width:100%;min-width:760px">
+        <thead><tr>
+          <th style="width:34px">NO</th><th style="min-width:200px">품 목 (원가DB)</th><th style="width:70px">단위</th><th style="width:66px">단가</th>
+          <th style="width:52px">50명</th><th style="width:52px">150명</th><th style="width:52px">300명</th><th style="width:52px">500명</th><th style="width:56px">1000명</th>
+          <th style="width:92px">순서·삭제</th>
+        </tr></thead>
+        <tbody id="beBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-group" style="margin-top:10px">
+      <button class="btn btn-primary btn-sm" onclick="beAdd()">+ 물품 추가</button>
+      <button class="btn btn-gray btn-sm" onclick="beResetDefault()">↺ 처음 목록으로</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-gray" onclick="closeModal('basicEditModal')">취소</button>
+      <button class="btn btn-success" id="beSaveBtn" onclick="saveBasicEdit()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ 기본물품장 ══ -->
 <div class="overlay" id="basicModal">
   <div class="modal" style="max-width:860px;width:97%">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
       <h3 style="margin:0">📋 기본 매점 거래장</h3>
-      <span style="font-size:11px;color:#888">정산서 작성 전 확인용 · 단가는 원가DB와 연동됩니다 · 주문량은 수정할 수 있습니다</span><button class="btn btn-gray btn-sm" style="margin-left:auto" onclick="resetBasicQty()">↺ 기본수량 복원</button>
+      <span style="font-size:11px;color:#888">정산서 작성 전 확인용 · 단가는 원가DB와 연동됩니다 · 주문량은 수정할 수 있습니다</span><button class="btn btn-gray btn-sm" style="margin-left:auto" onclick="resetBasicQty()">↺ 기본수량 복원</button><button class="btn btn-sm" id="bsEditBtn" style="background:#8e6f2a;color:#fff" onclick="openBasicEdit()">✏️ 물품 편집</button>
     </div>
 
     <div class="frow" style="margin:0 0 10px;gap:10px;align-items:flex-end;flex-wrap:wrap">
@@ -1970,6 +2002,24 @@ const BASIC=[
   {품명:"슬리퍼",단위:"켤레",단가:6000,qty:{50:2,150:2,300:3,500:4,1000:5}},
   {품명:"기타잡화",단위:"식",단가:0,qty:{50:0,150:0,300:0,500:0,1000:0},isExtra:true},
 ];
+// 처음 목록(되돌리기·재고관리용). 기본물품장 편집으로 바뀐 목록은 Firebase basicList에 저장되어 BASIC을 갈아 끼웁니다.
+const BASIC_DEFAULT=BASIC.map(b=>({...b,qty:{...b.qty}}));
+const BASIC_CAPS=[50,150,300,500,1000];
+// 이 인원수 정산서에 들어가는 기본물품인지 (편집한 목록은 caps, 처음 목록은 only50·only150plus로 판단)
+function basicFits(b,cap){
+  if(!b||b.isExtra) return false;
+  if(Array.isArray(b.caps)) return b.caps.includes(+cap);
+  if(b.only50&&+cap!==50) return false;
+  if(b.only150plus&&+cap===50) return false;
+  return true;
+}
+// 재고관리 품목: 지금 기본물품 + 처음 기본물품(빠진 품목의 재고도 계속 보이게) + 답례품 등
+function stockBaseItems(){
+  const extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
+  const m=new Map();
+  [...BASIC,...BASIC_DEFAULT,...extra].forEach(b=>{ if(b&&b.품명&&!m.has(b.품명)) m.set(b.품명,b); });
+  return [...m.values()];
+}
 
 const DEF_PRICE=[
   {구분:"기본물품",품명:"오름소주(30병/박스)",단위:"360ml/병",가격:1900,원가:0},
@@ -2792,6 +2842,7 @@ async function loadAllData(){
     renderMetaBadges();
     if(cData) albaConfig=Object.assign(albaConfig,cData);
     applyAlbaConfig();
+    await loadBasicList();
     document.getElementById('ubSync').style.color='#52be80';
     renderJungList();renderResults();renderStock();renderPrice();
     if(typeof buildCharts==='function')buildCharts();
@@ -3063,7 +3114,7 @@ function buildDbRules(){
   ['jungs','results','albaWorkLog','stockClose','memos','meta','schedules'].forEach(n=>R[n]={'.read':STAFF,'.write':ADMIN,'$k':{'.write':STAFF}});
   // 작업 기록은 직원은 새로 추가만 할 수 있습니다 (고치거나 지우지 못합니다)
   R.logs={'.read':STAFF,'.write':ADMIN,'$k':{'.write':"(("+STAFF+") && !data.exists() && newData.exists()) || ("+ADMIN+")"}};
-  ['albaData','albaConfig'].forEach(n=>R[n]=rw(STAFF,ADMIN));
+  ['albaData','albaConfig','basicList'].forEach(n=>R[n]=rw(STAFF,ADMIN));
   ['expenses','bizConfig','posSales','vendors'].forEach(n=>R[n]=rw(ADMIN,ADMIN));
   R.users={'.read':ADMIN,'.write':ADMIN,
     '$id':{'.read':"("+STAFF+") && "+ME+" === $id",
@@ -3532,6 +3583,7 @@ function mmddToDate(mm,dd){
   return `${y}-${_p2(m)}-${_p2(d)}`;
 }
 async function createJungsan(){
+  await loadBasicList();                    // 다른 PC에서 바꾼 기본물품 목록을 반영합니다
   filterHangul(document.getElementById('nw-고인'));
   filterHangul(document.getElementById('nw-상주'));
   const 분향실=document.getElementById('nw-분향실').value.trim();
@@ -3548,13 +3600,9 @@ async function createJungsan(){
   if(!날짜full){alert(`${+mm}월 ${+dd}일은 없는 날짜입니다. 발인일을 다시 확인하십시오.`);return;}
   const 파일명=`최종정산서(${newCap})-${분향실}-${고인}-${날짜str}`;
   const items=BASIC
-    .filter(b=>{
-      if(b.isExtra) return false;
-      if(b.only50 && newCap!==50) return false;
-      if(b.only150plus && newCap===50) return false;
-      return true;
-    })
-    .map(b=>({품명:b.품명,단위:b.단위,단가:b.단가,주문량:b.qty[newCap]||0,추가:0,반품:0,isAdd:false}));
+    .filter(b=>basicFits(b,newCap))
+    .map(b=>{ const db=priceDB.find(p=>p.품명===b.품명);     // 단위·단가는 원가DB에서 가져옵니다
+      return {품명:b.품명,단위:db?.단위||b.단위,단가:db?(+db.가격||0):b.단가,주문량:b.qty[newCap]||0,추가:0,반품:0,isAdd:false}; });
   // 기본물품장에서 주문량을 고쳤다면 반영합니다
   if(pendingBasicQty && pendingBasicQty.cap===newCap){
     items.forEach(it=>{
@@ -4078,12 +4126,13 @@ function onCapChange(){
 function itemsForCap(old,n){
   old=Array.isArray(old)?old:Object.values(old||{});
   const prev={}; old.forEach(it=>{ if(it&&!it.isAdd&&it.품명) prev[it.품명]=it; });
-  const fits=b=>!b.isExtra&&!(b.only50&&n!==50)&&!(b.only150plus&&n===50);
+  const fits=b=>basicFits(b,n);
   const out=[];
   BASIC.forEach(b=>{
     const p=prev[b.품명];
     if(fits(b)){
-      out.push(p?{...p,주문량:b.qty[n]||0}:{품명:b.품명,단위:b.단위,단가:b.단가,주문량:b.qty[n]||0,추가:0,반품:0,isAdd:false});
+      const db=priceDB.find(x=>x.품명===b.품명);
+      out.push(p?{...p,주문량:b.qty[n]||0}:{품명:b.품명,단위:db?.단위||b.단위,단가:db?(+db.가격||0):b.단가,주문량:b.qty[n]||0,추가:0,반품:0,isAdd:false});
     } else if(p&&((+p.추가||0)||(+p.반품||0))){
       out.push({...p,주문량:0});            // 이 인원수에는 없는 품목이지만 추가·반품을 넣어 둔 경우는 남깁니다
     }
@@ -4990,8 +5039,7 @@ let scPrefilled=0; // 재고표의 실제 재고로 미리 채운 품목 수
 // 해당 월의 품목별 장부 재고
 function bookStock(ym){
   const mData=stockData[ym]||{};
-  const _extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
-  const ALL=[...BASIC,..._extra];
+  const ALL=stockBaseItems();
   return ALL.map(it=>{
     const p=mData[it.품명]||mData[toFbKey(it.품명)]||{};
     const 이월=+(p['이월']||0), 조정=+(p['조정']||0);
@@ -5157,13 +5205,126 @@ setTimeout(function(){window.print();setTimeout(function(){window.close();},1500
   w.document.close();
 }
 
+// ══ 기본물품 목록 편집 ══
+// basicList (Firebase): [{품명, 단위, 단가, qty:{50:n|null,…}}]  — null(빈칸)은 그 인원수 정산서에서 뺍니다
+let _basicListRaw=null;
+function applyBasicList(arr){
+  if(!Array.isArray(arr)||!arr.length) return false;
+  const extra=BASIC_DEFAULT.filter(b=>b.isExtra);
+  const list=arr.filter(x=>x&&x.품명).map(x=>{
+    const db=priceDB.find(p=>p.품명===x.품명);
+    const qty={}, caps=[];
+    BASIC_CAPS.forEach(c=>{ const v=x.qty?x.qty[c]:null; if(v===null||v===undefined||v===''){ qty[c]=0; } else { qty[c]=Math.max(0,+v||0); caps.push(c); } });
+    return {품명:x.품명, 단위:db?.단위||x.단위||'', 단가:db?(+db.가격||0):(+x.단가||0), qty, caps};
+  });
+  if(!list.length) return false;
+  BASIC.length=0; list.forEach(b=>BASIC.push(b)); extra.forEach(b=>BASIC.push(b));
+  _basicListRaw=arr;
+  return true;
+}
+// 서버의 목록을 불러옵니다. 바뀌었으면 true. (규칙이 아직 옛것이라 못 읽으면 지금 목록을 그대로 씁니다)
+async function loadBasicList(){
+  try{
+    const d=await fbGet('basicList');
+    const arr=Array.isArray(d)?d:(d&&typeof d==='object'?Object.values(d):null);
+    if(!arr||!arr.length){
+      if(_basicListRaw){ BASIC.length=0; BASIC_DEFAULT.forEach(b=>BASIC.push({...b,qty:{...b.qty}})); _basicListRaw=null; return true; }
+      return false;
+    }
+    if(JSON.stringify(arr)===JSON.stringify(_basicListRaw)) return false;
+    return applyBasicList(arr);
+  }catch(e){ console.warn('기본물품 목록을 읽지 못했습니다:',e&&e.message); return false; }
+}
+// ── 편집 창 ──
+let beRows=[];
+function beFromBasic(){
+  return BASIC.filter(b=>!b.isExtra).map(b=>{
+    const qty={}; BASIC_CAPS.forEach(c=>{ qty[c]=basicFits(b,c)?(b.qty[c]||0):null; });
+    return {품명:b.품명, qty};
+  });
+}
+function openBasicEdit(){
+  if(!isAdmin()){ alert('기본물품 편집은 관리자만 할 수 있습니다.'); return; }
+  beRows=beFromBasic();
+  document.getElementById('bePriceList').innerHTML=priceDB.filter(p=>p&&p.품명)
+    .map(p=>`<option value="${esc(p.품명)}">${esc((p.구분?p.구분+' · ':'')+fmt(+p.가격||0)+'원')}</option>`).join('');
+  renderBasicEdit();
+  document.getElementById('basicEditModal').classList.add('show');
+}
+function renderBasicEdit(){
+  const names={}; beRows.forEach(r=>{ if(r.품명) names[r.품명]=(names[r.품명]||0)+1; });
+  document.getElementById('beBody').innerHTML=beRows.map((r,i)=>{
+    const db=r.품명?priceDB.find(p=>p.품명===r.품명):null;
+    const bad=r.품명&&!db, dup=r.품명&&names[r.품명]>1;
+    const cell=c=>`<td><input type="number" min="0" class="be-q" value="${r.qty[c]===null||r.qty[c]===undefined?'':r.qty[c]}"
+      oninput="beQty(${i},${c},this.value)" onwheel="event.preventDefault()" placeholder="-"
+      style="width:44px;padding:3px 2px;border:1px solid #ccc;border-radius:4px;text-align:center;font-family:inherit"></td>`;
+    return `<tr>
+      <td>${i+1}</td>
+      <td class="nm"><input type="text" list="bePriceList" value="${esc(r.품명)}" placeholder="원가DB 품목 검색"
+        onchange="beName(${i},this.value)" style="width:100%;box-sizing:border-box;padding:4px 6px;border:1px solid ${bad||dup?'#e74c3c':'#ccc'};border-radius:4px;font-family:inherit;font-size:12.5px">
+        ${bad?'<div style="color:#c0392b;font-size:10.5px">원가DB에 없는 품목입니다</div>':dup?'<div style="color:#c0392b;font-size:10.5px">이미 목록에 있습니다</div>':''}</td>
+      <td>${db?esc(db.단위||''):''}</td>
+      <td>${db?fmt(+db.가격||0):''}</td>
+      ${BASIC_CAPS.map(cell).join('')}
+      <td style="white-space:nowrap">
+        <button class="btn btn-gray btn-sm" style="padding:2px 6px" onclick="beMove(${i},-1)" ${i?'':'disabled'}>▲</button>
+        <button class="btn btn-gray btn-sm" style="padding:2px 6px" onclick="beMove(${i},1)" ${i<beRows.length-1?'':'disabled'}>▼</button>
+        <button class="btn btn-danger btn-sm" style="padding:2px 6px" onclick="beDel(${i})">✕</button>
+      </td></tr>`;
+  }).join('');
+}
+function beName(i,v){ beRows[i].품명=String(v||'').trim(); renderBasicEdit(); }
+function beQty(i,c,v){ beRows[i].qty[c]=(v===''?null:Math.max(0,Math.round(+v||0))); }
+function beMove(i,d){ const j=i+d; if(j<0||j>=beRows.length) return; [beRows[i],beRows[j]]=[beRows[j],beRows[i]]; renderBasicEdit(); }
+function beDel(i){
+  const r=beRows[i];
+  if(r.품명&&!confirm(`「${r.품명}」을(를) 기본물품에서 빼시겠습니까?\n(원가DB와 재고 기록은 그대로 남습니다)`)) return;
+  beRows.splice(i,1); renderBasicEdit();
+}
+function beAdd(){
+  const q={}; BASIC_CAPS.forEach(c=>q[c]=0);
+  beRows.push({품명:'',qty:q}); renderBasicEdit();
+  const ins=document.querySelectorAll('#beBody input[list]'); const last=ins[ins.length-1];
+  if(last){ last.scrollIntoView({block:'nearest'}); last.focus(); }
+}
+function beResetDefault(){
+  if(!confirm('처음 기본물품 목록으로 되돌립니다. (저장해야 적용됩니다)')) return;
+  beRows=BASIC_DEFAULT.filter(b=>!b.isExtra).map(b=>{ const qty={}; BASIC_CAPS.forEach(c=>qty[c]=basicFits(b,c)?(b.qty[c]||0):null); return {품명:b.품명,qty}; });
+  renderBasicEdit();
+}
+async function saveBasicEdit(){
+  const rows=beRows.filter(r=>r.품명);
+  if(!rows.length){ alert('기본물품이 하나도 없습니다.'); return; }
+  const bad=rows.filter(r=>!priceDB.find(p=>p.품명===r.품명));
+  if(bad.length){ alert('원가DB에 없는 품목이 있습니다:\n· '+bad.map(r=>r.품명).join('\n· ')+'\n\n원가DB에 먼저 등록하거나 목록에서 고르십시오.'); return; }
+  const seen=new Set(), dup=rows.filter(r=>seen.has(r.품명)||!seen.add(r.품명));
+  if(dup.length){ alert('같은 품목이 두 번 있습니다: '+[...new Set(dup.map(r=>r.품명))].join(', ')); return; }
+  const arr=rows.map(r=>{ const db=priceDB.find(p=>p.품명===r.품명); const qty={};
+    BASIC_CAPS.forEach(c=>{ qty[c]=(r.qty[c]===null||r.qty[c]===undefined)?null:r.qty[c]; });
+    return {품명:r.품명, 단위:db.단위||'', 단가:+db.가격||0, qty}; });
+  // Firebase는 null을 저장하지 않으므로 빈칸은 ''로 보냅니다
+  const send=arr.map(x=>({...x,qty:Object.fromEntries(BASIC_CAPS.map(c=>[c,x.qty[c]===null?'':x.qty[c]]))}));
+  const btn=document.getElementById('beSaveBtn'); btn.disabled=true;
+  try{
+    await fbSet('basicList',send);
+    applyBasicList(send);
+    addLog(currentUser?.이름||'','기본물품 편집',`${send.length}개 품목`);
+    closeModal('basicEditModal');
+    bsQty={}; renderBasicSheet();
+    if(typeof renderStock==='function') renderStock();
+    expToast('✅ 기본물품 목록을 저장했습니다. 새로 만드는 정산서부터 적용됩니다.');
+  }catch(e){
+    if(isPermErr(e)) alert('저장할 권한이 없습니다.\n\n데이터베이스 규칙을 잠가 두셨다면, 마트관리 › 🔒 보안 설정에서 [📋 데이터베이스 규칙 복사]로 새 규칙을 복사해 Firebase 콘솔에 다시 붙여넣고 [게시]하십시오.');
+    else alert('저장하지 못했습니다: '+e.message);
+  }finally{ btn.disabled=false; }
+}
+
 // ══ 기본물품장 ══
 // 정산서 작성 전 유가족 확인용 · 단가는 원가DB(priceDB)에서 실시간으로 가져옵니다
 function basicItemsFor(cap){
   return BASIC.filter(b=>{
-    if(b.isExtra) return false;
-    if(b.only50 && cap!==50) return false;
-    if(b.only150plus && cap===50) return false;
+    if(!basicFits(b,cap)) return false;
     return (b.qty[cap]||0)>0;
   }).map(b=>{
     const db=priceDB.find(p=>p.품명===b.품명);   // 원가DB 우선
@@ -5179,7 +5340,9 @@ function openBasicSheet(){
   ['bs-분향실','bs-고인','bs-상주','bs-연락처'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   bsQty={};
   renderBasicSheet();
+  const eb=document.getElementById('bsEditBtn'); if(eb) eb.style.display=isAdmin()?'':'none';
   document.getElementById('basicModal').classList.add('show');
+  loadBasicList().then(ch=>{ if(ch) renderBasicSheet(); });   // 다른 PC에서 바꾼 목록이 있으면 다시 그립니다
 }
 function onBasicDateToggle(){
   const on=!!document.getElementById('bs-날짜사용')?.checked;
@@ -6468,8 +6631,7 @@ function renderStock(){
     }
   }
   const body=document.getElementById('stockBody');body.innerHTML='';
-  const _extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
-  const ALL_STOCK=[...BASIC,..._extra.map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}))];
+  const ALL_STOCK=stockBaseItems().map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}));
   ALL_STOCK.forEach(item=>{
     // Firebase key 인코딩 처리: 원래 품명과 인코딩된 key 모두 검색
     const origKey=item.품명;
@@ -7063,7 +7225,7 @@ function openStockEditModal(){
   document.getElementById('stockEditModal').classList.add('show');
 }
 function addSeRow(){
-  const allStockItems=[...BASIC,...(typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[])];
+  const allStockItems=stockBaseItems();
   const opts=[...new Map(allStockItems.map(b=>[b.품명,b])).values()]
     .map(b=>`<option value="${esc(b.품명)}">${b.품명}</option>`).join('');
   const div=document.createElement('div');
@@ -7228,8 +7390,7 @@ function exportStock(){
   const days=new Date(yr,m,0).getDate();
   const ym=stockKey(yr,m);
   const mData=stockData[ym]||{};
-  const _extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
-  const ALL=[...BASIC,..._extra];
+  const ALL=stockBaseItems();
   let csv='품명,이월량,조정,현재재고';
   for(let d=1;d<=days;d++)csv+=`,${d}일`;csv+=',출고합계,실제재고,차이\n';
   ALL.forEach(it=>{
@@ -7488,6 +7649,7 @@ function autoBackupToFile(label){
     albaData,albaWorkLog,albaConfig,          // 알바 근무·시급표
     stockClose,                               // 월 마감 이력
     memos,                                    // 메모장 (개인 일정·개인메모장은 넣지 않습니다)
+    basicList:_basicListRaw||null,            // 기본물품장 목록 (편집한 경우)
     timestamp:nowISO(),version:'2.2'};
   if(isAdmin()) Object.assign(data,{expenses,bizConfig,posSales,vendors});   // 연말결산·거래처 규칙 (관리자만)
   const today=todayStr();
@@ -7734,6 +7896,10 @@ function restoreData(input){
       if(data.albaWorkLog){
         albaWorkLog=normalizeWorkLog(data.albaWorkLog);
         await fbSet('albaWorkLog',albaWorkLog);
+      }
+      if(Array.isArray(data.basicList)&&data.basicList.length){
+        await fbSet('basicList',data.basicList);
+        applyBasicList(data.basicList);
       }
       if(data.albaConfig){
         albaConfig=Object.assign(albaConfig,data.albaConfig);
