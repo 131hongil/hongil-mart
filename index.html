@@ -200,7 +200,8 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .stbl tr:nth-child(even) td{background:#f9fafb}
 .stbl input.sv{width:52px;padding:2px 3px;border:1px solid #ddd;border-radius:2px;text-align:center;font-size:12px}
 .stbl td.snm{text-align:left;padding-left:6px;white-space:normal;min-width:120px}
-.stbl td.scat{color:#555;font-size:11px}
+.stbl td.scat{color:#555;font-size:11px;white-space:nowrap}
+.stbl tr.scat-first td{border-top:2px solid #9fb6d4}   /* 구분이 바뀌는 줄 */
 /* 실제 재고(실사) */
 .stbl th.sa-h{background:#7a4b00;min-width:96px}
 .stbl td.sa-td{background:#fffaf0!important;white-space:nowrap;padding:2px 5px}
@@ -2047,11 +2048,22 @@ function basicFits(b,cap){
   return true;
 }
 // 재고관리 품목: 지금 기본물품 + 처음 기본물품(빠진 품목의 재고도 계속 보이게) + 답례품 등
+// 원가DB에 새로 넣은 품목(과자류·기타 등)도 재고에 들어가고, 원가DB와 같은 구분 순서로 정렬합니다
+// (기본물품 → 답례품 → 장지품 → 음료수 → 잡화 → 과자류 → 기타, 같은 구분 안에서는 원래 순서)
 function stockBaseItems(){
   const extra=typeof STOCK_EXTRA!=='undefined'?STOCK_EXTRA:[];
+  const basicNames=new Set([...(_basicSaved||BASIC),...BASIC_DEFAULT].map(b=>b&&b.품명));
+  const pdb=(typeof priceDB!=='undefined'&&Array.isArray(priceDB))?priceDB:[];
   const m=new Map();
-  [...(_basicSaved||BASIC),...BASIC_DEFAULT,...extra].forEach(b=>{ if(b&&b.품명&&!m.has(b.품명)) m.set(b.품명,b); });
-  return [...m.values()];
+  [...(_basicSaved||BASIC),...BASIC_DEFAULT,...extra,...pdb].forEach(b=>{ if(b&&b.품명&&!m.has(b.품명)) m.set(b.품명,b); });
+  const catOf=b=>{
+    const db=pdb.find(p=>p&&p.품명===b.품명);
+    return ((db&&db.구분)||b.구분||(basicNames.has(b.품명)?'기본물품':'기타')).trim();
+  };
+  const rank=c=>typeof pickRank==='function'?pickRank(c):0;
+  return [...m.values()].map((b,ix)=>({b:{...b,구분:catOf(b)},ix}))
+    .sort((x,y)=>rank(x.b.구분)-rank(y.b.구분)||x.b.구분.localeCompare(y.b.구분)||x.ix-y.ix)
+    .map(x=>x.b);
 }
 
 const DEF_PRICE=[
@@ -6846,7 +6858,9 @@ function renderStock(){
   }
   const body=document.getElementById('stockBody');body.innerHTML='';
   const ALL_STOCK=stockBaseItems().map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}));
+  let _prevCat=null;
   ALL_STOCK.forEach(item=>{
+    const _catFirst=_prevCat!==null&&item.구분!==_prevCat; _prevCat=item.구분;
     // Firebase key 인코딩 처리: 원래 품명과 인코딩된 key 모두 검색
     const origKey=item.품명;
     const encKey=toFbKey(item.품명);
@@ -6867,8 +6881,9 @@ function renderStock(){
       packTd=`<td style="font-size:11px;font-weight:700;background:#eef2ff;white-space:nowrap;min-width:80px;padding:2px 5px;color:${현재재고<0?'#c0392b':'#2a5298'}">${fmtPack(현재재고,pk)}</td>`;
     }
     const tr=document.createElement('tr');
+    if(_catFirst) tr.className='scat-first';
     tr.innerHTML=`
-      <td class="scat">기본</td>
+      <td class="scat">${esc(item.구분||'')}</td>
       <td class="snm">${esc(item.품명)}</td>
       <td><input class="sv" type="number" value="${이월||''}" data-p="${esc(item.품명)}" data-m="${mKey}" data-d="이월"
         onchange="updStock(this);calcStockRow(this)"
