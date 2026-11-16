@@ -1315,19 +1315,48 @@ body.login #mobileNav{display:none!important}
   </div>
 </div>
 
+<!-- ══ 분향실 기준 확인 ══ -->
+<div class="overlay" id="roomUpModal" style="z-index:1700">
+  <div class="modal" style="max-width:680px;width:97%">
+    <h3 style="margin:0 0 6px">🏠 분향실 기준 확인</h3>
+    <div id="ruMsg" style="font-size:13px;line-height:1.6;margin-bottom:8px"></div>
+    <div class="btn-group" style="margin-bottom:6px;flex-wrap:wrap;gap:6px">
+      <button class="btn btn-sm" id="ruFillPar" style="background:#5b4a8a;color:#fff" onclick="ruFill('par')"></button>
+      <button class="btn btn-gray btn-sm" id="ruFillDef" onclick="ruFill('def')"></button>
+    </div>
+    <div style="border:1px solid #d7cfee;border-radius:6px;overflow:auto;max-height:44vh">
+      <table class="jtbl" style="width:100%;min-width:520px">
+        <thead><tr><th>품 목</th><th id="ruHDef" style="width:96px"></th><th id="ruHPar" style="width:104px"></th><th style="width:124px">작성 수량</th><th style="width:36px"></th></tr></thead>
+        <tbody id="ruBody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">
+      <select id="ruAddSel" style="flex:1;min-width:220px;padding:5px;border:1px solid #ccc;border-radius:5px;font-family:inherit;font-size:12.5px"></select>
+      <button class="btn btn-primary btn-sm" onclick="ruAdd()">+ 물품 추가</button>
+    </div>
+    <div style="font-size:11.5px;color:#666;margin-top:6px">목록에 없는 품목은 정산서 인원수 기준 그대로입니다. 기본물품에 없는 품목은 추가물품 줄로 들어갑니다. 작성한 뒤에도 정산서에서 고칠 수 있습니다.</div>
+    <div class="btn-group" style="margin-top:12px">
+      <button class="btn btn-gray" onclick="ruAnswer(null)">취소</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-success" id="ruOkBtn" onclick="ruAnswer('ok')">✅ 이대로 작성</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ 분향실 비치 ══ -->
 <div class="overlay" id="roomParModal" style="z-index:1600">
   <div class="modal" style="max-width:860px;width:98%">
     <h3 style="margin:0 0 6px">🏠 분향실·매장 비치 재고</h3>
     <div style="font-size:11.5px;color:#4a3f6b;background:#f3f0fa;border:1px solid #d7cfee;border-radius:6px;padding:6px 10px;margin-bottom:8px;line-height:1.55">
+      <b>사용 인원 기준</b>: 새 정산서의 인원수가 이 범위를 벗어나면 작성 전에 확인 창에서 수량을 정합니다.<br>
       분향실마다 <b>비치 기준 인원</b>을 고르면 기본물품장의 그 인원수 수량만큼 주류·음료가 비치된 것으로 봅니다.<br>
       <b>사용</b>에 표시된 분향실의 비치량과 아래 매장 세트는 재고에 포함되므로, 실제 재고는 <b>창고에 있는 것만</b> 세면 됩니다(매장 세트도 빼고). 가변 분향실은 물품을 배치할 때 켜고, 거둘 때 끄십시오.
     </div>
     <div style="max-height:46vh;overflow:auto;border:1px solid #d7cfee;border-radius:6px">
       <table class="jtbl" style="width:100%;min-width:640px">
-        <thead><tr><th style="width:70px">분향실</th><th style="width:60px">구분</th><th style="width:96px">비치 기준</th><th style="width:56px">사용</th><th>비치 수량</th></tr></thead>
+        <thead><tr><th style="width:62px">분향실</th><th style="width:48px">구분</th><th style="width:150px">사용 인원 기준</th><th style="width:90px">비치 기준</th><th style="width:48px">사용</th><th>비치 수량</th></tr></thead>
         <tbody id="rpBody"></tbody>
-        <tfoot><tr class="tr"><td colspan="4" style="text-align:right;padding-right:8px;white-space:normal">전체 비치 합계<br><span style="font-size:10.5px;font-weight:400">(분향실+매장)</span></td><td id="rpTotal" style="text-align:left;padding-left:8px;font-size:12px"></td></tr></tfoot>
+        <tfoot><tr class="tr"><td colspan="5" style="text-align:right;padding-right:8px;white-space:normal">전체 비치 합계<br><span style="font-size:10.5px;font-weight:400">(분향실+매장)</span></td><td id="rpTotal" style="text-align:left;padding-left:8px;font-size:12px"></td></tr></tfoot>
       </table>
     </div>
     <details style="margin-top:8px;font-size:12px"><summary style="cursor:pointer;color:#5b4a8a">분향실 비치 품목 고르기</summary>
@@ -3673,14 +3702,23 @@ async function createJungsan(){
       if(pendingBasicQty.qty[it.품명]!==undefined) it.주문량=pendingBasicQty.qty[it.품명];
     });
   }
-  pendingBasicQty=null;
+  // 분향실 사용 인원 기준과 맞지 않으면 작성 전에 확인 창으로 수량을 정합니다
   for(let k=0;k<15;k++) items.push({품명:'',단위:'',단가:0,주문량:0,추가:0,반품:0,isAdd:true});
+  const _chk=roomCheckFor(분향실,newCap,items);
+  let _upApplied=null;
+  if(_chk){
+    const ans=await askRoomUpgrade(_chk);
+    if(ans===null) return;                   // 취소: 새 정산서 창은 그대로 둡니다
+    if(applyRoomUpgrade(items,ans)) _upApplied=_chk.parCap;
+  }
+  pendingBasicQty=null;
 
   const jung={
     id:Date.now().toString(),파일명,인원수:newCap,분향실,고인,
     날짜:날짜full,발인시간,상주,연락처,상태:'진행중',결제:'',items,
     생성일:nowISO(),완료일:'',생성자:currentUser?.이름||'',생성자id:currentUser?.id||''
   };
+  if(_upApplied) jung.비치기준=_upApplied;   // 비치 기준 수량으로 작성했다는 표시
 
   // 1. 창 먼저 닫기 + 로컬에 추가
   closeModal('newModal');
@@ -4175,14 +4213,24 @@ function onQ(inp){
   if(f==='추가'||f==='반품') updateJFilterBar();
   // 저장은 💾 저장 버튼 클릭 시 처리
 }
-function onCapChange(){
+async function onCapChange(){
   const j=jungs.find(x=>x.id===editingId);if(!j)return;
   const n=+document.getElementById('e-인원수').value;
   if(!confirm(`인원수를 ${n}명으로 변경하면 기본물품 수량이 초기화됩니다. 계속하시겠습니까?`)){
     document.getElementById('e-인원수').value=j.인원수;return;
   }
+  const items=itemsForCap(j.items,n);
+  const 분향실=document.getElementById('e-분향실')?.value||j.분향실;
+  const chk=roomCheckFor(분향실,n,items);
+  let base=null;
+  if(chk){
+    const ans=await askRoomUpgrade(chk);
+    if(ans===null){ document.getElementById('e-인원수').value=j.인원수; return; }
+    if(applyRoomUpgrade(items,ans)) base=chk.parCap;
+  }
   j.인원수=n;
-  j.items=itemsForCap(j.items,n);
+  j.items=items;
+  if(base) j.비치기준=base; else delete j.비치기준;
   buildTable(j,false);
   updateEditFileName();  // 파일명 자동 갱신
 }
@@ -5283,10 +5331,10 @@ function storeDefaultItems(){
 }
 function storeDefault(){ return {items:storeDefaultItems(), kits:{c50:2,c150:2,c300:2,c500:1}}; }
 function roomDefault(){
-  const r={}; const add=(no,cap,on,가변)=>r['r'+no]={cap,on,가변};
-  ['201','202','301','302'].forEach(n=>add(n,300,true,false));
-  ['401','403'].forEach(n=>add(n,150,true,false));
-  ['402','404'].forEach(n=>add(n,150,false,true));
+  const r={}; const add=(no,cap,on,가변,min,max)=>r['r'+no]={cap,on,가변,min,max};
+  ['201','202','301','302'].forEach(n=>add(n,300,true,false,300,300));      // 사용 인원 기준 300명
+  ['401','403'].forEach(n=>add(n,150,true,false,50,150));                  // 50~150명
+  ['402','404'].forEach(n=>add(n,150,false,true,50,150));
   return {items:['한라산21도소주(30병/박스)','참이슬소주(30병/박스)','카스맥주(20병/박스)','칠성사이다(20병/팩)','삼다수 2.0/6병'],rooms:r,store:storeDefault()};
 }
 function roomCfg(){
@@ -5345,7 +5393,11 @@ function renderRoomPar(){
   document.getElementById('rpBody').innerHTML=Object.keys(c.rooms).sort().map(k=>{
     const r=c.rooms[k], par=roomParOf(r,c);
     const txt=Object.keys(par).filter(nm=>par[nm]).map(nm=>`${esc(nm.replace(/\(.*\)/,''))} <b>${esc(fmtQtyPk(par[nm],nm))}</b>`).join(' · ')||'-';
+    const st=roomStd(k,r);
+    const capSel=(f,v)=>`<select onchange="rpStd(${jsq(k)},'${f}',+this.value)" style="padding:3px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+        ${ROOM_STD_CAPS.map(n=>`<option value="${n}"${+v===n?' selected':''}>${n}</option>`).join('')}</select>`;
     return `<tr style="${r.on?'':'opacity:.55'}"><td><b>${esc(k.slice(1))}호</b></td><td>${r.가변?'<span style="color:#8e44ad">가변</span>':'일반'}</td>
+      <td style="white-space:nowrap">${capSel('min',st.min)} ~ ${capSel('max',st.max)}명</td>
       <td><select onchange="rpSet(${jsq(k)},'cap',+this.value)" style="padding:3px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
         ${ROOM_CAPS.map(n=>`<option value="${n}"${+r.cap===n?' selected':''}>${n}명</option>`).join('')}</select></td>
       <td><input type="checkbox" ${r.on?'checked':''} onchange="rpSet(${jsq(k)},'on',this.checked)" style="width:18px;height:18px"></td>
@@ -5372,6 +5424,11 @@ function renderRoomPar(){
 function rpKit(cap,v){ const st=rpWork.store||(rpWork.store=storeDefault()); st.kits=st.kits||{}; st.kits['c'+cap]=Math.max(0,Math.round(+v||0)); renderRoomPar(); }
 function rpStoreItem(nm,on){ const st=rpWork.store||(rpWork.store=storeDefault()); const a=(st.items||[]).filter(x=>x!==nm); if(on) a.push(nm); st.items=a; renderRoomPar(); }
 function rpSet(k,f,v){ rpWork.rooms[k][f]=v; renderRoomPar(); }
+function rpStd(k,f,v){
+  const r=rpWork.rooms[k], st=roomStd(k,r); st[f]=v;
+  if(f==='min'&&st.max<v) st.max=v; if(f==='max'&&st.min>v) st.min=v;
+  r.min=st.min; r.max=st.max; renderRoomPar();
+}
 function rpItem(nm,on){ const a=rpWork.items.filter(x=>x!==nm); if(on) a.push(nm); rpWork.items=a; renderRoomPar(); }
 function rpDefault(){ rpWork=roomDefault(); renderRoomPar(); }
 async function saveRoomPar(){
@@ -5386,6 +5443,112 @@ async function saveRoomPar(){
   }catch(e){ alert('저장하지 못했습니다: '+e.message); }
   finally{ btn.disabled=false; }
 }
+// ── 분향실 사용 인원 기준 ──
+// 분향실마다 사용 인원 기준(최소~최대)이 있습니다. 예: 201·202·301·302호 = 300명, 401~404호 = 50~150명.
+// 정산서 인원수가 기준을 벗어나면 작성 전에 확인 창을 띄웁니다.
+//   · 기준보다 적으면: 분향실에 비치된 주류·음료와 정사각티슈를 비치 기준 인원 수량으로 넣어 보여 줍니다.
+//   · 기준보다 많으면: 입력한 인원 수량으로 넣어 보여 줍니다.
+// 확인 창에서 수량을 고치거나 물품을 더 넣을 수 있습니다.
+const ROOM_UP_EXTRA=['정사각티슈/6개'];
+const ROOM_STD_CAPS=[50,150,300,500,1000];
+function roomKeyOf(분향실){ return 'r'+String(분향실||'').replace(/\s+/g,'').replace(/호$/,''); }
+function roomStd(k,r){
+  const d=roomDefault().rooms[k];
+  const min=+(r&&r.min)||+(d&&d.min)||+(r&&r.cap)||0, max=+(r&&r.max)||+(d&&d.max)||+(r&&r.cap)||0;
+  return {min:Math.min(min,max),max:Math.max(min,max)};
+}
+function roomCheckFor(분향실,cap,items){
+  const k=roomKeyOf(분향실), c=roomCfg(), r=c.rooms[k];
+  if(!r) return null;
+  const st=roomStd(k,r); cap=+cap;
+  if(!st.min||(cap>=st.min&&cap<=st.max)) return null;
+  const parCap=+r.cap||st.max, under=cap<st.min, usePar=under&&!!r.on;
+  const names=[...new Set([...(c.items||[]),...ROOM_UP_EXTRA])];
+  const rows=[];
+  names.forEach(nm=>{
+    const it=(items||[]).find(x=>x&&!x.isAdd&&x.품명===nm); if(!it) return;
+    const b=roomBasic().find(x=>x.품명===nm)||BASIC_DEFAULT.find(x=>x.품명===nm);
+    const par=(b&&basicFits(b,parCap))?(b.qty[parCap]||0):null, def=+it.주문량||0;
+    rows.push({품명:nm,단위:it.단위||(b&&b.단위)||'',def,par,val:usePar&&par!==null?par:def,added:false});
+  });
+  return {room:k.slice(1),min:st.min,max:st.max,parCap,on:!!r.on,cap,under,rows,items};
+}
+function stdText(st){ return st.min===st.max?st.min+'명':st.min+'~'+st.max+'명'; }
+function ruQty(n,r){
+  if(n===null||n===undefined) return '-';
+  const u=String(r.단위||'').split('/').pop(); const pk=PACK_UNIT[r.품명];
+  return n+u+(pk&&pk.sublabel==='병'&&pk.n>1&&n>=pk.n?` (${fmtPack(n,pk)})`:'');
+}
+let _ruResolve=null, _ru=null;
+function askRoomUpgrade(info){
+  _ru=info;
+  document.getElementById('ruMsg').innerHTML=`<b>${esc(info.room)}호</b>는 <b>${stdText(info)}</b> 기준 분향실인데, 입력한 인원은 <b>${info.cap}명</b>입니다.<br>`
+    +(info.under
+      ?(info.on?`분향실에 <b>${info.parCap}명 기준</b>으로 비치된 주류·음료와 정사각티슈를 <b>${info.parCap}명 수량</b>으로 넣었습니다.`
+               :`이 분향실은 비치 「사용」이 꺼져 있어 <b>${info.cap}명 수량</b>으로 넣었습니다.`)
+      :`<b>${info.cap}명 수량</b>으로 작성합니다. 분향실 비치(${info.parCap}명분)보다 많은 양입니다.`)
+    +` 작성 수량을 확인하고, 필요하면 고치거나 물품을 추가하십시오.`;
+  document.getElementById('ruHDef').textContent=`${info.cap}명 기본`;
+  document.getElementById('ruHPar').textContent=`분향실 비치(${info.parCap}명)`;
+  document.getElementById('ruFillPar').textContent=`${info.parCap}명 비치 수량으로`;
+  document.getElementById('ruFillDef').textContent=`${info.cap}명 기본 수량으로`;
+  ruRender();
+  document.getElementById('roomUpModal').classList.add('show');
+  return new Promise(res=>{ _ruResolve=res; });
+}
+function ruRender(){
+  const info=_ru;
+  document.getElementById('ruBody').innerHTML=info.rows.map((r,i)=>`<tr class="br"><td class="nm">${esc(r.품명)}${r.added?' <span style="font-size:10.5px;color:#2a7ab8">추가</span>':''}</td>
+    <td>${esc(ruQty(r.def,r))}</td><td>${esc(ruQty(r.par,r))}</td>
+    <td style="white-space:nowrap"><input type="number" min="0" value="${r.val}" oninput="ruVal(${i},this.value)" onwheel="event.preventDefault()"
+      style="width:62px;padding:3px 4px;border:1px solid ${r.val!==r.def?'#1e8449':'#ccc'};border-radius:4px;text-align:right;font-family:inherit;font-weight:${r.val!==r.def?700:400}">
+      <span style="font-size:11px;color:#666">${esc(String(r.단위||'').split('/').pop())}</span></td>
+    <td>${r.added?`<button class="btn btn-danger btn-sm" style="padding:1px 6px" onclick="ruDel(${i})">✕</button>`:''}</td></tr>`).join('');
+  // 추가할 수 있는 품목: 이 정산서의 기본물품 → 원가DB 품목(구분 순서)
+  const have=new Set(info.rows.map(r=>r.품명));
+  const basic=(info.items||[]).filter(x=>x&&!x.isAdd&&x.품명&&!have.has(x.품명));
+  const basicNames=new Set(basic.map(x=>x.품명));
+  const groups={};
+  (priceDB||[]).forEach(p=>{ if(!p||!p.품명||have.has(p.품명)||basicNames.has(p.품명)) return; const c=(p.구분||'기타').trim(); (groups[c]=groups[c]||[]).push(p); });
+  const cats=Object.keys(groups).sort((a,b)=>pickRank(a)-pickRank(b)||a.localeCompare(b));
+  document.getElementById('ruAddSel').innerHTML='<option value="">— 추가할 물품을 고르십시오 —</option>'
+    +(basic.length?`<optgroup label="이 정산서의 기본물품">${basic.map(x=>`<option value="${esc(x.품명)}">${esc(x.품명)}</option>`).join('')}</optgroup>`:'')
+    +cats.map(c=>`<optgroup label="${esc(c)} (추가물품으로 들어갑니다)">${groups[c].map(p=>`<option value="${esc(p.품명)}">${esc(p.품명)}${p.단위?' · '+esc(p.단위):''}</option>`).join('')}</optgroup>`).join('');
+}
+function ruVal(i,v){ _ru.rows[i].val=Math.max(0,Math.round(+v||0)); const inp=document.querySelectorAll('#ruBody input')[i]; if(inp){ const ch=_ru.rows[i].val!==_ru.rows[i].def; inp.style.borderColor=ch?'#1e8449':'#ccc'; inp.style.fontWeight=ch?700:400; } }
+function ruFill(kind){ _ru.rows.forEach(r=>{ r.val=kind==='par'?(r.par!==null&&r.par!==undefined?r.par:r.def):r.def; }); ruRender(); }
+function ruDel(i){ _ru.rows.splice(i,1); ruRender(); }
+function ruAdd(){
+  const nm=document.getElementById('ruAddSel').value; if(!nm) return;
+  const it=(_ru.items||[]).find(x=>x&&!x.isAdd&&x.품명===nm), db=(priceDB||[]).find(p=>p&&p.품명===nm);
+  const b=roomBasic().find(x=>x.품명===nm)||BASIC_DEFAULT.find(x=>x.품명===nm);
+  const par=(b&&basicFits(b,_ru.parCap))?(b.qty[_ru.parCap]||0):null, def=it?(+it.주문량||0):0;
+  _ru.rows.push({품명:nm,단위:(it&&it.단위)||(db&&db.단위)||(b&&b.단위)||'',def,par,val:def,added:true});
+  ruRender();
+  const ins=document.querySelectorAll('#ruBody input'); const last=ins[ins.length-1]; if(last){ last.focus(); last.select(); }
+}
+function ruAnswer(v){
+  document.getElementById('roomUpModal').classList.remove('show');
+  const r=_ruResolve; _ruResolve=null; if(r) r(v==='ok'?_ru:null);
+}
+// 확인 창의 작성 수량을 정산서 품목에 넣습니다 (기본물품에 없으면 빈 추가물품 줄에)
+function applyRoomUpgrade(items,info){
+  let changed=0;
+  info.rows.forEach(r=>{
+    const it=items.find(x=>x&&!x.isAdd&&x.품명===r.품명);
+    if(it){ if(+it.주문량!==r.val){ it.주문량=r.val; changed++; } return; }
+    if(!r.val) return;
+    const ex=items.find(x=>x&&x.isAdd&&x.품명===r.품명);
+    if(ex){ ex.주문량=r.val; changed++; return; }
+    const db=(priceDB||[]).find(p=>p&&p.품명===r.품명);
+    let slot=items.find(x=>x&&x.isAdd&&!x.품명);
+    if(!slot){ slot={품명:'',단위:'',단가:0,주문량:0,추가:0,반품:0,isAdd:true}; items.push(slot); }
+    Object.assign(slot,{품명:r.품명,단위:(db&&db.단위)||r.단위||'',단가:db?(+db.가격||0):0,주문량:r.val});
+    changed++;
+  });
+  return changed;
+}
+
 // 가변 분향실로 정산서를 만들 때 사용이 꺼져 있으면 켤지 묻습니다
 async function roomAskOn(분향실){
   const k='r'+String(분향실||'').replace(/호$/,'').trim(); const c=roomCfg(); const r=c.rooms[k];
