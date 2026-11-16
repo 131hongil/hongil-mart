@@ -80,6 +80,13 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .room-arrow{width:20px;border:1px solid #c3d2e3;border-left:none;background:#eef2f7;
   cursor:pointer;font-size:9px;color:#1b3a5c;border-radius:0 4px 4px 0;padding:0;line-height:1}
 .room-arrow:hover{background:#dbe5f0}
+/* 분향실 번호 뒤에 붙는 「호」 */
+.room-wrap input.ho-in{text-align:right;padding-right:0!important}
+.room-ho{display:flex;align-items:center;padding:0 5px 0 0;border:1px solid #ccc;border-left:none;border-right:none;
+  background:#fff;font-size:13px;color:#222;cursor:text;user-select:none}
+.room-wrap input:placeholder-shown + .room-ho{color:#b5b5b5}
+.room-wrap input:focus + .room-ho{border-color:#4da6ff}
+.room-wrap input:disabled + .room-ho{background:#f5f5f5;color:#888;cursor:not-allowed}
 .room-pop{position:fixed;z-index:3000;background:#fff;
   border:1px solid #1b3a5c;border-radius:5px;box-shadow:0 4px 12px rgba(0,0,0,.25);
   padding:3px;display:grid;grid-template-columns:1fr 1fr;gap:1px}
@@ -921,8 +928,8 @@ body.login #mobileNav{display:none!important}
             inputmode="numeric" onblur="this.value=parseTime(this.value)"></div>
         <div class="fg"><label>분향실</label>
           <div class="room-wrap">
-            <input type="text" id="e-분향실" style="width:62px"
-              oninput="this.value=this.value.replace(/[^0-9]/g,'');updateEditFileName()">
+            <input type="text" id="e-분향실" class="ho-in" style="width:50px" placeholder=" "
+              oninput="this.value=this.value.replace(/[^0-9]/g,'');updateEditFileName()"><span class="room-ho" onclick="this.previousElementSibling.focus()">호</span>
             <button type="button" class="room-arrow" onclick="toggleRoomList('e-분향실',this)">▼</button>
           </div>
         </div>
@@ -1415,13 +1422,13 @@ body.login #mobileNav{display:none!important}
 <div class="overlay" id="basicModal">
   <div class="modal" style="max-width:860px;width:97%">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-      <h3 style="margin:0">📋 기본 매점 거래장</h3>
+      <h3 style="margin:0">📋 기본물품거래장</h3>
       <span style="font-size:11px;color:#888">정산서 작성 전 확인용 · 단가는 원가DB와 연동됩니다 · 주문량은 수정할 수 있습니다</span><button class="btn btn-gray btn-sm" style="margin-left:auto" onclick="resetBasicQty()">↺ 기본수량 복원</button><button class="btn btn-sm" id="bsEditBtn" style="background:#8e6f2a;color:#fff" onclick="openBasicEdit()">✏️ 물품 편집</button>
     </div>
 
     <div class="frow" style="margin:0 0 10px;gap:10px;align-items:flex-end;flex-wrap:wrap">
       <div class="fg"><label>인원수</label>
-        <select id="bs-인원수" onchange="bsQty={};renderBasicSheet()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
+        <select id="bs-인원수" onchange="onBasicCap()" style="padding:6px;border:1px solid #ccc;border-radius:4px;font-family:inherit">
           <option value="50">50명</option><option value="150" selected>150명</option>
           <option value="300">300명</option><option value="500">500명</option>
           <option value="1000">1000명</option>
@@ -1435,7 +1442,7 @@ body.login #mobileNav{display:none!important}
       </div>
       <div class="fg"><label>분향실</label>
         <div class="room-wrap">
-          <input type="text" id="bs-분향실" style="width:62px" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <input type="text" id="bs-분향실" class="ho-in" style="width:50px" placeholder=" " oninput="this.value=this.value.replace(/[^0-9]/g,'')" onchange="bsRoomCheck()"><span class="room-ho" onclick="this.previousElementSibling.focus()">호</span>
           <button type="button" class="room-arrow" onclick="toggleRoomList('bs-분향실',this)">▼</button>
         </div>
       </div>
@@ -1952,8 +1959,8 @@ body.login #mobileNav{display:none!important}
         <div class="fg" style="flex:0 0 84px">
           <label>분향실 <span style="color:#e74c3c">*</span></label>
           <div class="room-wrap" style="width:100%">
-            <input type="text" id="nw-분향실" placeholder="번호" style="width:100%;min-width:0"
-              oninput="this.value=this.value.replace(/[^0-9]/g,'');updateNFN()">
+            <input type="text" id="nw-분향실" class="ho-in" placeholder=" " style="width:100%;min-width:0"
+              oninput="this.value=this.value.replace(/[^0-9]/g,'');updateNFN()"><span class="room-ho" onclick="this.previousElementSibling.focus()">호</span>
             <button type="button" class="room-arrow" onclick="toggleRoomList('nw-분향실',this)">▼</button>
           </div>
         </div>
@@ -3601,6 +3608,7 @@ function backToList(){
 
 // ══ 새 정산서 ══
 function openNewModal(){
+  pendingBasicQty=null;                     // 기본물품장에서 넘어온 내용은 그 창에서만 씁니다
   // 이전 입력값 초기화
   ['nw-분향실','nw-고인','nw-상주','nw-연락처','nw-발인시간'].forEach(id=>document.getElementById(id).value='');
   const th=document.getElementById('telHint'); if(th) th.textContent='';
@@ -3697,15 +3705,26 @@ async function createJungsan(){
     .map(b=>{ const db=priceDB.find(p=>p.품명===b.품명);     // 단위·단가는 원가DB에서 가져옵니다
       return {품명:b.품명,단위:db?.단위||b.단위,단가:db?(+db.가격||0):b.단가,주문량:b.qty[newCap]||0,추가:0,반품:0,isAdd:false}; });
   // 기본물품장에서 주문량을 고쳤다면 반영합니다
-  if(pendingBasicQty && pendingBasicQty.cap===newCap){
+  const _fb=(pendingBasicQty && pendingBasicQty.cap===newCap)?pendingBasicQty:null;
+  if(_fb){
     items.forEach(it=>{
-      if(pendingBasicQty.qty[it.품명]!==undefined) it.주문량=pendingBasicQty.qty[it.품명];
+      if(_fb.qty[it.품명]!==undefined) it.주문량=_fb.qty[it.품명];
     });
   }
   // 분향실 사용 인원 기준과 맞지 않으면 작성 전에 확인 창으로 수량을 정합니다
   for(let k=0;k<15;k++) items.push({품명:'',단위:'',단가:0,주문량:0,추가:0,반품:0,isAdd:true});
-  const _chk=roomCheckFor(분향실,newCap,items);
-  let _upApplied=null;
+  // 기본물품장 확인 창에서 더한 품목은 추가물품 줄로 넣습니다
+  if(_fb&&_fb.extra) _fb.extra.forEach(x=>{
+    if(items.some(it=>it.품명===x.품명)) return;
+    const db=priceDB.find(p=>p.품명===x.품명);
+    let slot=items.find(it=>it.isAdd&&!it.품명);
+    if(!slot){ slot={품명:'',단위:'',단가:0,주문량:0,추가:0,반품:0,isAdd:true}; items.push(slot); }
+    Object.assign(slot,{품명:x.품명,단위:db?.단위||x.단위||'',단가:db?(+db.가격||0):(+x.단가||0),주문량:x.주문량});
+  });
+  // 기본물품장에서 같은 분향실·인원으로 이미 확인했으면 다시 묻지 않습니다
+  const _done=!!(_fb&&_fb.checked&&_fb.checked===roomKeyOf(분향실)+'|'+newCap);
+  const _chk=_done?null:roomCheckFor(분향실,newCap,items);
+  let _upApplied=_done?(_fb.비치기준||null):null;
   if(_chk){
     const ans=await askRoomUpgrade(_chk);
     if(ans===null) return;                   // 취소: 새 정산서 창은 그대로 둡니다
@@ -4377,7 +4396,7 @@ th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
 <div class="ph2">${dStr}${j.결제?' &nbsp;&nbsp; <span style="background:#333;color:#fff;padding:2px 10px;border-radius:10px;font-size:10pt;font-weight:700">'+esc(j.결제)+'</span>':''}</div>
 <table class="phead" style="margin-bottom:3px">
   <tr>
-    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${esc(j.분향실)}</td>
+    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${esc(roomHo(j.분향실))}</td>
     <td class="lbl" style="width:60px">고인</td><td>故 ${esc(j.고인)} 님</td>
     <td style="text-align:right;font-weight:700;width:80px">혼길마트</td>
   </tr>
@@ -5452,6 +5471,7 @@ async function saveRoomPar(){
 const ROOM_UP_EXTRA=['정사각티슈/6개'];
 const ROOM_STD_CAPS=[50,150,300,500,1000];
 function roomKeyOf(분향실){ return 'r'+String(분향실||'').replace(/\s+/g,'').replace(/호$/,''); }
+function roomHo(v){ v=String(v||'').trim(); return v?(/호$/.test(v)?v:v+'호'):''; }   // 201 → 201호
 function roomStd(k,r){
   const d=roomDefault().rooms[k];
   const min=+(r&&r.min)||+(d&&d.min)||+(r&&r.cap)||0, max=+(r&&r.max)||+(d&&d.max)||+(r&&r.cap)||0;
@@ -5783,7 +5803,7 @@ function openBasicSheet(){
   if(chk) chk.checked=false;
   onBasicDateToggle();
   ['bs-분향실','bs-고인','bs-상주','bs-연락처'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  bsQty={};
+  bsQty={}; bsExtra=[]; _bsChk=null;
   renderBasicSheet();
   updateBasicTempNotes();
   document.getElementById('basicModal').classList.add('show');
@@ -5799,18 +5819,91 @@ function onBasicDateToggle(){
 }
 // 화면에서 고친 주문량을 담습니다 {품명:수량}
 let bsQty={};
+let bsExtra=[];             // 분향실 기준 확인 창에서 더한, 기본물품 밖 품목 [{품명,단위,단가}]
+let _bsChk=null;            // 마지막으로 확인한 분향실·인원 {key, parCap, applied:[…]}
+let _bsAsk=null;            // 확인 창이 떠 있는 동안 {key, p}
 let pendingBasicQty=null;   // 기본물품장에서 넘어온 주문량
 function resetBasicQty(){
   if(!confirm('주문량을 인원수 기준 기본값으로 되돌리시겠습니까?'))return;
-  bsQty={};
+  bsQty={}; bsExtra=[]; _bsChk=null;
   renderBasicSheet();
+}
+function onBasicCap(){
+  bsQty={}; bsExtra=[]; _bsChk=null;
+  renderBasicSheet();
+  bsRoomCheck();
 }
 // 현재 화면 기준 품목 목록(수정한 주문량 반영)
 function currentBasicItems(){
   const cap=+document.getElementById('bs-인원수')?.value||150;
-  return basicItemsFor(cap).map(it=>({
-    ...it, 수량:(bsQty[it.품명]!==undefined?bsQty[it.품명]:it.수량)
-  }));
+  const list=BASIC.filter(b=>basicFits(b,cap)&&((b.qty[cap]||0)>0||(+bsQty[b.품명]||0)>0)).map(b=>{
+    const db=priceDB.find(p=>p.품명===b.품명);   // 원가DB 우선
+    return {품명:b.품명, 단위:db?db.단위:b.단위, 단가:db?(+db.가격||0):b.단가,
+            수량:(bsQty[b.품명]!==undefined?bsQty[b.품명]:(b.qty[cap]||0))};
+  });
+  bsExtra.forEach(x=>{
+    if(list.some(i=>i.품명===x.품명)) return;
+    const db=priceDB.find(p=>p.품명===x.품명);
+    list.push({품명:x.품명, 단위:db?db.단위:x.단위, 단가:db?(+db.가격||0):(+x.단가||0), 수량:+bsQty[x.품명]||0, extra:true});
+  });
+  return list;
+}
+// ── 분향실 사용 인원 기준 확인 (정산서 생성과 같은 기준) ──
+function bsRoomKey(){
+  const room=(document.getElementById('bs-분향실')?.value||'').trim();
+  const cap=+document.getElementById('bs-인원수')?.value||150;
+  return {room, cap, key:room?roomKeyOf(room)+'|'+cap:''};
+}
+function bsCheckItems(cap){
+  return BASIC.filter(b=>basicFits(b,cap)).map(b=>{
+    const db=priceDB.find(p=>p.품명===b.품명);
+    return {품명:b.품명, 단위:db?.단위||b.단위, 주문량:(bsQty[b.품명]!==undefined?bsQty[b.품명]:(b.qty[cap]||0)), isAdd:false};
+  });
+}
+// 다른 분향실로 바꾸면 앞 분향실 기준으로 넣은 수량을 되돌립니다 (그 뒤 손으로 고친 품목은 그대로 둡니다)
+function bsUndoRoomUp(){
+  const c=_bsChk; _bsChk=null;
+  if(!c||!c.applied) return;
+  c.applied.forEach(a=>{
+    if(bsQty[a.품명]!==a.val) return;
+    if(a.prev===undefined) delete bsQty[a.품명]; else bsQty[a.품명]=a.prev;
+    if(a.extra) bsExtra=bsExtra.filter(x=>x.품명!==a.품명);
+  });
+}
+// true: 확인했거나 확인할 것이 없음 / false: 확인 창에서 취소
+function bsRoomCheck(){
+  const {room,cap,key}=bsRoomKey();
+  if(_bsAsk) return _bsAsk.key===key?_bsAsk.p:_bsAsk.p.then(()=>bsRoomCheck());
+  if(_bsChk&&_bsChk.key===key) return Promise.resolve(true);
+  const had=!!(_bsChk&&_bsChk.applied&&_bsChk.applied.length);
+  bsUndoRoomUp();
+  if(!room){ if(had) renderBasicSheet(); return Promise.resolve(true); }
+  const info=roomCheckFor(room,cap,bsCheckItems(cap));
+  if(!info){ _bsChk={key,parCap:null,applied:[]}; if(had) renderBasicSheet(); return Promise.resolve(true); }
+  if(had) renderBasicSheet();
+  const p=askRoomUpgrade(info).then(ans=>{
+    _bsAsk=null;
+    if(!ans) return false;                    // 취소: 수량은 그대로 두고, 인쇄·정산서 생성 때 다시 묻습니다
+    const fits=new Set(BASIC.filter(b=>basicFits(b,cap)).map(b=>b.품명));
+    const applied=[];
+    ans.rows.forEach(r=>{
+      const isBasic=fits.has(r.품명), inExtra=bsExtra.some(x=>x.품명===r.품명);
+      if(!isBasic&&!inExtra&&!r.val) return;     // 새로 더한 품목인데 0이면 넣지 않습니다
+      const cur=isBasic?(bsQty[r.품명]!==undefined?bsQty[r.품명]:(BASIC.find(b=>b.품명===r.품명).qty[cap]||0)):(+bsQty[r.품명]||0);
+      if(cur===r.val) return;
+      applied.push({품명:r.품명, val:r.val, prev:bsQty[r.품명], extra:!isBasic&&!inExtra});
+      bsQty[r.품명]=r.val;
+      if(!isBasic&&!inExtra){
+        const db=(priceDB||[]).find(x=>x&&x.품명===r.품명);
+        bsExtra.push({품명:r.품명, 단위:(db&&db.단위)||r.단위||'', 단가:db?(+db.가격||0):0});
+      }
+    });
+    _bsChk={key, parCap:applied.length?info.parCap:null, applied};
+    renderBasicSheet();
+    return true;
+  });
+  _bsAsk={key,p};
+  return p;
 }
 function onBasicQty(inp){
   const 품명=inp.dataset.p;
@@ -5839,7 +5932,7 @@ function renderBasicSheet(){
     const changed=it.수량!==base[it.품명];                 // 고친 항목은 노란 배경
     return `<tr>
       <td>${i+1}</td>
-      <td class="nm">${esc(it.품명)}</td>
+      <td class="nm">${esc(it.품명)}${it.extra?' <span style="font-size:10.5px;color:#2a7ab8">추가</span>':''}</td>
       <td>${esc(it.단위)}</td>
       <td>${fmt(it.단가)}</td>
       <td><input class="bq" type="number" min="0" value="${+it.수량||0}"
@@ -5862,7 +5955,8 @@ function basicSheetHeader(){
   return {cap:+g('bs-인원수')||150, dStr, 분향실:g('bs-분향실'),
           고인:g('bs-고인'), 상주:g('bs-상주'), 연락처:g('bs-연락처')};
 }
-function printBasicSheet(){
+async function printBasicSheet(){
+  if(!await bsRoomCheck()) return;
   const h=basicSheetHeader();
   const items=currentBasicItems().filter(it=>it.수량>0);   // 수정한 주문량 반영
   let total=0,rows='';
@@ -5876,7 +5970,7 @@ function printBasicSheet(){
       <td></td></tr>`;
   });
   const printHtml=`<!DOCTYPE html>
-<html lang="ko"><head><meta charset="UTF-8"><title>기본 매점 거래장</title>
+<html lang="ko"><head><meta charset="UTF-8"><title>기본물품거래장</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Malgun Gothic',sans-serif;padding:8mm;font-size:11pt}
@@ -5897,11 +5991,11 @@ th{padding:4px 3px;font-size:10.5pt;line-height:1.25;white-space:nowrap}
 .gap35{display:inline-block;width:calc(35mm / var(--z,1))}
 @media print{@page{margin:7mm;size:A4 portrait}}
 <\/style></head><body>
-<div class="ph1">기 본 매 점 거 래 장</div>
+<div class="ph1">기 본 물 품 거 래 장</div>
 <div class="ph2">(${h.cap}명 기준) &nbsp; ${h.dStr}</div>
 <table class="phead" style="margin-bottom:3px">
   <tr>
-    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${esc(h.분향실)}</td>
+    <td class="lbl" style="width:60px">분향실</td><td style="width:140px">${esc(roomHo(h.분향실))}</td>
     <td class="lbl" style="width:60px">고인</td><td style="white-space:nowrap">故 ${h.고인?esc(h.고인):'<span class="gap35"></span>'} 님</td>
     <td style="text-align:right;font-weight:700;width:80px">혼길마트</td>
   </tr>
@@ -5943,9 +6037,10 @@ window.onload=function(){
   w.document.open(); w.document.write(printHtml); w.document.close();
 }
 // 기본물품장 내용으로 정산서를 바로 만듭니다
-function createJungFromBasic(){
+async function createJungFromBasic(){
   const h=basicSheetHeader();
   if(!h.분향실||!h.고인){alert('분향실과 고인 성함을 입력하십시오.');return;}
+  if(!await bsRoomCheck()) return;
   document.getElementById('nw-분향실').value=h.분향실;
   document.getElementById('nw-고인').value=h.고인;
   document.getElementById('nw-상주').value=h.상주;
@@ -5959,7 +6054,11 @@ function createJungFromBasic(){
     b.classList.toggle('on', +b.textContent.replace(/[^0-9]/g,'')===h.cap);
   });
   // 기본물품장에서 고친 주문량을 정산서에 그대로 넘깁니다
-  pendingBasicQty = Object.keys(bsQty).length ? {cap:h.cap, qty:{...bsQty}} : null;
+  const _k=bsRoomKey().key;
+  const extra=bsExtra.map(x=>({...x, 주문량:+bsQty[x.품명]||0})).filter(x=>x.주문량>0);
+  pendingBasicQty = (Object.keys(bsQty).length||extra.length||(_bsChk&&_bsChk.key===_k))
+    ? {cap:h.cap, qty:{...bsQty}, extra, checked:(_bsChk&&_bsChk.key===_k)?_k:'', 비치기준:(_bsChk&&_bsChk.key===_k)?_bsChk.parCap:null}
+    : null;
   updateNFN();
   closeModal('basicModal');
   document.getElementById('newModal').classList.add('show');
@@ -6020,7 +6119,7 @@ async function confirmPay(){
   try{
     document.getElementById('edit-stamp').style.display='';
     document.getElementById('edit-pay').textContent='/ '+pay+' 완료!';
-    loadForm(j,true);renderJungList();renderResults();
+    loadForm(j,true);renderJungList();renderResults();if(typeof buildCharts==='function')buildCharts();
   }catch(e){ console.error('정산완료 화면 갱신 오류:',e); }
   alert(`정산 완료!\n\n분향실: ${j.분향실} / ${j.고인}\n정산액: ${fmt(total)}원\n결제: ${pay}`);
 }
@@ -6066,7 +6165,7 @@ async function 정산취소(){
   try{ addLog(currentUser?.이름||'','정산취소',j.파일명); }catch(e){ console.error(e); }
 
   // 5. 화면 갱신 + 메시지
-  try{ renderJungList();renderResults(); loadForm(j,false); }catch(e){ console.error('정산취소 화면 갱신 오류:',e); }
+  try{ renderJungList();renderResults(); if(typeof buildCharts==='function')buildCharts(); loadForm(j,false); }catch(e){ console.error('정산취소 화면 갱신 오류:',e); }
   alert(`🔄 정산 취소 완료!\n\n결산서 ${removed}건 삭제\n재고 수량 원복 완료\n\n이제 정산서를 수정할 수 있습니다.`);
 }
 
@@ -7244,7 +7343,7 @@ function toggleRoomList(inputId,btn){
       e.stopPropagation();
       inp.value=r;
       closeRoomPop();
-      if(inputId==='nw-분향실') updateNFN(); else updateEditFileName();
+      if(inputId==='nw-분향실') updateNFN(); else if(inputId==='bs-분향실') bsRoomCheck(); else updateEditFileName();
     };
     pop.appendChild(d);
   });
