@@ -2117,6 +2117,25 @@ function stockBaseItems(){
     .sort((x,y)=>rank(x.b.구분)-rank(y.b.구분)||x.b.구분.localeCompare(y.b.구분)||x.ix-y.ix)
     .map(x=>x.b);
 }
+// 이 달 재고 자료는 있는데 품목 목록(원가DB·기본물품)에 없는 품목 — 원가DB에서 지웠거나 이름을 바꾼 품목입니다.
+// 목록에서 빠지면 재고가 안 보이고 월 마감 때 다음 달로 이월되지 않으므로 '원가DB에 없음'으로 함께 보여 줍니다.
+const ORPHAN_CAT='원가DB에 없음';
+function stockHasData(v){
+  if(!v||typeof v!=='object') return false;
+  return Object.keys(v).some(k=>{
+    if(k==='실사') return v[k]!==''&&v[k]!==null&&v[k]!==undefined;
+    if(k==='이월'||k==='조정'||/^[0-9]+$/.test(k)) return (+v[k]||0)!==0;
+    return false;
+  });
+}
+function stockItemsFor(ym){
+  const base=stockBaseItems();
+  const have=new Set(base.map(b=>b.품명));
+  const mData=(typeof stockData!=='undefined'&&stockData&&stockData[ym])||{};
+  const extra=Object.keys(mData).filter(nm=>nm&&nm[0]!=='_'&&!have.has(nm)&&stockHasData(mData[nm]))
+    .sort((a,b)=>a.localeCompare(b,'ko')).map(nm=>({품명:nm,구분:ORPHAN_CAT}));
+  return extra.length?base.concat(extra):base;
+}
 
 const DEF_PRICE=[
   {구분:"기본물품",품명:"오름소주(30병/박스)",단위:"360ml/병",가격:1900,원가:0},
@@ -2592,6 +2611,7 @@ function startRealtimeSync(){
     const mine=editingId&&editDirty()?jungs.find(x=>x.id===editingId):null;   // 고치고 아직 저장 안 한 정산서
     jungs=data?Object.entries(data).map(([k,j])=>normalizeJung({...j,id:j.id||k})):[];
     if(mine){ const i=jungs.findIndex(x=>x.id===mine.id); if(i>=0) jungs[i]=mine; }
+    else if(editingId) markEditBase();      // 고치지 않은 채 열어 둔 정산서는 받은 내용을 기준으로 삼습니다
     renderJungList();
   });
   onSync('results',snap=>{
@@ -2614,6 +2634,13 @@ function startRealtimeSync(){
       if(!typing){ _stockRenderSkipped=false; renderStock(); }
       else { _stockRenderSkipped=true; saSoftRefresh(); updateSaSummary(); }   // 입력 중인 줄은 건드리지 않습니다
     }
+  },true);
+  // 월 마감 기록 — 다른 컴퓨터에서 마감하면 이 화면의 '마감 완료'·'마감 뒤 바뀐 품목'도 맞춥니다
+  onSync('stockClose',snap=>{
+    stockClose=snap.exists()?(snap.val()||{}):{};
+    const pg=document.getElementById('page-재고');
+    const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#page-재고 .stbl');
+    if(pg&&pg.classList.contains('on')&&!typing&&!document.getElementById('stockCloseModal')?.classList.contains('show')) renderStock();
   },true);
   // 알바 근무기록 — 관리자가 승인·취소하면 알바 화면(달력·내 근무시간)에도 바로 반영됩니다
   onSync('albaWorkLog',snap=>{
@@ -3683,7 +3710,14 @@ function mmddToDate(mm,dd){
   if(d<1||d>new Date(y,m,0).getDate()) return '';          // 2월 30일 같은 날짜는 받지 않습니다
   return `${y}-${_p2(m)}-${_p2(d)}`;
 }
+let _creating=false;
 async function createJungsan(){
+  if(_creating) return;                     // [생성]을 두 번 눌러도 한 건만 만듭니다
+  _creating=true;
+  try{ await createJungsanRun(); }
+  finally{ _creating=false; }
+}
+async function createJungsanRun(){
   await loadBasicList();                    // 다른 PC에서 바꾼 기본물품 목록을 반영합니다
   filterHangul(document.getElementById('nw-고인'));
   filterHangul(document.getElementById('nw-상주'));
@@ -3951,7 +3985,7 @@ function loadForm(j,readOnly,forceEdit=false){
     // 편집 모드
     document.getElementById('editBtnGroup').style.display='';
     document.getElementById('viewBtnGroup').style.display='none';
-    document.getElementById('btnDone').style.display=isDone&&!forceEdit?'none':'';
+    document.getElementById('btnDone').style.display=isDone?'none':'';
   }
   buildTable(j,readOnly);
 }
@@ -4288,15 +4322,39 @@ function updateEditFileName(){
 }
 function calcTotal(items){return(items||[]).reduce((s,it)=>{const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);return s+f*(it.단가||0);},0);}
 function updTotal(){const j=jungs.find(x=>x.id===editingId);const t=j?calcTotal(j.items):0;document.getElementById('editTotal').textContent=fmt(t)+' 원';return t;}
-function closeEditOverlay(){
+async function closeEditOverlay(){
+  const id=editingId;
+  if(editDirty()){
+    // 고친 내용을 저장하지 않고 나가면, 목록에는 고친 금액이 보이는데 서버에는 옛 내용이 남아 헷갈립니다
+    if(confirm('고친 내용을 아직 저장하지 않았습니다.\n\n[확인] 저장하고 목록으로 돌아갑니다.\n[취소] 저장하지 않고 돌아갑니다 (고친 내용은 버립니다).')){
+      if(!(await saveEditing())) return;      // 저장하지 못했으면 화면을 그대로 둡니다
+      if(editingId!==id) return;              // 저장하는 동안 다른 정산서를 열었으면 그 화면은 닫지 않습니다
+    } else {
+      const i=jungs.findIndex(x=>x.id===editingId);
+      if(i>=0&&_editBase) jungs[i]=normalizeJung(JSON.parse(_editBase));
+      try{ renderJungList(); }catch(e){ console.error(e); }
+    }
+  }
   document.getElementById('editOverlay').style.display='none';
   editingId=null; _editBase=null;
 }
+let _saveBusy=false;
 async function saveEditing(){
-  if(!editingId)return;
-  const j=jungs.find(x=>x.id===editingId);if(!j)return;
+  if(!editingId||_saveBusy)return false;
+  const j=jungs.find(x=>x.id===editingId);if(!j)return false;
   const v=id=>(document.getElementById(id).value||'').trim();
-  if(!v('e-분향실')||!v('e-고인')||!v('e-날짜')){ alert('분향실·고인·발인일은 비워 둘 수 없습니다.'); return; }
+  if(!v('e-분향실')||!v('e-고인')||!v('e-날짜')){ alert('분향실·고인·발인일은 비워 둘 수 없습니다.'); return false; }
+  const before=_editBase?JSON.parse(_editBase):null;     // 마지막으로 저장한 내용 (완료한 정산서의 재고·결산서를 맞출 때 씁니다)
+  // 완료한 정산서는 서버의 지금 기록을 먼저 봅니다 — 다른 컴퓨터에서 고쳤거나 정산취소했을 수 있습니다
+  let srvPost=null;
+  if(j.상태==='완료'){
+    _saveBusy=true;
+    let sv;
+    try{ sv=await withTimeout(fbGet('jungs/'+j.id),8000); }catch(_){ sv=undefined; }
+    finally{ _saveBusy=false; }
+    if(sv&&sv.상태&&sv.상태!=='완료'){ alert('다른 컴퓨터에서 이미 정산취소한 정산서라 저장하지 않았습니다.\n목록으로 돌아가 정산서를 다시 여십시오.'); return false; }
+    if(sv) srvPost=postingLoad(sv.재고반영);
+  }
   j.날짜=document.getElementById('e-날짜').value;
   j.분향실=document.getElementById('e-분향실').value;
   j.고인=document.getElementById('e-고인').value;
@@ -4308,13 +4366,46 @@ async function saveEditing(){
   j.수정자=currentUser?.이름||'';
   j.수정자id=currentUser?.id||'';
   j.수정일=nowISO();
+  const doneNote=j.상태==='완료'?syncDoneJung(j,before,srvPost):'';   // 완료한 정산서면 재고 출고·결산서도 함께 맞춥니다
   markEditBase();
 
   // 저장을 먼저 시작하고 화면을 갱신합니다
   fbSet('jungs/'+j.id,j).then(()=>addLog(currentUser?.이름||'','정산서저장',j.파일명))
     .catch(e=>{ console.error('저장 오류:',e); alert('⚠️ 저장 중 오류가 생겼습니다: '+e.message); });
   try{ renderJungList(); }catch(e){ console.error('목록 갱신 오류:',e); }
-  alert(`✅ 저장 완료!\n\n📋 ${j.파일명}\n정산액: ${fmt(calcTotal(j.items))}원\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+  alert(`✅ 저장 완료!\n\n📋 ${j.파일명}\n정산액: ${fmt(calcTotal(j.items))}원\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`+doneNote);
+  return true;
+}
+// 완료한 정산서를 고쳐 저장할 때 — 재고 출고는 차이만큼만 맞추고, 연결된 결산서의 금액·발인일 등도 고칩니다
+function syncDoneJung(j,before,srvPost){
+  // 지금 재고에 들어가 있는 출고: 서버 기록 → 이 화면의 기록 → (예전 정산서) 저장 전 내용
+  const oldP=srvPost||postingLoad(j.재고반영)||(before?jungPosting(before):null);
+  const newP=jungPosting(j);
+  let map={}, months=[];
+  if(oldP){ ({map,months}=postingApply(oldP,newP)); j.재고반영=postingSave(newP); }
+  const nStock=Object.keys(map).length;
+  if(nStock) stockUpdate(map).then(()=>touchMeta('stock'))
+    .catch(e=>{ console.error('완료 정산서 재고 반영:',e); alert('⚠️ 재고 반영 중 오류가 생겼습니다: '+e.message+'\n재고관리장을 확인하십시오.'); });
+  if(nStock&&document.getElementById('page-재고')?.classList.contains('on')) renderStock();
+  // 결산서 — 연결된 것, 없으면 저장 전 발인일·분향실·고인으로 찾습니다 (예전 정산서)
+  let r=j.결산id?results.find(x=>String(x.id)===String(j.결산id)):null;
+  if(!r&&!j.결산id&&before) r=results.find(x=>x.날짜===before.날짜&&x.분향실===before.분향실&&x.고인===before.고인)||null;
+  let rChanged=false;
+  if(r){
+    j.결산id=String(r.id);
+    const upd={분향실:j.분향실,고인:j.고인,날짜:j.날짜,금액:calcTotal(j.items),인원수:j.인원수,상주:j.상주||'',연락처:j.연락처||''};
+    rChanged=Object.keys(upd).some(k=>String(r[k]??'')!==String(upd[k]??''));
+    if(rChanged){
+      Object.assign(r,upd);
+      fbSet('results/'+r.id,r).then(()=>touchMeta('results')).catch(e=>{ console.error('결산서 반영:',e); alert('⚠️ 결산서 반영 중 오류가 생겼습니다: '+e.message); });
+      try{ renderResults(); if(typeof buildCharts==='function') buildCharts(); }catch(e){ console.error(e); }
+    }
+  }
+  const what=[nStock?'재고 출고':'',rChanged?'결산서':''].filter(Boolean).join('와 ');
+  return (what?`\n\n완료된 정산서라 ${what}도 고친 내용에 맞췄습니다.`:'')
+    +(!oldP?'\n※ 이 정산서는 재고에 무엇이 반영됐는지 알 수 없어 재고는 맞추지 않았습니다. 재고관리장을 확인하십시오.':'')
+    +(!r&&j.결산id?'\n(연결된 결산서가 지워져 있어 결산서는 고치지 않았습니다)':'')
+    +closedMonthNote(months);
 }
 // ── 메모 ──
 function openMemo(id){
@@ -4328,7 +4419,11 @@ function openMemo(id){
   fbSet('jungs/'+j.id+'/메모',j.메모).catch(e=>console.error(e));
 }
 async function delJung(id){
-  if(!confirm('이 정산서를 삭제하시겠습니까?'))return;
+  const dj=jungs.find(x=>x.id===id);
+  const msg=dj&&dj.상태==='완료'
+    ?'완료된 정산서를 삭제하시겠습니까?\n\n정산서만 지워지고 결산서와 재고 출고 기록은 그대로 남습니다.\n판매 자체를 취소하려면 삭제하지 말고 정산서를 열어 [🔄 정산취소]를 하십시오.'
+    :'이 정산서를 삭제하시겠습니까?';
+  if(!confirm(msg))return;
   jungs=jungs.filter(j=>j.id!==id);
   if(editingId===id){editingId=null;document.getElementById('editOverlay').style.display='none';}
   renderJungList();
@@ -4893,10 +4988,10 @@ function printBiz(){
   const r=(l,v,b)=>`<tr><td class="l"${b?' style="font-weight:700"':''}>${l}</td>
     <td class="r"${b?' style="font-weight:700"':''}>${fmt(v)}</td></tr>`;
   const exp=bizExpenses(d.pr).sort((a,b)=>(a.날짜||'').localeCompare(b.날짜||''));
-  const expRows=exp.map((e,i)=>`<tr><td>${i+1}</td><td>${e.날짜||''}</td><td>${e.구분||''}</td>
-    <td class="l">${e.항목||''}</td><td class="l">${e.거래처||''}</td>
+  const expRows=exp.map((e,i)=>`<tr><td>${i+1}</td><td>${esc(e.날짜||'')}</td><td>${esc(e.구분||'')}</td>
+    <td class="l">${esc(e.항목||e.메모||'')}</td><td class="l">${esc(e.거래처||'')}</td>
     <td class="r">${fmt(e.공급가액||0)}</td><td class="r">${fmt(e.부가세||0)}</td>
-    <td>${e.증빙||''}</td></tr>`).join('');
+    <td>${esc(e.증빙||'')}</td></tr>`).join('');
   const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>연말결산</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -4953,7 +5048,7 @@ h2{font-size:11.5pt;margin:8px 0 4px;color:#1b3a5c}
     return `<tr><td>${+ym.slice(5,7)}월</td><td class="r">${fmt(j)}</td>
       <td class="r">${fmt(p.카드)}</td><td class="r">${fmt(p.현금영수증)}</td>
       <td class="r">${fmt(p.현금)}</td><td class="r">${fmt(p.합계)}</td>
-      <td class="r">${p.합계?(g>0?'+':'')+fmt(g):'-'}</td><td class="l">${p.메모||''}</td></tr>`;
+      <td class="r">${p.합계?(g>0?'+':'')+fmt(g):'-'}</td><td class="l">${esc(p.메모||'')}</td></tr>`;
   }).join('')}<\/tbody>
   <tfoot><tr><td style="font-weight:700">합계</td>
     <td class="r" style="font-weight:700">${fmt(d.결산서합계)}</td>
@@ -5172,7 +5267,7 @@ let scPrefilled=0; // 재고표의 실제 재고로 미리 채운 품목 수
 // 해당 월의 품목별 장부 재고
 function bookStock(ym){
   const mData=stockData[ym]||{};
-  const ALL=stockBaseItems();
+  const ALL=stockItemsFor(ym);
   return ALL.map(it=>{
     const p=mData[it.품명]||mData[toFbKey(it.품명)]||{};
     const 이월=+(p['이월']||0), 조정=+(p['조정']||0);
@@ -5242,6 +5337,44 @@ function renderStockClose(){
       +(scPrefilled?`<br>📋 재고관리장에 넣어 둔 <b>실제 재고 ${scPrefilled}개 품목</b>을 실사 칸에 채웠습니다${esc(saRecNote(ym))}. 분향실·매장 비치분을 더한 수량입니다.`:'');
   }
 }
+// 마감한 달의 재고가 마감 뒤에 바뀐 품목 — 마감 때 장부는 실사와 같게 맞춰졌으므로, 지금 장부가 다르면 그 뒤에 바뀐 것입니다
+// (다음 달 이월량에는 저절로 들어가지 않습니다). 확인한 차이는 항목.후변경에 더해 두어 다시 묻지 않습니다
+function closeDrift(ym){
+  const cl=stockClose[ym]; if(!cl||!cl.항목) return [];
+  const out=[];
+  bookStock(ym).forEach(r=>{
+    const e=cl.항목[toFbKey(r.품명)];
+    const base=e?(+e.실사||0)+(+e.후변경||0):0;
+    const df=r.장부-base;
+    if(df) out.push({품명:r.품명, 차이:df});
+  });
+  return out;
+}
+async function resolveCloseDrift(){
+  const ym=stockYM(), nxt=nextYM(ym), list=closeDrift(ym);
+  if(!list.length){ renderStock(); return; }
+  const lines=list.slice(0,15).map(x=>`· ${x.품명}: ${x.차이>0?'+':''}${x.차이}`).join('\n')+(list.length>15?`\n· 외 ${list.length-15}개 품목`:'');
+  let apply=confirm(`${ymLabel(ym)}은 마감한 뒤에 재고가 바뀌었습니다.\n(늦게 들어온 정산완료·정산취소·재고 수정 등)\n\n${lines}\n\n이 차이를 ${ymLabel(nxt)} 이월량에도 반영하시겠습니까?\n\n※ 마감할 때 센 실제 재고에 이 물품이 이미 빠져(더해져) 있었다면 반영하지 마십시오. 두 번 잡힙니다.`);
+  if(!apply&&!confirm(`${ymLabel(nxt)} 이월량은 그대로 두고 이 알림만 끄시겠습니까?`)) return;
+  const map={};
+  list.forEach(x=>{
+    const k=toFbKey(x.품명);
+    const e=stockClose[ym].항목[k]||(stockClose[ym].항목[k]={장부:0,실사:0,차이:0,사유:''});
+    e.후변경=(+e.후변경||0)+x.차이;
+    map[`stockClose/${ym}/항목/${k}/후변경`]=e.후변경;
+    if(apply){
+      const it=stockItem(nxt,x.품명); it['이월']=(+it['이월']||0)+x.차이;
+      map[stockCellPath(nxt,x.품명,'이월')]=stockInc(x.차이);
+    }
+  });
+  try{
+    await stockUpdate(map);
+    touchMeta('stock');
+    addLog(currentUser?.이름||'',apply?'마감 후 변경 이월 반영':'마감 후 변경 확인',`${ymLabel(ym)} · ${list.length}개 품목`);
+    renderStock();
+    expToast(apply?`✅ ${ymLabel(nxt)} 이월량에 ${list.length}개 품목을 반영했습니다.`:'알림을 껐습니다. 이월량은 그대로입니다.');
+  }catch(e){ alert('저장하지 못했습니다: '+e.message); }
+}
 function updClose(품명,v){ scCount[품명]=v; renderStockClose(); }
 function updCloseReason(품명,v){ scReason[품명]=v; }
 function fillCloseWithBook(){
@@ -5280,7 +5413,7 @@ async function confirmStockClose(){
     // 다음 달 이월량 = 실사(없으면 장부)
     stockItem(nxt,r.품명)['이월']=실사;
     closeMap[stockCellPath(nxt,r.품명,'이월')]=실사;
-    항목[k]={장부:r.장부, 실사, 차이:diff, 사유:(scReason[r.품명]||'')};
+    항목[k]={장부:r.장부, 실사, 차이:diff, 사유:(scReason[r.품명]||'')};   // 다시 마감하면 '마감 뒤 변경'도 새로 셉니다
   });
   const rec={확정자:currentUser?.id||'', 확정일:nowISO(), 항목};
   stockClose[ym]=rec;
@@ -5610,7 +5743,7 @@ function clearBasicTemp(silent){
   BASIC.length=0; (_basicSaved||BASIC_DEFAULT).forEach(b=>BASIC.push(b));
   _basicTemp=null; _basicSaved=null;
   updateBasicTempNotes();
-  if(document.getElementById('basicModal')?.classList.contains('show')){ bsQty={}; renderBasicSheet(); }
+  if(document.getElementById('basicModal')?.classList.contains('show')){ bsResetQty(); renderBasicSheet(); }
   loadBasicList();
   if(!silent) expToast('기본물품을 원래 목록으로 되돌렸습니다.');
 }
@@ -5762,7 +5895,7 @@ function applyBasicTemp(){
   const send=beCollect(); if(!send) return;
   setBasicTemp(send);
   closeModal('basicEditModal');
-  bsQty={}; renderBasicSheet();
+  bsResetQty(); renderBasicSheet();
   expToast('✏️ 이번만 바꾼 목록을 적용했습니다. 다음에 만드는 정산서 1건에만 쓰입니다.');
 }
 // [💾 영구 저장]
@@ -5776,7 +5909,7 @@ async function saveBasicEdit(){
     applyBasicList(send);
     addLog(currentUser?.이름||'','기본물품 편집',`${send.length}개 품목`);
     closeModal('basicEditModal');
-    bsQty={}; renderBasicSheet();
+    bsResetQty(); renderBasicSheet();
     if(typeof renderStock==='function') renderStock();
     expToast('✅ 기본물품 목록을 저장했습니다. 새로 만드는 정산서부터 적용됩니다.');
   }catch(e){
@@ -5823,6 +5956,7 @@ let bsExtra=[];             // 분향실 기준 확인 창에서 더한, 기본�
 let _bsChk=null;            // 마지막으로 확인한 분향실·인원 {key, parCap, applied:[…]}
 let _bsAsk=null;            // 확인 창이 떠 있는 동안 {key, p}
 let pendingBasicQty=null;   // 기본물품장에서 넘어온 주문량
+function bsResetQty(){ bsQty={}; bsExtra=[]; _bsChk=null; }   // 기본물품장의 고친 수량·분향실 기준 확인을 처음으로
 function resetBasicQty(){
   if(!confirm('주문량을 인원수 기준 기본값으로 되돌리시겠습니까?'))return;
   bsQty={}; bsExtra=[]; _bsChk=null;
@@ -6064,6 +6198,54 @@ async function createJungFromBasic(){
   document.getElementById('newModal').classList.add('show');
 }
 
+// ══ 정산서 ↔ 재고 출고 ══
+// 정산완료 때 재고에 반영한 출고를 정산서에 적어 둡니다 (재고반영: {ym, d, 목록:[{품명,수량}]}, 결산id: 연결된 결산서).
+//  · 완료한 정산서를 고쳐 저장하면 → 적어 둔 출고와 고친 수량의 차이만큼만 재고를 맞추고 결산서 금액도 고칩니다.
+//  · 정산취소하면 → 적어 둔 출고를 그대로 되돌리고 연결된 결산서를 지웁니다 (그사이 수량·발인일을 고쳤어도 정확히).
+// 이 기능 전에 완료한 정산서는 적어 둔 것이 없으므로 예전처럼 정산서 수량·발인일로 찾습니다.
+function jungPosting(j){
+  const ym=ymOfDate(j&&j.날짜), d=+String(j&&j.날짜||'').slice(8,10);
+  const items={};
+  ((j&&j.items)||[]).forEach(it=>{
+    if(!it||!it.품명) return;
+    const f=(+it.주문량||0)+(+it.추가||0)-(+it.반품||0);
+    if(f>0) items[it.품명]=(items[it.품명]||0)+f;          // 같은 품목이 여러 줄이면 합칩니다
+  });
+  return {ym,d,items};
+}
+function postingSave(pt){ return {ym:pt.ym, d:pt.d, 목록:Object.entries(pt.items).map(([품명,수량])=>({품명,수량}))}; }
+function postingLoad(v){
+  if(!v||typeof v!=='object'||!v.ym) return null;
+  const items={};
+  (Array.isArray(v.목록)?v.목록:Object.values(v.목록||{})).forEach(x=>{ if(x&&x.품명) items[x.품명]=(items[x.품명]||0)+(+x.수량||0); });
+  return {ym:String(v.ym), d:+v.d||0, items};
+}
+// 앞 출고(oldP)를 빼고 새 출고(newP)를 더합니다. 화면 자료에 바로 적용하고, 서버에 보낼 {경로:증감}을 돌려줍니다
+function postingApply(oldP,newP){
+  const acc=new Map();
+  const add=(pt,sign)=>{
+    if(!pt||!/^[0-9]{4}-[0-9]{2}$/.test(pt.ym)||!(pt.d>=1&&pt.d<=31)) return;
+    Object.entries(pt.items).forEach(([nm,q])=>{ const k=JSON.stringify([pt.ym,pt.d,nm]); acc.set(k,(acc.get(k)||0)+sign*(+q||0)); });
+  };
+  add(oldP,-1); add(newP,1);
+  const map={}, months=new Set();
+  acc.forEach((v,k)=>{
+    if(!v) return;
+    const [ym,d,nm]=JSON.parse(k);
+    const item=stockItem(ym,nm);
+    item[d]=(+item[d]||0)+v;
+    map[stockCellPath(ym,nm,d)]=stockInc(v);
+    months.add(ym);
+  });
+  return {map,months:[...months].sort()};
+}
+// 이미 마감한 달의 재고가 바뀌었으면 알려 줍니다 (다음 달 이월량에는 저절로 들어가지 않습니다)
+function closedMonthNote(months){
+  const cl=(months||[]).filter(ym=>stockClose&&stockClose[ym]);
+  if(!cl.length) return '';
+  return `\n\n※ ${cl.map(ymLabel).join('·')}은 이미 월 마감한 달입니다.\n재고관리장의 그 달 화면에서 [다음 달 이월 반영]을 확인하십시오.`;
+}
+
 // ══ 정산완료 ══
 async function 정산완료(){
   const j=jungs.find(x=>x.id===editingId);if(!j)return;
@@ -6085,28 +6267,29 @@ async function 정산완료(){
   document.querySelectorAll('input[name=pay]').forEach(r=>r.checked=false);
   document.getElementById('payModal').classList.add('show');
 }
+let _payBusy=false;
 async function confirmPay(){
   const pay=document.querySelector('input[name=pay]:checked')?.value;
   if(!pay){alert('결제방식을 선택해 주세요.');return;}
+  if(_payBusy) return;
   closeModal('payModal');
   const j=jungs.find(x=>x.id===pendingId);if(!j)return;
+  if(j.상태==='완료'){ alert('이미 정산 완료된 건입니다.'); return; }
+  _payBusy=true;
+  try{
+  // 다른 컴퓨터에서 먼저 완료했으면 멈춥니다 (두 번 완료하면 결산서와 재고 출고가 두 번 잡힙니다)
+  let srvSt=null; try{ srvSt=await withTimeout(fbGet('jungs/'+j.id+'/상태'),8000); }catch(_){}
+  if(srvSt==='완료'){ alert('다른 컴퓨터에서 이미 정산 완료한 정산서입니다.\n결산서와 재고는 한 번만 반영되어 있습니다. 목록에서 다시 열어 확인하십시오.'); return; }
 
   // 1. 로컬 상태 즉시 반영
   j.상태='완료';j.결제=pay;j.완료일=nowISO();
   const total=calcTotal(j.items);
   const newResult={id:Date.now().toString(),분향실:j.분향실,고인:j.고인,날짜:j.날짜,금액:total,결제:pay,인원수:j.인원수,상주:j.상주||'',연락처:j.연락처||'',비고:'',time:nowISO()};
   results.push(newResult);
-  const ym=ymOfDate(j.날짜), d=+(j.날짜||'').slice(8,10);
-  const stockMap={}, sum={};
-  j.items.forEach(it=>{
-    const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
-    if(it.품명&&f>0) sum[it.품명]=(sum[it.품명]||0)+f;      // 같은 품목이 여러 줄이면 합칩니다
-  });
-  Object.entries(sum).forEach(([품명,f])=>{
-    const item=stockItem(ym,품명);
-    item[d]=(+item[d]||0)+f;
-    stockMap[stockCellPath(ym,품명,d)]=stockInc(f);
-  });
+  const post=jungPosting(j);
+  const {map:stockMap,months}=postingApply(null,post);
+  j.재고반영=postingSave(post);              // 재고에 무엇을 반영했는지 적어 둡니다 (고치거나 취소할 때 씁니다)
+  j.결산id=newResult.id;                     // 이 정산서의 결산서
 
   // 2. 서버 저장을 먼저 시작합니다 (화면 그리기에서 문제가 생겨도 저장은 반드시 되도록)
   const saveErr=e=>{ console.error('정산완료 저장 오류:',e); alert('⚠️ 정산완료 저장 중 오류가 생겼습니다: '+e.message+'\n새로고침 후 정산서 상태를 확인하십시오.'); };
@@ -6121,7 +6304,9 @@ async function confirmPay(){
     document.getElementById('edit-pay').textContent='/ '+pay+' 완료!';
     loadForm(j,true);renderJungList();renderResults();if(typeof buildCharts==='function')buildCharts();
   }catch(e){ console.error('정산완료 화면 갱신 오류:',e); }
-  alert(`정산 완료!\n\n분향실: ${j.분향실} / ${j.고인}\n정산액: ${fmt(total)}원\n결제: ${pay}`);
+  if(editingId===j.id) markEditBase();       // 방금 저장한 내용을 기준으로 삼습니다 (목록으로 갈 때 '저장 안 함'으로 묻지 않게)
+  alert(`정산 완료!\n\n분향실: ${j.분향실} / ${j.고인}\n정산액: ${fmt(total)}원\n결제: ${pay}`+closedMonthNote(months));
+  }finally{ _payBusy=false; }
 }
 
 // ══ 정산취소 ══
@@ -6132,30 +6317,25 @@ async function 정산취소(){
     `⚠️ 결산서에서 해당 건이 삭제되고\n재고관리장에서 반영된 수량이 원복됩니다.`
   )) return;
 
-  // 1. 결산서에서 해당 건 제거
+  // 서버의 지금 기록을 봅니다 — 다른 컴퓨터에서 이미 정산취소했으면 멈춥니다 (두 번 되돌리면 재고가 두 번 늘어납니다)
+  let sv=null; try{ sv=await withTimeout(fbGet('jungs/'+j.id),8000); }catch(_){}
+  if(sv&&sv.상태&&sv.상태!=='완료'){ alert('다른 컴퓨터에서 이미 정산취소한 정산서입니다.\n목록에서 다시 열어 확인하십시오.'); return; }
+  const linkId=(sv&&sv.결산id)||j.결산id;
+
+  // 1. 결산서에서 해당 건 제거 — 정산완료 때 연결해 둔 결산서를 지웁니다 (예전 정산서는 발인일·분향실·고인으로 찾습니다)
+  const removedIds=linkId?[String(linkId)]
+    :results.filter(r=>r.날짜===j.날짜&&r.분향실===j.분향실&&r.고인===j.고인).map(r=>String(r.id));
   const before=results.length;
-  const removedIds=results
-    .filter(r=>r.날짜===j.날짜&&r.분향실===j.분향실&&r.고인===j.고인)
-    .map(r=>r.id);
-  results=results.filter(r=>!(r.날짜===j.날짜&&r.분향실===j.분향실&&r.고인===j.고인));
+  results=results.filter(r=>!removedIds.includes(String(r.id)));
   const removed=before-results.length;
 
-  // 2. 재고관리장 수량 원복
-  const ym=ymOfDate(j.날짜);
-  const d=+(j.날짜||'').slice(8,10);
-  const stockMap={}, sum={};
-  j.items.forEach(it=>{
-    const f=(it.주문량||0)+(it.추가||0)-(it.반품||0);
-    if(it.품명&&f>0) sum[it.품명]=(sum[it.품명]||0)+f;
-  });
-  Object.entries(sum).forEach(([품명,f])=>{
-    const item=stockItem(ym,품명);
-    item[d]=(+item[d]||0)-f;                                 // 서버와 같게 그대로 뺍니다
-    stockMap[stockCellPath(ym,품명,d)]=stockInc(-f);
-  });
+  // 2. 재고관리장 수량 원복 — 정산완료 때 반영한 출고를 그대로 되돌립니다 (서버 기록 → 이 화면 기록 → 예전 정산서는 지금 수량)
+  const post=postingLoad(sv&&sv.재고반영)||postingLoad(j.재고반영)||jungPosting(j);
+  const {map:stockMap,months}=postingApply(post,null);
 
   // 3. 정산서 상태 → 진행중
   j.상태='진행중';j.결제='';j.완료일='';
+  delete j.재고반영; delete j.결산id;
 
   // 4. 서버 저장을 먼저 시작합니다
   pauseSync();
@@ -6166,7 +6346,8 @@ async function 정산취소(){
 
   // 5. 화면 갱신 + 메시지
   try{ renderJungList();renderResults(); if(typeof buildCharts==='function')buildCharts(); loadForm(j,false); }catch(e){ console.error('정산취소 화면 갱신 오류:',e); }
-  alert(`🔄 정산 취소 완료!\n\n결산서 ${removed}건 삭제\n재고 수량 원복 완료\n\n이제 정산서를 수정할 수 있습니다.`);
+  if(editingId===j.id) markEditBase();
+  alert(`🔄 정산 취소 완료!\n\n결산서 ${removed}건 삭제\n재고 수량 원복 완료\n\n이제 정산서를 수정할 수 있습니다.`+closedMonthNote(months));
 }
 
 // ══ 알바 관리 ══
@@ -6475,14 +6656,16 @@ function onTaxModeChange(){
   updateTaxFields();
   markAlbaDirty();
 }
+// 입력칸 숫자 — 빈칸이면 저장된 값을 쓰고, 0을 넣었으면 0으로 봅니다
+function numIn(id,fb){ const el=document.getElementById(id); if(!el||String(el.value).trim()==='') return +fb||0; const v=+el.value; return isNaN(v)?(+fb||0):v; }
 function getTaxCfg(){
   const g=id=>document.getElementById(id);
   return {
     mode  : g('tax-mode')?.value || albaConfig.taxMode || 'none',
-    deduct:+g('tax-deduct')?.value || albaConfig.taxDeduct || 0,
-    rate  :+g('tax-rate')?.value   || albaConfig.taxRate   || 0,
-    credit:+g('tax-credit')?.value || albaConfig.taxCredit || 0,
-    min   :+g('tax-min')?.value    || albaConfig.taxMin    || 0
+    deduct:numIn('tax-deduct',albaConfig.taxDeduct),
+    rate  :numIn('tax-rate',albaConfig.taxRate),
+    credit:numIn('tax-credit',albaConfig.taxCredit),
+    min   :numIn('tax-min',albaConfig.taxMin)
   };
 }
 // 하루 급여 기준으로 소득세·지방소득세를 계산합니다
@@ -6598,10 +6781,10 @@ function getJobTypes(){
 }
 
 function getInsRates(){
-  const pension=+document.getElementById('ins-pension')?.value||albaConfig.pension;
-  const health=+document.getElementById('ins-health')?.value||albaConfig.health;
-  const care=+document.getElementById('ins-care')?.value||albaConfig.care;
-  const employ=+document.getElementById('ins-employ')?.value||albaConfig.employ;
+  const pension=numIn('ins-pension',albaConfig.pension);
+  const health=numIn('ins-health',albaConfig.health);
+  const care=numIn('ins-care',albaConfig.care);
+  const employ=numIn('ins-employ',albaConfig.employ);
   const total=pension+health+care+employ;
   const el=document.getElementById('totalInsRate');
   if(el)el.textContent=total.toFixed(4);
@@ -7002,8 +7185,8 @@ function openResultDetail(id){
     + row('결제', pay?`<span class="badge badge-${pay==='카드결제'?'card':pay==='현금결제'?'cash':'rcpt'}">${esc(pay)}</span>`:'-')
     + row('비고', esc(r.비고||'-'))
     + (r.time?row('정산 시각', esc(localDateTimeOf(r.time))):'');
-  // 같은 고인·발인일의 완료 정산서가 있으면 바로 열 수 있게 합니다
-  const j=jungs.find(x=>x.상태==='완료'&&x.고인===r.고인&&x.날짜===r.날짜);
+  // 이 결산서와 연결된 정산서(없으면 같은 고인·발인일의 완료 정산서)를 바로 열 수 있게 합니다
+  const j=jungs.find(x=>x.결산id&&String(x.결산id)===String(r.id))||jungs.find(x=>x.상태==='완료'&&x.고인===r.고인&&x.날짜===r.날짜);
   const bj=document.getElementById('rdJung');
   bj.style.display=j?'':'none';
   bj.onclick=()=>{ closeModal('resultModal'); openView(j.id); };
@@ -7015,7 +7198,8 @@ function openResultDetail(id){
 async function delResult(id){
   const idx=results.findIndex(x=>String(x.id)===String(id));   // 누른 순간의 목록 순서가 아니라 id로 찾습니다
   const r=results[idx];if(!r){alert('해당 결산서를 찾지 못했습니다. 이미 삭제됐을 수 있습니다.');return;}
-  if(!confirm('이 결산서를 삭제하시겠습니까?'))return;
+  const lj=jungs.find(x=>x.상태==='완료'&&x.결산id&&String(x.결산id)===String(r.id));
+  if(!confirm('이 결산서를 삭제하시겠습니까?'+(lj?`\n\n연결된 정산서(${lj.파일명})는 완료 상태로, 재고 출고도 그대로 남습니다.\n판매 자체를 취소하려면 정산서를 열어 [🔄 정산취소]를 하십시오.`:'')))return;
   pauseSync(); // 동기화 일시 중단
   results.splice(idx,1);
   renderResults();buildCharts();
@@ -7173,7 +7357,9 @@ function renderStock(){
   if(ci){
     const cl=stockClose[mKey];
     if(cl){
-      ci.innerHTML=`✅ <b>${ymLabel(mKey)} 마감 완료</b> · ${esc(cl.확정자||'')} · ${esc(localDateOf(cl.확정일))}`;
+      const dr=closeDrift(mKey);
+      ci.innerHTML=`✅ <b>${ymLabel(mKey)} 마감 완료</b> · ${esc(cl.확정자||'')} · ${esc(localDateOf(cl.확정일))}`
+        +(dr.length?` <span style="color:#c0392b;font-weight:700">· ⚠️ 마감 뒤 바뀐 품목 ${dr.length}개</span> <button class="btn btn-sm" style="background:#c0392b;color:#fff;padding:2px 8px" onclick="resolveCloseDrift()">다음 달 이월 반영</button>`:'');
       ci.style.color='#1e8449';
     } else {
       const pv=stockClose[prevYM(mKey)];
@@ -7183,7 +7369,7 @@ function renderStock(){
     }
   }
   const body=document.getElementById('stockBody');body.innerHTML='';
-  const ALL_STOCK=stockBaseItems().map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}));
+  const ALL_STOCK=stockItemsFor(mKey).map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}));
   let _prevCat=null;
   ALL_STOCK.forEach(item=>{
     const _catFirst=_prevCat!==null&&item.구분!==_prevCat; _prevCat=item.구분;
@@ -7197,7 +7383,7 @@ function renderStock(){
     const 조정=+(p['조정']||0);              // 월 마감 실사로 보정한 값
     let outSum=0,dayTds='';
     for(let d=1;d<=days;d++){
-      const v=p[d]||0;outSum+=v;
+      const v=+p[d]||0;outSum+=v;
       dayTds+=`<td class="dcol" style="font-size:11px;color:${v>0?'#c0392b':v<0?'#217a3c':'#aaa'}">${v!==0?v:''}</td>`;
     }
     const 현재재고=이월-outSum+조정;
@@ -7407,7 +7593,7 @@ function updStock(inp){
   // 현재재고 셀도 갱신
   const 이월=stockData[ym][key]['이월']||0;
   const 조정=+(stockData[ym][key]['조정']||0);
-  let out=0;Object.keys(stockData[ym][key]).forEach(k=>{if(!isNaN(k))out+=stockData[ym][key][k]||0;});
+  let out=0;Object.keys(stockData[ym][key]).forEach(k=>{if(!isNaN(k))out+=+stockData[ym][key][k]||0;});
   const el=document.getElementById('cr-'+safeKey(품명));
   if(el){const cur=이월-out+조정;el.textContent=cur;el.style.color=cur<0?'#c0392b':'#1b3a5c';}
 }
@@ -7420,7 +7606,7 @@ function calcStockRow(inp){
   const 이월=+inp.value||0;
   const 조정=+(p['조정']||0);
   let out=0;
-  Object.keys(p).forEach(k=>{if(!isNaN(k))out+=p[k]||0;});
+  Object.keys(p).forEach(k=>{if(!isNaN(k))out+=+p[k]||0;});
   const 현재=이월-out+조정;
   const el=document.getElementById('cr-'+safeKey(품명));
   if(el){el.textContent=현재;el.style.color=현재<0?'#c0392b':'#1b3a5c';}
@@ -7782,9 +7968,9 @@ function openStockEditModal(){
   document.getElementById('stockEditModal').classList.add('show');
 }
 function addSeRow(){
-  const allStockItems=stockBaseItems();
+  const allStockItems=stockItemsFor(ymOfDate(document.getElementById('se-날짜')?.value)||stockYM());
   const opts=[...new Map(allStockItems.map(b=>[b.품명,b])).values()]
-    .map(b=>`<option value="${esc(b.품명)}">${b.품명}</option>`).join('');
+    .map(b=>`<option value="${esc(b.품명)}">${esc(b.품명)}${b.구분===ORPHAN_CAT?' ('+ORPHAN_CAT+')':''}</option>`).join('');
   const div=document.createElement('div');
   div.className='se-row';
   div.style.cssText='display:flex;gap:8px;align-items:flex-end;background:#f8faff;border:1px solid #d0dff0;border-radius:6px;padding:8px 10px';
@@ -7797,7 +7983,7 @@ function addSeRow(){
     </div>
     <div style="display:flex;flex-direction:column;gap:2px">
       <label style="font-size:11px;color:#555;font-weight:700">수량</label>
-      <input type="number" placeholder="수량" min="1"
+      <input type="number" placeholder="수량" min="0"
         style="width:70px;padding:5px 6px;border:1px solid #ccc;border-radius:4px;font-size:12px;text-align:center">
     </div>
     <div style="display:flex;flex-direction:column;gap:2px">
@@ -7819,34 +8005,41 @@ async function saveStockEdit(){
   const d=+날짜str.slice(8,10);
 
   if(!stockData[ym])stockData[ym]={};
-  let changed=0;
-  const seMap={};
+  // 먼저 모든 줄을 확인하고, 문제가 없을 때만 저장합니다 (일부만 들어가지 않게)
+  const rows=[], bad=[], seen=new Set();
   document.querySelectorAll('.se-row').forEach(row=>{
     const sels=row.querySelectorAll('select');
     const numInp=row.querySelector('input[type=number]');
     const 품명=sels[0]?.value;
-    const qty=+numInp?.value||0;
+    const raw=String(numInp?.value??'').trim();
     const mode=sels[1]?.value||'in';
-    if(!품명||qty===0) return;
-    const item=stockItem(ym,품명);
-    const cur=+item[d]||0;
-    const pth=stockCellPath(ym,품명,d);
-    if(mode==='in'){
-      // 입고: 재고 증가 → 표에 음수(-값)로 기록 (출고 반대)
-      item[d]=cur - qty; seMap[pth]=stockInc(-qty);
-    } else if(mode==='out'){
-      // 출고: 재고 감소 → 표에 양수(+값)로 기록
-      item[d]=cur + qty; seMap[pth]=stockInc(qty);
-    } else {
-      // 설정: 해당 칸을 직접 지정
-      item[d]=qty; seMap[pth]=qty;
-    }
-    changed++;
+    if(!품명||raw==='') return;
+    const qty=Math.round(+raw);
+    if(isNaN(qty)||(mode!=='set'&&qty<=0)){ bad.push(품명); return; }   // 입고·출고는 0보다 큰 수로 넣습니다
+    if(seen.has(품명)){ bad.push(품명+' (같은 품목이 두 줄)'); return; } // 한 줄로 합쳐 넣으십시오 (두 줄이면 서버에는 마지막 줄만 들어갑니다)
+    seen.add(품명); rows.push({품명,qty,mode});
   });
+  if(bad.length){ alert('다음 줄은 수량을 다시 확인하십시오. (입고·출고는 1 이상, 같은 품목은 한 줄에)\n\n· '+bad.join('\n· ')); return; }
+  const changed=rows.length;
   if(changed===0){alert('수정할 물품과 수량을 입력해 주세요.');return;}
+  const seMap={};
+  rows.forEach(({품명,qty,mode})=>{
+    const pth=stockCellPath(ym,품명,d);
+    if(mode==='in') seMap[pth]=stockInc(-qty);          // 입고: 재고 증가 → 표에 음수(-값)로 기록 (출고 반대)
+    else if(mode==='out') seMap[pth]=stockInc(qty);     // 출고: 재고 감소 → 표에 양수(+값)로 기록
+    else seMap[pth]=qty?qty:null;                       // 설정: 해당 칸을 직접 지정 (0을 넣으면 그 날 칸을 비웁니다)
+  });
   showSaving(true);
   try{await stockUpdate(seMap);touchMeta('stock');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
+  // 서버에 들어간 뒤 화면 자료에도 같게 적용합니다
+  rows.forEach(({품명,qty,mode})=>{
+    const item=stockItem(ym,품명), cur=+item[d]||0;
+    if(mode==='in') item[d]=cur-qty;
+    else if(mode==='out') item[d]=cur+qty;
+    else if(qty) item[d]=qty; else delete item[d];
+  });
+  addLog(currentUser?.이름||'','재고량 수정',`${날짜str} · `+rows.map(r=>`${r.품명} ${r.mode==='in'?'입고':r.mode==='out'?'출고':'설정'} ${r.qty}`).join(', '));
   closeModal('stockEditModal');
   const curYM=stockYM();
   if(ym===curYM){
@@ -7932,6 +8125,7 @@ function decodeStockData(data){
 async function saveStock(){
   const n=Object.keys(_stockDirty).length;
   if(!n){ alert('바뀐 칸이 없습니다.'); return; }
+  const dirtyMonths=[...new Set(Object.keys(_stockDirty).map(k=>k.split('/')[1]).filter(Boolean))].sort();
   showSaving(true);
   try{
     await stockUpdate(Object.assign({},_stockDirty));     // 고친 칸만 씁니다
@@ -7939,7 +8133,7 @@ async function saveStock(){
     touchMeta('stock');
   }catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
   showSaving(false);
-  alert(`✅ 재고 저장 완료!\n\n${ymLabel(stockYM())} 재고관리장 · ${n}칸\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
+  alert(`✅ 재고 저장 완료!\n\n${(dirtyMonths.length?dirtyMonths:[stockYM()]).map(ymLabel).join('·')} 재고관리장 · ${n}칸\n저장 시각: ${new Date().toLocaleTimeString('ko-KR')}`);
 }
 function exportStock(){
   const m=+document.getElementById('stockMonth').value;
@@ -7947,7 +8141,7 @@ function exportStock(){
   const days=new Date(yr,m,0).getDate();
   const ym=stockKey(yr,m);
   const mData=stockData[ym]||{};
-  const ALL=stockBaseItems();
+  const ALL=stockItemsFor(ym);
   let csv='품명,이월량,조정,현재재고';
   for(let d=1;d<=days;d++)csv+=`,${d}일`;csv+=',출고합계,분향실비치,실제재고(창고),차이\n';
   ALL.forEach(it=>{
@@ -8057,7 +8251,7 @@ function renderPrice(){
     if(_priceFlash===p) tr.className='pnew';
     tr.innerHTML=`
       <td class="pc-only"><select onchange="priceDB[${idx}].구분=this.value" style="border:none;background:transparent;width:100%;font-size:12px">${PRICE_CATS.map(c=>`<option${p.구분===c?' selected':''}>${c}</option>`).join('')}${PRICE_CATS.includes(p.구분)?'':`<option selected>${esc(p.구분||'')}</option>`}</select></td>
-      <td class="pc-only"><input value="${esc(p.품명)}" onchange="priceDB[${idx}].품명=this.value"></td>
+      <td class="pc-only"><input value="${esc(p.품명)}" onchange="renamePrice(${idx},this)"></td>
       <td class="pc-only"><input value="${esc(p.단위)}" onchange="priceDB[${idx}].단위=this.value"></td>
       <td class="pc-only"><input type="number" value="${+p.가격||0}" onchange="priceDB[${idx}].가격=+this.value||0"></td>
       <td class="pc-only"><input type="number" value="${+p.원가||0}" onchange="priceDB[${idx}].원가=+this.value||0"></td>
@@ -8073,6 +8267,27 @@ function renderPrice(){
     if(row){ row.scrollIntoView({block:'center',behavior:'smooth'}); setTimeout(()=>row.classList.remove('pnew'),2500); }
     _priceFlash=null;
   }
+}
+// 품목명이 기본물품·재고·진행중 정산서에 쓰이고 있는지
+function priceNameInUse(nm){
+  if(!nm) return false;
+  if(BASIC.some(b=>b.품명===nm)) return true;
+  if(Object.keys(stockData||{}).some(ym=>/^[0-9]{4}-[0-9]{2}$/.test(ym)&&stockHasData((stockData[ym]||{})[nm]))) return true;
+  return jungs.some(j=>j.상태==='진행중'&&(j.items||[]).some(it=>it.품명===nm));
+}
+function renameNote(old,nu){
+  return `품목명을 「${old}」에서 「${nu}」(으)로 바꾸시겠습니까?\n\n`
+    +`지난 재고 기록·기본물품 목록·진행중 정산서에는 옛 이름 「${old}」이 그대로 남습니다.\n`
+    +`(재고관리장에서는 옛 이름의 재고가 '${ORPHAN_CAT}'으로 따로 보입니다)`;
+}
+function renamePrice(idx,inp){
+  const p=priceDB[idx]; if(!p) return;
+  const old=String(p.품명||''), nu=String(inp.value||'').trim();
+  if(nu===old){ inp.value=old; return; }
+  if(!nu){ alert('품목명을 비워 둘 수 없습니다.'); inp.value=old; return; }
+  if(priceDB.some((x,i)=>i!==idx&&x&&String(x.품명||'').trim()===nu)){ alert(`"${nu}" 품목이 이미 있습니다. 다른 이름을 입력하십시오.`); inp.value=old; return; }
+  if(priceNameInUse(old)&&!confirm(renameNote(old,nu))){ inp.value=old; return; }
+  p.품명=nu; inp.value=nu;
 }
 function openPriceEdit(idx){
   _priceEditIdx=idx;
@@ -8099,6 +8314,8 @@ async function savePriceEdit(){
   if(!품명){ alert('품목명을 입력하십시오.'); document.getElementById('pm-품명').focus(); return; }
   const dup=priceDB.findIndex((p,i)=>i!==_priceEditIdx&&String(p.품명||'').trim()===품명);
   if(dup>=0){ alert(`"${품명}" 품목이 이미 있습니다. (${priceDB[dup].구분})\n다른 이름을 입력하십시오.`); return; }
+  const oldNm=_priceEditIdx>=0&&priceDB[_priceEditIdx]?String(priceDB[_priceEditIdx].품명||''):'';
+  if(oldNm&&oldNm!==품명&&priceNameInUse(oldNm)&&!confirm(renameNote(oldNm,품명))) return;
   const item={
     구분:document.getElementById('pm-구분').value,
     품명,
@@ -8136,6 +8353,7 @@ async function savePrice(opt){
 
   // 진행중 정산서의 단가를 priceDB 최신값으로 자동 업데이트
   let updated=0;
+  const savedIds=new Set();
   jungs.filter(j=>j.상태==='진행중').forEach(j=>{
     let changed=false;
     (j.items||[]).forEach(it=>{
@@ -8149,7 +8367,7 @@ async function savePrice(opt){
       }
     });
     // 단가가 바뀐 정산서만 저장합니다 (다른 사람이 편집 중인 정산서를 덮어쓰지 않게)
-    if(changed) fbSet('jungs/'+j.id,j).catch(e=>console.error(e));
+    if(changed){ savedIds.add(j.id); fbSet('jungs/'+j.id,j).catch(e=>console.error(e)); }
   });
 
   // 화면 즉시 갱신
@@ -8157,7 +8375,7 @@ async function savePrice(opt){
   renderJungList();          // 진행중 정산서 금액이 바뀌므로 목록도 다시 그립니다
   if(editingId){
     const j=jungs.find(x=>x.id===editingId);
-    if(j&&j.상태==='진행중'){ buildTable(j,false); updTotal(); }
+    if(j&&j.상태==='진행중'){ buildTable(j,false); updTotal(); if(savedIds.has(j.id)) markEditBase(); }
   }
 
   if(quiet){ expToast(`✅ 저장했습니다${updated>0?` · 진행중 정산서 ${updated}개 품목 단가 반영`:''}`); return true; }
@@ -8450,7 +8668,7 @@ function restoreData(input){
         await fbSet('results',obj);
       }
       if(data.stockData){
-        stockData=data.stockData;
+        stockData=migrateStockKeys(data.stockData).data;      // 예전 월 번호(9) 키는 연도-월(2026-09)로
         await fbSet('stockData',encodeStockData(stockData));
       }
       if(data.priceDB){
@@ -8663,7 +8881,7 @@ function loadXLSX(){
   _xlsxLoading=new Promise((res,rej)=>{
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload=res; s.onerror=()=>rej(new Error('엑셀 読み 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하십시오.'));
+    s.onload=res; s.onerror=()=>rej(new Error('엑셀 읽기 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하십시오.'));
     document.head.appendChild(s);
   });
   return _xlsxLoading;
