@@ -2130,7 +2130,7 @@ function stockHasData(v){
 }
 function stockItemsFor(ym){
   const base=stockBaseItems();
-  const have=new Set(base.map(b=>b.품명));
+  const have=new Set(base.flatMap(b=>[b.품명,stockCanon(b.품명)]));
   const mData=(typeof stockData!=='undefined'&&stockData&&stockData[ym])||{};
   const extra=Object.keys(mData).filter(nm=>nm&&nm[0]!=='_'&&!have.has(nm)&&stockHasData(mData[nm]))
     .sort((a,b)=>a.localeCompare(b,'ko')).map(nm=>({품명:nm,구분:ORPHAN_CAT}));
@@ -3437,10 +3437,16 @@ async function results_save(){}
 // 이제 더하기·빼기는 서버에서 원자적으로(increment) 처리하고, 직접 고친 칸만 따로 씁니다.
 const _stockDirty={};                         // 재고표에서 고치고 아직 [저장] 안 한 칸 {경로:값}
 function stockCellPath(ym,품명,field){ return `stockData/${ym}/${toFbKey(품명)}/${field}`; }
+// 재고 자료에서 품목을 찾을 때 쓰는 이름 — Firebase 키로 바꿨다가 되돌린 이름입니다.
+// 품목명에 「·」(가운뎃점)·「／」 같은 글자가 있으면 서버에서 읽을 때 「.」·「/」로 바뀌므로,
+// 언제나 이 이름으로 찾고 고쳐야 한 품목의 재고가 두 줄로 갈라지지 않습니다 (보통 이름은 그대로입니다)
+function stockCanon(nm){ return fromFbKey(toFbKey(String(nm??''))); }
+function stockRowOf(mData,nm){ return (mData&&(mData[stockCanon(nm)]||mData[nm]||mData[toFbKey(String(nm??''))]))||undefined; }
 function stockItem(ym,품명){
+  const k=stockCanon(품명);
   if(!stockData[ym]) stockData[ym]={};
-  if(!stockData[ym][품명]) stockData[ym][품명]={};
-  return stockData[ym][품명];
+  if(!stockData[ym][k]) stockData[ym][k]={};
+  return stockData[ym][k];
 }
 function stockInc(n){
   if(!window._fbIncrement) throw new Error('재고 서버 연산을 불러오지 못했습니다. 새로고침 후 다시 시도하십시오.');
@@ -5269,7 +5275,7 @@ function bookStock(ym){
   const mData=stockData[ym]||{};
   const ALL=stockItemsFor(ym);
   return ALL.map(it=>{
-    const p=mData[it.품명]||mData[toFbKey(it.품명)]||{};
+    const p=stockRowOf(mData,it.품명)||{};
     const 이월=+(p['이월']||0), 조정=+(p['조정']||0);
     let out=0; Object.keys(p).forEach(k=>{ if(!isNaN(k)) out+=+p[k]||0; });
     return {품명:it.품명, 이월, 조정, 출고:out, 장부:이월-out+조정};
@@ -5290,7 +5296,7 @@ function openStockClose(){
   if(!(done&&done.항목)){
     const mData=stockData[ym]||{};
     bookStock(ym).forEach(r=>{
-      const p=mData[r.품명]||mData[toFbKey(r.품명)]||{};
+      const p=stockRowOf(mData,r.품명)||{};
       if(p.실사!==undefined&&p.실사!==null&&p.실사!==''){ scCount[r.품명]=+p.실사+parOf(r.품명); scPrefilled++; }   // 창고 실사 + 분향실 비치
     });
   }
@@ -7373,11 +7379,8 @@ function renderStock(){
   let _prevCat=null;
   ALL_STOCK.forEach(item=>{
     const _catFirst=_prevCat!==null&&item.구분!==_prevCat; _prevCat=item.구분;
-    // Firebase key 인코딩 처리: 원래 품명과 인코딩된 key 모두 검색
-    const origKey=item.품명;
-    const encKey=toFbKey(item.품명);
-    // mData에서 원래 key 또는 인코딩된 key로 찾기
-    const p=mData[origKey]||mData[encKey]||{};
+    // 서버에서 읽은 자료를 품목 이름으로 찾습니다 (「·」 같은 글자가 든 이름도 같은 줄로)
+    const p=stockRowOf(mData,item.품명)||{};
     // 이월량도 같은 방식으로 읽기
     const 이월=+(p['이월']||p[toFbKey('이월')]||0);
     const 조정=+(p['조정']||0);              // 월 마감 실사로 보정한 값
@@ -7584,9 +7587,8 @@ function updStock(inp){
   const{p:품명,m,d}=inp.dataset;
   const ym=/^[0-9]{4}-[0-9]{2}$/.test(m)?m:stockYM();   // 연도-월 키
   if(!stockData[ym])stockData[ym]={};
-  // 기존에 인코딩된 key로 저장된 경우 그 key 유지, 없으면 원래 품명 사용
-  const key=stockData[ym][품명]!==undefined?품명:
-    (stockData[ym][toFbKey(품명)]!==undefined?toFbKey(품명):품명);
+  // 서버에서 읽은 자료와 같은 이름(stockCanon)으로 고칩니다 — 「·」 같은 글자가 든 품목도 한 줄로
+  const key=stockCanon(품명);
   if(!stockData[ym][key])stockData[ym][key]={};
   stockData[ym][key][d]=+inp.value||0;
   _stockDirty[stockCellPath(ym,fromFbKey(key),d)]=+inp.value||0;   // [저장] 때 이 칸만 씁니다
@@ -7602,7 +7604,7 @@ function calcStockRow(inp){
   // data-m에는 '2026-09' 형식의 연-월 키가 들어 있습니다
   const mKey=/^[0-9]{4}-[0-9]{2}$/.test(m)?m:stockYM();
   const mData=stockData[mKey]||{};
-  const p=mData[품명]||mData[toFbKey(품명)]||{};
+  const p=stockRowOf(mData,품명)||{};
   const 이월=+inp.value||0;
   const 조정=+(p['조정']||0);
   let out=0;
@@ -7670,7 +7672,7 @@ function saRecNote(ym){
   const rec=saRec(ym);
   if(!rec||rec.리셋||!rec.일시) return ' (아직 [기록]하지 않은 값입니다)';
   const mData=stockData[ym]||{}; let chg=0;
-  bookStock(ym).forEach(r=>{ const p=mData[r.품명]||mData[toFbKey(r.품명)]||{}; if(saChangedRow(rec,r.품명,saHasVal(p)?+p.실사:null)) chg++; });
+  bookStock(ym).forEach(r=>{ const p=stockRowOf(mData,r.품명)||{}; if(saChangedRow(rec,r.품명,saHasVal(p)?+p.실사:null)) chg++; });
   return ` (${saWhen(rec.일시)} ${rec.기록자||''} 기록${chg?` · 그 뒤 바뀐 품목 ${chg}개`:''})`;
 }
 function saUnit(item){ const u=String(item.단위||''); return u.length<=3?u:''; }
@@ -7752,7 +7754,7 @@ function saSoftRefresh(){
       }
     }
     if(!tr.dataset.sadirty&&!tr.contains(act)){
-      const p=mData[품명]||mData[toFbKey(품명)]||{};
+      const p=stockRowOf(mData,품명)||{};
       const has=saHasVal(p), v=has?Math.max(0,Math.round(+p.실사||0)):null;
       const s1=tr.querySelector('.sa-s'), b=tr.querySelector('.sa-b'), r=tr.querySelector('.sa-r');
       if(s1) s1.value=has?v:'';
@@ -7833,7 +7835,7 @@ function updateSaSummary(){
   const ym=stockYM(), mData=stockData[ym]||{}, rec=saRec(ym);
   let n=0, diff=0, minus=0, plus=0, chg=0;
   bookStock(ym).forEach(r=>{
-    const p=mData[r.품명]||mData[toFbKey(r.품명)]||{};
+    const p=stockRowOf(mData,r.품명)||{};
     const has=saHasVal(p), v=has?+p.실사:null;
     if(saChangedRow(rec,r.품명,v)) chg++;
     if(!has) return;
@@ -7895,7 +7897,7 @@ async function recordStockCount(){
   const mData=stockData[ym]||{}, rows=bookStock(ym);
   const 항목={}; let n=0, diff=0, minus=0, plus=0;
   rows.forEach(r=>{
-    const p=mData[r.품명]||mData[toFbKey(r.품명)]||{};
+    const p=stockRowOf(mData,r.품명)||{};
     if(!saHasVal(p)) return;
     const v=+p.실사; n++;
     const wh=r.장부-parOf(r.품명);            // 창고에 있어야 할 수량 (분향실 비치분 제외)
@@ -7905,7 +7907,7 @@ async function recordStockCount(){
   if(!n){ alert('기록할 실제 재고가 없습니다.\n실제로 센 수량을 먼저 넣으십시오.'); return; }
   const old=saRec(ym);
   if(old&&!old.리셋&&old.일시){
-    const same=rows.every(r=>{ const p=mData[r.품명]||mData[toFbKey(r.품명)]||{}; return !saChangedRow(old,r.품명,saHasVal(p)?+p.실사:null); });
+    const same=rows.every(r=>{ const p=stockRowOf(mData,r.품명)||{}; return !saChangedRow(old,r.품명,saHasVal(p)?+p.실사:null); });
     if(same&&!confirm(`${saWhen(old.일시)}에 기록한 뒤 바뀐 값이 없습니다.\n지금 시각으로 다시 기록하시겠습니까?`)) return;
   }
   const rec={일시:nowISO(), 기록자:currentUser?.이름||'', 기록자id:currentUser?.id||'', 품목수:n, 차이수:diff, 부족:minus, 많음:plus, 항목};
@@ -7925,7 +7927,7 @@ async function recordStockCount(){
 async function clearStockCount(){
   const ym=stockYM(), mData=stockData[ym]||{}, rec=saRec(ym);
   clearTimeout(_saTimer); _saTimer=null; _saPending=null;
-  const names=bookStock(ym).map(r=>r.품명).filter(nm=>saHasVal(mData[nm]||mData[toFbKey(nm)]));
+  const names=bookStock(ym).map(r=>r.품명).filter(nm=>saHasVal(stockRowOf(mData,nm)));
   const recOk=!!(rec&&!rec.리셋&&rec.일시);
   if(!names.length&&!recOk){ alert('지울 실제 재고가 없습니다.'); return; }
   const what=[names.length?`실제 재고 ${names.length}개 품목`:'', recOk?`기록(${saWhen(rec.일시)} · ${rec.기록자||''})`:''].filter(Boolean).join('과 ');
@@ -8029,16 +8031,23 @@ async function saveStockEdit(){
     else if(mode==='out') seMap[pth]=stockInc(qty);     // 출고: 재고 감소 → 표에 양수(+값)로 기록
     else seMap[pth]=qty?qty:null;                       // 설정: 해당 칸을 직접 지정 (0을 넣으면 그 날 칸을 비웁니다)
   });
-  showSaving(true);
-  try{await stockUpdate(seMap);touchMeta('stock');}catch(e){alert('저장 실패: '+e.message);showSaving(false);return;}
-  showSaving(false);
-  // 서버에 들어간 뒤 화면 자료에도 같게 적용합니다
+  // 화면 자료에 먼저 적용한 뒤 서버에 보냅니다.
+  // (Firebase는 저장하는 순간 실시간 수신으로 새 값을 바로 다시 넣어 주므로, 저장이 끝난 뒤에 화면 자료를 또 고치면
+  //  입고 10이 20으로 보이는 것처럼 두 번 더해집니다)
+  const undo=rows.map(({품명})=>{ const item=stockItem(ym,품명); return {item, had:Object.prototype.hasOwnProperty.call(item,d), prev:item[d]}; });
   rows.forEach(({품명,qty,mode})=>{
     const item=stockItem(ym,품명), cur=+item[d]||0;
     if(mode==='in') item[d]=cur-qty;
     else if(mode==='out') item[d]=cur+qty;
     else if(qty) item[d]=qty; else delete item[d];
   });
+  showSaving(true);
+  try{await stockUpdate(seMap);touchMeta('stock');}
+  catch(e){
+    undo.forEach(u=>{ if(u.had) u.item[d]=u.prev; else delete u.item[d]; });   // 저장하지 못한 변경은 화면에서도 되돌립니다
+    alert('저장 실패: '+e.message); showSaving(false); renderStock(); return;
+  }
+  showSaving(false);
   addLog(currentUser?.이름||'','재고량 수정',`${날짜str} · `+rows.map(r=>`${r.품명} ${r.mode==='in'?'입고':r.mode==='out'?'출고':'설정'} ${r.qty}`).join(', '));
   closeModal('stockEditModal');
   const curYM=stockYM();
@@ -8145,7 +8154,7 @@ function exportStock(){
   let csv='품명,이월량,조정,현재재고';
   for(let d=1;d<=days;d++)csv+=`,${d}일`;csv+=',출고합계,분향실비치,실제재고(창고),차이\n';
   ALL.forEach(it=>{
-    const p=mData[it.품명]||mData[toFbKey(it.품명)]||{};
+    const p=stockRowOf(mData,it.품명)||{};
     const 이월=+(p['이월']||0), 조정=+(p['조정']||0);
     let out=0,day='';
     for(let d=1;d<=days;d++){const v=+p[d]||0;out+=v;day+=','+v;}
@@ -8272,7 +8281,7 @@ function renderPrice(){
 function priceNameInUse(nm){
   if(!nm) return false;
   if(BASIC.some(b=>b.품명===nm)) return true;
-  if(Object.keys(stockData||{}).some(ym=>/^[0-9]{4}-[0-9]{2}$/.test(ym)&&stockHasData((stockData[ym]||{})[nm]))) return true;
+  if(Object.keys(stockData||{}).some(ym=>/^[0-9]{4}-[0-9]{2}$/.test(ym)&&stockHasData(stockRowOf(stockData[ym]||{},nm)))) return true;
   return jungs.some(j=>j.상태==='진행중'&&(j.items||[]).some(it=>it.품명===nm));
 }
 function renameNote(old,nu){
