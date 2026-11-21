@@ -133,17 +133,19 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
    가장자리에서 떠 보이고 그 틈으로 다른 줄이 비쳐 보이므로, 틀에는 여백을 두지 않습니다 */
 #editTableWrap{padding:0}
 .jtbl td{padding:3px 3px;border-bottom:1px solid #f0f0f0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.jtbl tr.br td{background:#fafbfc}.jtbl tr.br:hover td{background:#f0f5ff}
-.jtbl tr.ar td{background:#fffde7}.jtbl tr.ar:hover td{background:#fff8c0}
+.jtbl tr.br td{background:#fafbfc}.jtbl tr.br:hover td{background:#fff3a6}
+.jtbl tr.ar td{background:#fffde7}.jtbl tr.ar:hover td{background:#fff3a6}
+/* 기본물품장 표도 마우스를 올린 줄을 노란색으로 */
+#bsBody tr:hover td{background:#fff3a6}
 /* 입력 칸이 있는 줄(키보드로 옮긴 줄 포함)도 마우스를 올린 것과 같은 색으로 강조합니다 */
-.jtbl tr.br:focus-within td{background:#f0f5ff}
-.jtbl tr.ar:focus-within td{background:#fff8c0}
+.jtbl tr.br:focus-within td{background:#fff3a6}
+.jtbl tr.ar:focus-within td{background:#fff3a6}
 .jtbl tr.br:focus-within td:first-child,.jtbl tr.ar:focus-within td:first-child{box-shadow:inset 3px 0 0 #4da6ff}
 /* 키보드로 움직이는 동안에는 마우스가 놓인 줄의 강조를 끄고 지금 줄만 보이게 합니다 */
 .kbnav .jtbl tr.br:hover td{background:#fafbfc}
 .kbnav .jtbl tr.ar:hover td{background:#fffde7}
-.kbnav .jtbl tr.br:hover:focus-within td{background:#f0f5ff}
-.kbnav .jtbl tr.ar:hover:focus-within td{background:#fff8c0}
+.kbnav .jtbl tr.br:hover:focus-within td{background:#fff3a6}
+.kbnav .jtbl tr.ar:hover:focus-within td{background:#fff3a6}
 .jtbl tr.tr td{background:#e8f4fd;font-weight:700;font-size:13px}   /* 윗선은 위의 tfoot td 그림자(2px)로 그립니다 */
 .jtbl td.nm{text-align:left;padding-left:5px;white-space:normal}
 .jtbl input.q{width:50px;padding:2px 3px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:12px}
