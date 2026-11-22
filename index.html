@@ -236,6 +236,35 @@ body{font-family:'Malgun Gothic',sans-serif;background:#eef2f7;font-size:13px;co
 .stbl tr:focus-within td{background:#eef4ff!important}
 .stbl tr:focus-within td.sa-td,.stbl tr:focus-within td.sa-diff{background:#ffefd6!important}
 .stbl.hide-days .dcol{display:none}
+/* 일별 칸 — 누르면 그날 입고·출고 내역 창이 뜹니다. 같은 날 입고와 출고가 함께 있으면 오른쪽 위에 주황 표시 */
+.stbl td.dcol.dhas{cursor:pointer}
+.stbl td.dcol.dhas:hover{box-shadow:inset 0 0 0 2px #2a5298}
+.stbl td.dcol.dmix{position:relative}
+.stbl td.dcol.dmix::after{content:'';position:absolute;top:0;right:0;width:0;height:0;border-top:7px solid #e8821a;border-left:7px solid transparent}
+.stbl td.dcol.dsel,.stbl td.dcol.dsel:hover{box-shadow:inset 0 0 0 2px #e8821a;background:#fff3e0!important}
+.daypop{position:fixed;z-index:4000;display:none;background:#fff;border:1px solid #9fb6d4;border-radius:8px;box-shadow:0 8px 28px rgba(16,40,80,.22);min-width:290px;max-width:min(420px,94vw);font-size:12px;color:#222;line-height:1.4}
+.daypop .dp-hd{display:flex;align-items:flex-start;gap:8px;padding:9px 10px 1px 12px;font-size:13px;color:#1b3a5c}
+.daypop .dp-hd b{word-break:keep-all}
+.daypop .dp-x{margin-left:auto;border:none;background:none;font-size:15px;line-height:1;cursor:pointer;color:#888;padding:0 2px}
+.daypop .dp-x:hover{color:#c0392b}
+.daypop .dp-sub{padding:0 12px 7px;color:#667;font-size:11px;border-bottom:1px solid #e6ebf2}
+.daypop .dp-body{max-height:min(46vh,300px);overflow-y:auto}
+.daypop table{border-collapse:collapse;width:100%}
+.daypop th{font-size:10.5px;color:#889;font-weight:600;text-align:left;padding:5px 6px 2px;background:#fafbfd;position:sticky;top:0}
+.daypop th:first-child,.daypop td:first-child{padding-left:12px}
+.daypop td{padding:4px 6px;border-top:1px solid #f0f2f6;vertical-align:top;text-align:left}
+.daypop .dp-q{text-align:right;font-weight:700;white-space:nowrap}
+.daypop .dp-t{color:#778;white-space:nowrap;font-size:11px}
+.daypop .dp-k{display:inline-block;font-size:10.5px;font-weight:700;border-radius:3px;padding:1px 6px;color:#fff;white-space:nowrap}
+.daypop .k-out{background:#c0392b}.daypop .k-in{background:#217a3c}.daypop .k-set{background:#8e44ad}.daypop .k-none{background:#9aa3ad}
+.daypop tr.dp-rest td{background:#f7f8fa;color:#556}
+.daypop .dp-note{display:block;font-size:10.5px;color:#889;margin-top:1px}
+.daypop .dp-none{color:#999;padding:10px 12px!important}
+.daypop .dp-sum{padding:7px 12px 8px;border-top:1px solid #dde4ee;background:#f6f8fb;border-radius:0 0 8px 8px;line-height:1.75}
+.daypop .dp-o{color:#c0392b}.daypop .dp-i{color:#217a3c}.daypop .dp-s{color:#8e44ad}
+.daypop .dp-pk{font-size:10.5px;color:#8a6d3b}
+.daypop .dp-res{color:#1b3a5c;font-weight:600}
+@media print{.daypop{display:none!important}}
 /* 품명 칸은 왼쪽에 붙여 두어 오른쪽(실제 재고)으로 넘겨도 무슨 품목인지 보이게 합니다 */
 .stbl td.snm{position:sticky;left:0;z-index:2;background:#fff;box-shadow:inset -1px 0 0 #e3e8ef}
 .stbl thead th:nth-child(2){position:sticky;left:0;z-index:12}
@@ -2021,7 +2050,8 @@ body.login #mobileNav{display:none!important}
       <strong>수정 방식 안내</strong><br>
       ➕ <b>입고(+)</b>: 물품을 입고·추가. 재고가 늘어남 (표에 <span style="color:#217a3c">-값</span>으로 기록)<br>
       ➖ <b>출고(-)</b>: 물품을 판매·출고. 재고가 줄어듦 (표에 <span style="color:#c0392b">+값</span>으로 기록)<br>
-      🔧 <b>설정(=)</b>: 해당 날짜 칸의 값을 입력한 숫자로 직접 지정
+      🔧 <b>설정(=)</b>: 해당 날짜 칸의 값을 입력한 숫자로 직접 지정<br>
+      <span style="color:#7a4b00">📋 재고표의 날짜 칸을 누르면 그날 입고·출고를 한 건씩 볼 수 있습니다</span>
     </div>
     <div class="frow" style="margin-bottom:12px">
       <div class="fg">
@@ -2615,6 +2645,7 @@ function startRealtimeSync(){
     if(mine){ const i=jungs.findIndex(x=>x.id===mine.id); if(i>=0) jungs[i]=mine; }
     else if(editingId) markEditBase();      // 고치지 않은 채 열어 둔 정산서는 받은 내용을 기준으로 삼습니다
     renderJungList();
+    stockRefreshForJungs();                 // 정산서 출고가 바뀌었으면 재고표의 일별 내역 표시도 맞춥니다
   });
   onSync('results',snap=>{
     const data=snap.exists()?snap.val():null;
@@ -3024,8 +3055,8 @@ async function loadLogs(){
     document.getElementById('logSection').style.display='';
   }catch(e){console.error(e);}
 }
-async function addLog(사용자,작업,대상){
-  fbSet('logs/'+Date.now(),{시간:nowISO(),사용자,작업,대상:대상||''}).catch(()=>{});
+async function addLog(사용자,작업,대상,extra){
+  fbSet('logs/'+Date.now(),{시간:nowISO(),사용자,작업,대상:대상||'',...(extra||{})}).catch(()=>{});
 }
 async function changePass(){
   const oldPw=document.getElementById('um-oldpw').value;
@@ -4433,6 +4464,7 @@ async function delJung(id){
     :'이 정산서를 삭제하시겠습니까?';
   if(!confirm(msg))return;
   jungs=jungs.filter(j=>j.id!==id);
+  if(dj&&dj.상태==='완료') keepDeletedJungPosting(dj);   // 남는 재고 출고가 어느 정산서 것인지 일별 내역에 적어 둡니다
   if(editingId===id){editingId=null;document.getElementById('editOverlay').style.display='none';}
   renderJungList();
   fbRemove('jungs/'+id).catch(()=>{});
@@ -7377,6 +7409,8 @@ function renderStock(){
     }
   }
   const body=document.getElementById('stockBody');body.innerHTML='';
+  body.dataset.ym=mKey; bindDayPop(body);
+  const _dayIdx=stockDayEntries(mKey);       // 일별 입고·출고 내역 (칸을 누르면 작은 창으로 보여 줍니다)
   const ALL_STOCK=stockItemsFor(mKey).map(x=>({...x,단가:x.단가||0,qty:x.qty||{}}));
   let _prevCat=null;
   ALL_STOCK.forEach(item=>{
@@ -7387,9 +7421,10 @@ function renderStock(){
     const 이월=+(p['이월']||p[toFbKey('이월')]||0);
     const 조정=+(p['조정']||0);              // 월 마감 실사로 보정한 값
     let outSum=0,dayTds='';
+    const _cn=stockCanon(item.품명);
     for(let d=1;d<=days;d++){
       const v=+p[d]||0;outSum+=v;
-      dayTds+=`<td class="dcol" style="font-size:11px;color:${v>0?'#c0392b':v<0?'#217a3c':'#aaa'}">${v!==0?v:''}</td>`;
+      dayTds+=dayCellHtml(v,_dayIdx.get(d+'|'+_cn),d);
     }
     const 현재재고=이월-outSum+조정;
         const pk=PACK_UNIT[item.품명];
@@ -7399,6 +7434,7 @@ function renderStock(){
     }
     const tr=document.createElement('tr');
     if(_catFirst) tr.className='scat-first';
+    tr.dataset.nm=item.품명;
     tr.innerHTML=`
       <td class="scat">${esc(item.구분||'')}</td>
       <td class="snm">${esc(item.품명)}</td>
@@ -7415,6 +7451,7 @@ function renderStock(){
     body.appendChild(tr);
   });
   updateSaSummary();
+  if(_dayPop) refreshDayPop();
 }
 // ══ 한글 입력 변환기 (두벌식) ══
 // 한/영 키가 영문 상태여도 입력 즉시 한글로 변환합니다.
@@ -7963,6 +8000,222 @@ function toggleStockDays(v){
   applyStockDays();
 }
 
+// ══ 일별 입고·출고 내역 ══
+// 일별 칸에는 그날의 순 출고(출고 − 입고)만 남으므로, 같은 날 입고와 출고가 함께 있으면 결과 값만 보입니다.
+// 그래서 [재고량 수정]으로 넣은 입고·출고·설정은 한 건씩 stockData/{연-월}/_내역/{id}에 함께 적어 두고,
+//   {d:일, 품명, 구분:'입고'|'출고'|'설정', 수량, 이전(설정 전 칸 값), 시각, 기록자, 메모, 삭제}
+// 정산서 출고는 정산서에 적어 둔 재고반영에서 찾습니다 (지운 완료 정산서의 출고만 여기에 남깁니다).
+// 칸을 누르면 그날 내역을 작은 창으로 보여 줍니다. 이 기능 전에 넣은 변동은 '세부 내역 없음'으로 한 줄에 보입니다.
+const STOCK_LOG='_내역';
+function stockLogId(){ return 'e'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function stockLogList(ym){
+  const raw=(stockData[ym]||{})[STOCK_LOG];
+  if(!raw||typeof raw!=='object') return [];
+  return Object.entries(raw).filter(([,e])=>e&&typeof e==='object'&&e.품명).map(([id,e])=>({...e,id}));
+}
+// 서버에 보낼 map에 내역을 넣고 화면 자료에도 바로 넣습니다 (되돌릴 때 쓸 id를 돌려줍니다)
+function stockLogAdd(map,ym,e){
+  const id=stockLogId();
+  map[`stockData/${ym}/${STOCK_LOG}/${id}`]=e;
+  if(!stockData[ym]) stockData[ym]={};
+  if(!stockData[ym][STOCK_LOG]||typeof stockData[ym][STOCK_LOG]!=='object') stockData[ym][STOCK_LOG]={};
+  stockData[ym][STOCK_LOG][id]=e;
+  return id;
+}
+// 정산서가 바뀌어 일별 내역(정산서 출고)이 달라졌을 때만 재고표를 다시 그립니다 (입력 중이면 손을 뗀 뒤에)
+let _jungStockSig='';
+function stockRefreshForJungs(){
+  const sig=(jungs||[]).filter(j=>j&&j.상태==='완료').map(j=>{
+    const pt=postingLoad(j.재고반영)||jungPosting(j);
+    return [j.id,pt.ym,pt.d,Object.entries(pt.items).map(([n,q])=>n+'='+q).join(','),j.분향실||'',j.고인||'',j.완료일||''].join('/');
+  }).sort().join('|');
+  if(sig===_jungStockSig) return;
+  _jungStockSig=sig;
+  if(!document.getElementById('page-재고')?.classList.contains('on')) return;
+  const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#page-재고 .stbl');
+  if(typing) _stockRenderSkipped=true; else renderStock();
+}
+function stockLogDrop(ym,id){ const L=stockData[ym]&&stockData[ym][STOCK_LOG]; if(L&&typeof L==='object') delete L[id]; }
+// 완료한 정산서를 지워도 재고 출고는 남습니다 → 어느 정산서의 출고였는지 내역에 남겨 둡니다
+function keepDeletedJungPosting(j){
+  const pt=postingLoad(j.재고반영)||jungPosting(j);
+  if(!pt||!/^[0-9]{4}-[0-9]{2}$/.test(pt.ym)||!(pt.d>=1&&pt.d<=31)) return;
+  const map={}, del={기록자:currentUser?.이름||'',시각:nowISO()};
+  const label=`정산서 ${roomHo(j.분향실)} ${j.고인||''}`.replace(/\s+/g,' ').trim();
+  Object.entries(pt.items).forEach(([nm,q])=>{
+    q=+q||0;
+    if(q) stockLogAdd(map,pt.ym,{d:pt.d,품명:stockCanon(nm),구분:'출고',수량:q,시각:j.완료일||'',기록자:'',메모:label,삭제:del});
+  });
+  stockUpdate(map).catch(e=>console.error('지운 정산서의 출고 내역 저장 오류:',e));
+}
+// 이 달의 일별 내역: `${일}|${품명}` → [{구분, 수량, 이전, 증감(칸에 더해진 값), 시각, 내용, 기록자, 출처}]
+function stockDayEntries(ym){
+  const idx=new Map();
+  const put=(d,nm,x)=>{ const k=d+'|'+stockCanon(nm); if(!idx.has(k)) idx.set(k,[]); idx.get(k).push(x); };
+  // 정산서 출고 — 완료한 정산서가 재고에 반영한 출고 (예전 정산서는 발인일·수량으로)
+  (jungs||[]).forEach(j=>{
+    if(!j||j.상태!=='완료') return;
+    const pt=postingLoad(j.재고반영)||jungPosting(j);
+    if(!pt||pt.ym!==ym||!(pt.d>=1&&pt.d<=31)) return;
+    const label=`정산서 ${roomHo(j.분향실)} ${j.고인||''}`.replace(/\s+/g,' ').trim();
+    Object.entries(pt.items).forEach(([nm,q])=>{ q=+q||0; if(q) put(pt.d,nm,{구분:'출고',수량:q,증감:q,시각:j.완료일||'',내용:label,기록자:'',출처:'정산'}); });
+  });
+  // [재고량 수정]으로 넣은 입고·출고·설정
+  stockLogList(ym).forEach(e=>{
+    const d=+e.d; if(!(d>=1&&d<=31)) return;
+    const q=+e.수량||0, prev=+e.이전||0;
+    const 증감=e.구분==='입고'?-q:e.구분==='출고'?q:e.구분==='설정'?q-prev:0;
+    put(d,e.품명,{구분:e.구분,수량:q,이전:prev,증감,시각:e.시각||'',내용:e.메모||`직접 ${e.구분}`,기록자:e.기록자||'',삭제:e.삭제||null,출처:e.메모?'정산':'직접'});
+  });
+  return idx;
+}
+// 내역 합계 — 칸 값(v)과 내역의 차이(rest)는 '세부 내역 없음'으로 출고·입고에 나눠 넣습니다
+function stockDaySummary(L,v){
+  let out=0,inn=0,adj=0,sum=0;
+  (L||[]).forEach(x=>{ if(x.구분==='출고') out+=x.수량; else if(x.구분==='입고') inn+=x.수량; else adj+=x.증감; sum+=x.증감; });
+  const rest=(+v||0)-sum;
+  return {rest, 출고:out+(rest>0?rest:0), 입고:inn+(rest<0?-rest:0), 설정:adj};
+}
+// 재고표의 일별 칸 — 내역이 있거나 값이 있으면 눌러서 볼 수 있게, 같은 날 입고와 출고가 함께 있으면 표시합니다
+function dayCellHtml(v,L,d){
+  if(!v&&!(L&&L.length)) return '<td class="dcol" style="font-size:11px;color:#aaa"></td>';
+  const s=stockDaySummary(L,v);
+  const mix=(s.출고&&s.입고)||s.설정;
+  const tip=`출고 ${s.출고} · 입고 ${s.입고}`+(s.설정?` · 설정 ${s.설정>0?'+':''}${s.설정}`:'')+' — 누르면 내역을 볼 수 있습니다';
+  return `<td class="dcol dhas${mix?' dmix':''}" data-d="${d}" title="${esc(tip)}" style="font-size:11px;color:${v>0?'#c0392b':v<0?'#217a3c':'#777'}">${v}</td>`;
+}
+// 이 기능 전에 [재고량 수정]으로 넣은 입고·출고 — 작업 기록에서 찾습니다
+// (내역이 모자란 칸의 창을 열 때만 읽고, 1분 안에는 읽은 것을 다시 씁니다 — 아직 새로고침하지 않은 컴퓨터에서 넣은 것도 찾게)
+let _wlStock=null, _wlAt=0;
+function workLogStockEntries(){
+  if(_wlStock&&Date.now()-_wlAt<60000) return _wlStock;
+  _wlAt=Date.now();
+  _wlStock=(async()=>{
+    const data=await withTimeout(fbGet('logs'),8000);
+    const out=[];
+    Object.values(data||{}).forEach(l=>{
+      if(!l||typeof l!=='object'||l.작업!=='재고량 수정'||l.내역) return;    // 내역:1은 일별 내역에 이미 있는 기록입니다
+      const m=/^([0-9]{4}-[0-9]{2}-[0-9]{2}) · (.+)$/.exec(String(l.대상||'')); if(!m) return;
+      const parts=m[2].split(', ').map(t=>/^(.+) (입고|출고|설정) (-?[0-9]+)$/.exec(t));
+      if(parts.some(x=>!x)) return;                                            // 읽을 수 없는 기록은 쓰지 않습니다
+      parts.forEach(x=>out.push({날짜:m[1],품명:stockCanon(x[1]),구분:x[2],수량:+x[3],시각:l.시간||'',기록자:l.사용자||''}));
+    });
+    return out;
+  })();
+  _wlStock.catch(()=>{ _wlStock=null; });   // 못 읽었으면 다음에 다시 읽습니다
+  return _wlStock;
+}
+let _dayPop=null;   // 열려 있는 일별 내역 창 {ym, d, nm, td, wl}
+function bindDayPop(body){
+  if(body._dpBound) return;
+  body._dpBound=true;
+  body.addEventListener('click',e=>{
+    const td=e.target.closest('td.dcol.dhas'); if(!td||!body.contains(td)) return;
+    if(_dayPop&&_dayPop.td===td){ closeDayPop(); return; }          // 같은 칸을 다시 누르면 닫습니다
+    openDayPop(td,body.dataset.ym||stockYM(),+td.dataset.d,td.closest('tr').dataset.nm);
+  });
+  document.addEventListener('pointerdown',e=>{
+    if(!_dayPop||!e.target.closest) return;
+    if(e.target.closest('#dayPop')||e.target.closest('#stockBody td.dcol.dhas')) return;
+    closeDayPop();
+  },true);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&_dayPop) closeDayPop(); });
+  document.addEventListener('scroll',()=>{ if(_dayPop) requestAnimationFrame(placeDayPop); },true);   // 표를 넘기면 칸을 따라갑니다
+  window.addEventListener('resize',()=>{ if(_dayPop) placeDayPop(); });
+}
+function openDayPop(td,ym,d,nm){
+  if(!nm||!(d>=1&&d<=31)) return;
+  let el=document.getElementById('dayPop');
+  if(!el){ el=document.createElement('div'); el.id='dayPop'; el.className='daypop'; el.setAttribute('role','dialog'); document.body.appendChild(el); }
+  if(_dayPop&&_dayPop.td) _dayPop.td.classList.remove('dsel');
+  _dayPop={ym,d,nm,td,wl:null};
+  td.classList.add('dsel');
+  renderDayPop(); placeDayPop();
+  dayPopWorkLog(_dayPop);
+}
+function closeDayPop(){
+  if(_dayPop&&_dayPop.td) _dayPop.td.classList.remove('dsel');
+  _dayPop=null;
+  const el=document.getElementById('dayPop'); if(el){ el.style.display='none'; el.innerHTML=''; }
+}
+// 재고표를 다시 그리면(다른 컴퓨터에서 바뀐 때 등) 열린 창도 새 내용으로 맞춥니다
+function refreshDayPop(){
+  if(!_dayPop) return;
+  const body=document.getElementById('stockBody');
+  if(!body||body.dataset.ym!==_dayPop.ym){ closeDayPop(); return; }
+  const tr=[...body.rows].find(r=>r.dataset.nm===_dayPop.nm);
+  const td=tr&&tr.querySelector(`td.dcol.dhas[data-d="${_dayPop.d}"]`);
+  if(!td){ closeDayPop(); return; }
+  _dayPop.td=td; td.classList.add('dsel');
+  renderDayPop(); placeDayPop();
+}
+function dayPopRows(ym,d,nm){
+  const v=+((stockRowOf(stockData[ym]||{},nm)||{})[d])||0;
+  let L=(stockDayEntries(ym).get(d+'|'+stockCanon(nm))||[]).slice();
+  let s=stockDaySummary(L,v);
+  // 작업 기록에서 찾은 예전 입고·출고가 남은 수량과 꼭 맞을 때만 그것으로 나눠 보여 줍니다
+  const W=_dayPop&&_dayPop.ym===ym&&_dayPop.d===d&&_dayPop.nm===nm?_dayPop.wl:null;
+  if(s.rest&&W&&W.length&&W.reduce((a,x)=>a+x.증감,0)===s.rest){ L=L.concat(W); s=stockDaySummary(L,v); }
+  L.sort((a,b)=>String(a.시각||'').localeCompare(String(b.시각||'')));
+  return {v,L,s};
+}
+async function dayPopWorkLog(cur){
+  const {s}=dayPopRows(cur.ym,cur.d,cur.nm);
+  if(!s.rest) return;
+  let all; try{ all=await workLogStockEntries(); }catch(_){ return; }
+  if(_dayPop!==cur) return;                       // 그사이 창을 닫았거나 다른 칸을 열었으면 그만둡니다
+  const day=`${cur.ym}-${String(cur.d).padStart(2,'0')}`, k=stockCanon(cur.nm);
+  const W=all.filter(x=>x.날짜===day&&x.품명===k);
+  if(!W.length||W.some(x=>x.구분==='설정')) return;   // 설정은 그때 칸 값을 알 수 없어 나누지 않습니다
+  cur.wl=W.map(x=>({구분:x.구분,수량:x.수량,증감:x.구분==='입고'?-x.수량:x.수량,시각:x.시각,내용:`직접 ${x.구분}`,기록자:x.기록자,출처:'작업기록'}));
+  renderDayPop(); placeDayPop();
+}
+function renderDayPop(){
+  const el=document.getElementById('dayPop'); if(!el||!_dayPop) return;
+  const {ym,d,nm}=_dayPop;
+  const {v,L,s}=dayPopRows(ym,d,nm);
+  const day=`${ym}-${String(d).padStart(2,'0')}`;
+  const wk='일월화수목금토'[new Date(+ym.slice(0,4),+ym.slice(5,7)-1,d).getDay()];
+  const tm=iso=>{ const t=iso?localDateTimeOf(iso):''; if(!t) return '–'; return t.slice(0,10)===day?t.slice(11):`${+t.slice(5,7)}/${+t.slice(8,10)} ${t.slice(11)}`; };
+  const K={출고:'k-out',입고:'k-in',설정:'k-set'};
+  const note=t=>`<span class="dp-note">${t}</span>`;
+  const rows=L.map(x=>{
+    const set=x.구분==='설정';
+    let txt=esc(x.내용)+(x.기록자?` · ${esc(x.기록자)}`:'');
+    if(set) txt+=note(`그날 칸을 ${x.수량}(으)로 바꿨습니다 (이전 ${x.이전}, ${x.증감>0?'+':''}${x.증감})`);
+    if(x.삭제) txt+=note(`지운 정산서입니다 (${esc(x.삭제.기록자||'')} ${esc(tm(x.삭제.시각))} 삭제)`);
+    if(x.출처==='작업기록') txt+=note('작업 기록에서 찾은 내역입니다');
+    return `<tr><td class="dp-t">${esc(tm(x.시각))}</td><td><span class="dp-k ${K[x.구분]||'k-none'}">${esc(x.구분)}</span></td>`
+      +`<td class="dp-q">${set?'='+x.수량:x.수량}</td><td>${txt}</td></tr>`;
+  });
+  // 내역이 없는 변동은 언제인지 모르므로 맨 앞에 둡니다 (대개 이 기능 전에 넣은 것입니다)
+  if(s.rest) rows.unshift(`<tr class="dp-rest"><td class="dp-t">–</td><td><span class="dp-k k-none">${s.rest>0?'출고':'입고'}</span></td>`
+    +`<td class="dp-q">${Math.abs(s.rest)}</td><td>세부 내역 없음${note('이 기능을 쓰기 전에 넣었거나 내역이 남지 않은 변동입니다')}</td></tr>`);
+  const pk=q=>{ const t=fmtQtyPk(q,nm); return q&&t!==String(q)?` <span class="dp-pk">(${esc(t)})</span>`:''; };
+  const res=v>0?`출고 ${v}`:v<0?`입고 ${-v}`:'0';
+  el.innerHTML=`<div class="dp-hd"><b>${esc(nm)}</b><button type="button" class="dp-x" onclick="closeDayPop()" title="닫기">✕</button></div>`
+    +`<div class="dp-sub">${esc(ymLabel(ym))} ${d}일 (${wk}) 입고·출고 내역</div>`
+    +`<div class="dp-body"><table><thead><tr><th>시각</th><th>구분</th><th class="dp-q">수량</th><th>내용</th></tr></thead>`
+    +`<tbody>${rows.join('')||'<tr><td colspan="4" class="dp-none">이날 입고·출고 내역이 없습니다.</td></tr>'}</tbody></table></div>`
+    +`<div class="dp-sum"><span class="dp-o">출고 합계 <b>${s.출고}</b>${pk(s.출고)}</span> · <span class="dp-i">입고 합계 <b>${s.입고}</b>${pk(s.입고)}</span>`
+    +(s.설정?` · <span class="dp-s">설정 <b>${s.설정>0?'+':''}${s.설정}</b></span>`:'')
+    +`<div class="dp-res">이날 결과 <b class="${v>0?'dp-o':v<0?'dp-i':''}">${res}</b>${pk(Math.abs(v))}${v===0&&L.length&&!s.설정?' <span class="dp-note" style="display:inline">입고와 출고가 같아 칸이 0입니다</span>':''}</div></div>`;
+  el.style.display='block';
+}
+function placeDayPop(){
+  const el=document.getElementById('dayPop'); if(!el||!_dayPop) return;
+  const td=_dayPop.td;
+  if(!td||!td.isConnected||!td.offsetParent){ closeDayPop(); return; }
+  const r=td.getBoundingClientRect();
+  const wrap=document.getElementById('stockWrap'), wr=wrap&&wrap.getBoundingClientRect();
+  if(wr&&(r.bottom<wr.top||r.top>wr.bottom||r.right<wr.left||r.left>wr.right)){ closeDayPop(); return; }   // 칸이 표 밖으로 나가면 닫습니다
+  const vw=document.documentElement.clientWidth, vh=window.innerHeight, w=el.offsetWidth, h=el.offsetHeight;
+  const x=Math.max(6,Math.min(r.left+r.width/2-w/2,vw-w-6));
+  let y=r.bottom+6;
+  if(y+h>vh-6) y=r.top-h-6>=6?r.top-h-6:Math.max(6,vh-h-6);           // 아래 자리가 모자라면 칸 위로
+  el.style.left=Math.round(x)+'px'; el.style.top=Math.round(y)+'px';
+}
+
 // ── 재고량 수정 모달 ──
 function openStockEditModal(){
   const today=todayStr();
@@ -8026,12 +8279,17 @@ async function saveStockEdit(){
   if(bad.length){ alert('다음 줄은 수량을 다시 확인하십시오. (입고·출고는 1 이상, 같은 품목은 한 줄에)\n\n· '+bad.join('\n· ')); return; }
   const changed=rows.length;
   if(changed===0){alert('수정할 물품과 수량을 입력해 주세요.');return;}
-  const seMap={};
+  const seMap={}, now=nowISO(), who=currentUser?.이름||'', logIds=[];
   rows.forEach(({품명,qty,mode})=>{
     const pth=stockCellPath(ym,품명,d);
+    const prev=+(stockItem(ym,품명)[d])||0;             // 설정 내역에 남길 이전 값 (화면 자료를 고치기 전에 읽습니다)
     if(mode==='in') seMap[pth]=stockInc(-qty);          // 입고: 재고 증가 → 표에 음수(-값)로 기록 (출고 반대)
     else if(mode==='out') seMap[pth]=stockInc(qty);     // 출고: 재고 감소 → 표에 양수(+값)로 기록
     else seMap[pth]=qty?qty:null;                       // 설정: 해당 칸을 직접 지정 (0을 넣으면 그 날 칸을 비웁니다)
+    // 일별 칸에는 순 출고만 남으므로, 이 입고·출고를 한 건씩 같은 저장에 함께 적어 둡니다 (칸을 누르면 보입니다)
+    const e={d,품명:stockCanon(품명),구분:mode==='in'?'입고':mode==='out'?'출고':'설정',수량:qty,시각:now,기록자:who};
+    if(mode==='set') e.이전=prev;
+    logIds.push(stockLogAdd(seMap,ym,e));
   });
   // 화면 자료에 먼저 적용한 뒤 서버에 보냅니다.
   // (Firebase는 저장하는 순간 실시간 수신으로 새 값을 바로 다시 넣어 주므로, 저장이 끝난 뒤에 화면 자료를 또 고치면
@@ -8047,10 +8305,12 @@ async function saveStockEdit(){
   try{await stockUpdate(seMap);touchMeta('stock');}
   catch(e){
     undo.forEach(u=>{ if(u.had) u.item[d]=u.prev; else delete u.item[d]; });   // 저장하지 못한 변경은 화면에서도 되돌립니다
+    logIds.forEach(id=>stockLogDrop(ym,id));
     alert('저장 실패: '+e.message); showSaving(false); renderStock(); return;
   }
   showSaving(false);
-  addLog(currentUser?.이름||'','재고량 수정',`${날짜str} · `+rows.map(r=>`${r.품명} ${r.mode==='in'?'입고':r.mode==='out'?'출고':'설정'} ${r.qty}`).join(', '));
+  // 내역:1 — 일별 내역에도 남긴 기록입니다 (이 기능 전의 작업 기록과 구별합니다)
+  addLog(currentUser?.이름||'','재고량 수정',`${날짜str} · `+rows.map(r=>`${r.품명} ${r.mode==='in'?'입고':r.mode==='out'?'출고':'설정'} ${r.qty}`).join(', '),{내역:1});
   closeModal('stockEditModal');
   const curYM=stockYM();
   if(ym===curYM){
